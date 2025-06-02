@@ -1,0 +1,35 @@
+part "wheel" {}
+
+part "truck" {}
+
+part "deck" {}
+
+assembly "truckwheel" {
+    from = [
+        {
+            name = "truck"
+            ref = part.truck
+            qty = 1
+        },
+        {
+            name = "wheel"
+            ref = part.wheel
+            qty = 2
+        },
+    ]
+}
+
+assembly "skateboard" {
+    from = [
+        {
+            name = "deck"
+            ref = part.deck
+            qty = 1
+        },
+        {
+            name = "truckwheel"
+            ref = assembly.truckwheel
+            qty = 2
+        },
+    ]
+}
