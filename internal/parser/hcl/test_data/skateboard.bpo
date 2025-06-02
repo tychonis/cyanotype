@@ -1,34 +1,34 @@
-part "wheel" {}
+item "wheel" {}
 
-part "truck" {}
+item "truck" {}
 
-part "deck" {}
+item "deck" {}
 
-assembly "truckwheel" {
+item "truckwheel" {
     from = [
         {
             name = "truck"
-            ref = part.truck
+            ref = item.truck
             qty = 1
         },
         {
             name = "wheel"
-            ref = part.wheel
+            ref = item.wheel
             qty = 2
         },
     ]
 }
 
-assembly "skateboard" {
+item "skateboard" {
     from = [
         {
             name = "deck"
-            ref = part.deck
+            ref = item.deck
             qty = 1
         },
         {
             name = "truckwheel"
-            ref = assembly.truckwheel
+            ref = item.truckwheel
             qty = 2
         },
     ]

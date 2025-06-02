@@ -6,10 +6,12 @@ import (
 	"github.com/google/uuid"
 )
 
-type Assembly struct {
+type Item struct {
 	ID         uuid.UUID    `json:"id" yaml:"id"`
 	Name       string       `json:"name" yaml:"name"`
+	Source     string       `json:"source" yaml:"source"`
 	PartNumber string       `json:"part_number" yaml:"part_number"`
+	Reference  string       `json:"ref" yaml:"ref"`
 	Components []*Component `json:"components" yaml:"components"`
 }
 
@@ -19,26 +21,26 @@ type Component struct {
 	Qty  float64 `json:"qty" yaml:"qty"`
 }
 
-func (a *Assembly) GetID() uuid.UUID {
-	return a.ID
+func (i *Item) GetID() uuid.UUID {
+	return i.ID
 }
 
-func (a *Assembly) SetID(id uuid.UUID) error {
-	if a.ID != uuid.Nil && a.ID != id {
+func (i *Item) SetID(id uuid.UUID) error {
+	if i.ID != uuid.Nil && i.ID != id {
 		return errors.New("id conflict")
 	}
-	a.ID = id
+	i.ID = id
 	return nil
 }
 
-func (a *Assembly) GetName() string {
-	return a.Name
+func (i *Item) GetName() string {
+	return i.Name
 }
 
-func (a *Assembly) GetPartNumber() string {
-	return a.PartNumber
+func (i *Item) GetPartNumber() string {
+	return i.PartNumber
 }
 
-func (a *Assembly) GetComponents() []*Component {
-	return a.Components
+func (i *Item) GetComponents() []*Component {
+	return i.Components
 }

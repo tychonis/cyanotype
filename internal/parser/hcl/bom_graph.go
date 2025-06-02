@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/google/uuid"
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/tychonis/cyanotype/internal/states"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -37,19 +37,17 @@ func (g *BOMGraph) MergeGraph(g2 *BOMGraph) error {
 	return nil
 }
 
-func (g *BOMGraph) parseBlock(block *hcl.Block) error {
+func (g *BOMGraph) parseBlock(block *hclsyntax.Block) error {
 	switch block.Type {
 	case "state":
 		g.parseStateBlock(block)
-	case "part":
-		g.parsePartBlock(block)
-	case "assembly":
-		g.parseAssemblyBlock(block)
+	case "item":
+		g.parseItemBlock(block)
 	}
 	return nil
 }
 
-func (g *BOMGraph) parseStateBlock(block *hcl.Block) error {
+func (g *BOMGraph) parseStateBlock(block *hclsyntax.Block) error {
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
 		return diags
@@ -71,7 +69,7 @@ func (g *BOMGraph) parseStateBlock(block *hcl.Block) error {
 	return g.Catalog.MergeCatalog(&c)
 }
 
-func (g *BOMGraph) parsePartBlock(block *hcl.Block) error {
+func (g *BOMGraph) parseItemBlock(block *hclsyntax.Block) error {
 	name := block.Labels[0]
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
@@ -79,25 +77,11 @@ func (g *BOMGraph) parsePartBlock(block *hcl.Block) error {
 	}
 	pn, _ := getString(attrs, "part_number")
 	ref, _ := getString(attrs, "ref")
-	g.Items[name] = &model.Part{
+	components := readComponents(attrs["from"])
+	g.Items[name] = &model.Item{
 		Name:       name,
 		PartNumber: pn,
 		Reference:  ref,
-	}
-	return nil
-}
-
-func (g *BOMGraph) parseAssemblyBlock(block *hcl.Block) error {
-	name := block.Labels[0]
-	attrs, diags := block.Body.JustAttributes()
-	if diags.HasErrors() {
-		return diags
-	}
-	pn, _ := getString(attrs, "part_number")
-	components := readComponents(attrs["from"])
-	g.Items[name] = &model.Assembly{
-		Name:       name,
-		PartNumber: pn,
 		Components: components,
 	}
 	return nil
@@ -116,7 +100,7 @@ func (g *BOMGraph) assignIDs() {
 
 func (g *BOMGraph) resolveRefs() {
 	for _, item := range g.Items {
-		asm, ok := item.(*model.Assembly)
+		asm, ok := item.(*model.Item)
 		if !ok {
 			continue
 		}
@@ -142,17 +126,9 @@ func parseFile(filename string) *BOMGraph {
 		return nil
 	}
 
-	content, _, diags := file.Body.PartialContent(
-		&hcl.BodySchema{
-			Blocks: []hcl.BlockHeaderSchema{
-				{Type: "state", LabelNames: []string{"name"}},
-				{Type: "part", LabelNames: []string{"name"}},
-				{Type: "assembly", LabelNames: []string{"name"}},
-			},
-		},
-	)
-	if diags.HasErrors() {
-		slog.Error("Failed to parse contetn.", "error", diags.Error())
+	content, ok := file.Body.(*hclsyntax.Body)
+	if !ok {
+		slog.Error("Failed to parse content.")
 		return nil
 	}
 
