@@ -19,7 +19,10 @@ func run(cmd *cobra.Command, args []string) {
 	bomPath := args[0]
 	rootPart := args[1]
 
-	bom := hcl.Parse(bomPath)
+	bom, err := hcl.Parse(bomPath)
+	if err != nil {
+		slog.Warn("Failed to parse bpo.", "error", err)
+	}
 
 	rootItem, ok := bom.Items[rootPart]
 	if !ok {

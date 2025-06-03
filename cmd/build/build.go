@@ -2,6 +2,7 @@ package build
 
 import (
 	"encoding/json"
+	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -19,7 +20,11 @@ func run(cmd *cobra.Command, args []string) {
 	bpoPath := args[0]
 	bpcPath := args[1]
 
-	bom := hcl.Parse(bpoPath)
+	bom, err := hcl.Parse(bpoPath)
+	if err != nil {
+		slog.Warn("Failed to parse bpo.", "error", err)
+	}
+	bom.BuildCatalog()
 
 	output, _ := os.Create(bpcPath)
 	encoder := json.NewEncoder(output)

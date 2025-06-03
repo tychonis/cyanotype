@@ -39,12 +39,20 @@ func (g *BOMGraph) MergeGraph(g2 *BOMGraph) error {
 
 func (g *BOMGraph) parseBlock(block *hclsyntax.Block) error {
 	switch block.Type {
+	case "import":
+		return g.parseImportBlock(block)
 	case "state":
-		g.parseStateBlock(block)
+		return g.parseStateBlock(block)
 	case "item":
-		g.parseItemBlock(block)
+		return g.parseItemBlock(block)
 	}
 	return nil
+}
+
+func (g *BOMGraph) parseImportBlock(block *hclsyntax.Block) error {
+	path := block.Labels[0]
+	toImport := ParseFolder(path)
+	return g.MergeGraph(toImport)
 }
 
 func (g *BOMGraph) parseStateBlock(block *hclsyntax.Block) error {
@@ -163,13 +171,16 @@ func ParseFolder(dir string) *BOMGraph {
 	return bomGraph
 }
 
-func Parse(path string) *BOMGraph {
-	info, _ := os.Stat(path)
+func Parse(path string) (*BOMGraph, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
 	var bom *BOMGraph
 	if info.IsDir() {
 		bom = ParseFolder(path)
 	} else {
 		bom = ParseFile(path)
 	}
-	return bom
+	return bom, nil
 }
