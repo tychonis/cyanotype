@@ -16,17 +16,21 @@ import (
 
 const EXTENSION = ".bpo"
 
+type Items = map[string]model.BOMItem
+
 type BOMGraph struct {
-	Catalog *states.Catalog
-	Items   map[string]model.BOMItem
-	Changes map[string]uuid.UUID
+	Catalog  *states.Catalog
+	Items    Items
+	Variants map[string]Items
+	Changes  map[string]uuid.UUID
 }
 
 func NewBOMGraph() *BOMGraph {
 	return &BOMGraph{
-		Catalog: states.NewCatalog(),
-		Items:   make(map[string]model.BOMItem),
-		Changes: make(map[string]uuid.UUID),
+		Catalog:  states.NewCatalog(),
+		Items:    make(Items),
+		Variants: make(map[string]Items),
+		Changes:  make(map[string]uuid.UUID),
 	}
 }
 
@@ -34,6 +38,7 @@ func (g *BOMGraph) MergeGraph(g2 *BOMGraph) error {
 	g.Catalog.MergeCatalog(g2.Catalog)
 	maps.Copy(g.Items, g2.Items)
 	maps.Copy(g.Changes, g2.Changes)
+	maps.Copy(g.Variants, g2.Variants)
 	return nil
 }
 
@@ -77,21 +82,43 @@ func (g *BOMGraph) parseStateBlock(block *hclsyntax.Block) error {
 	return g.Catalog.MergeCatalog(&c)
 }
 
-func (g *BOMGraph) parseItemBlock(block *hclsyntax.Block) error {
+func blockToItem(block *hclsyntax.Block) (*model.Item, error) {
 	name := block.Labels[0]
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
-		return diags
+		return nil, diags
 	}
 	pn, _ := getString(attrs, "part_number")
 	ref, _ := getString(attrs, "ref")
+	src, _ := getString(attrs, "source")
 	components := readComponents(attrs["from"])
-	g.Items[name] = &model.Item{
+	return &model.Item{
 		Name:       name,
 		PartNumber: pn,
 		Reference:  ref,
+		Source:     src,
 		Components: components,
+	}, nil
+}
+
+func (g *BOMGraph) parseItemBlock(block *hclsyntax.Block) error {
+	var ok bool
+	items := g.Items
+	if len(block.Labels) > 1 {
+		variant := block.Labels[1]
+		items, ok = g.Variants[variant]
+		if !ok {
+			items = make(Items)
+			g.Variants[variant] = items
+		}
 	}
+
+	item, err := blockToItem(block)
+	if err != nil {
+		return err
+	}
+
+	items[item.Name] = item
 	return nil
 }
 
