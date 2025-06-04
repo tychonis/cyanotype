@@ -8,6 +8,7 @@ type BOMItem interface {
 	GetName() string
 	GetPartNumber() string
 	GetComponents() []*Component
+	GetDetails() map[string]any
 }
 
 type SymbolicRef struct {
@@ -45,5 +46,9 @@ func (r *SymbolicRef) GetComponents() []*Component {
 	if r.Target != nil {
 		return r.Target.GetComponents()
 	}
+	return nil
+}
+
+func (r *SymbolicRef) GetDetails() map[string]any {
 	return nil
 }

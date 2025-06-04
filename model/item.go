@@ -1,7 +1,13 @@
 package model
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"io"
+	"log/slog"
+	"os"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -43,4 +49,41 @@ func (i *Item) GetPartNumber() string {
 
 func (i *Item) GetComponents() []*Component {
 	return i.Components
+}
+
+func sha256FromFile(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, f); err != nil {
+		return "", err
+	}
+
+	sum := hasher.Sum(nil)
+	return hex.EncodeToString(sum), nil
+}
+
+func (i *Item) HashReference() string {
+	component := strings.Split(i.Reference, ":")
+	if len(component) != 2 {
+		return ""
+	}
+	switch component[0] {
+	case "file":
+		sha, _ := sha256FromFile(component[1])
+		return sha
+	default:
+		slog.Warn("Unsupported scheme", "scheme", component[0])
+	}
+	return ""
+}
+
+func (i *Item) GetDetails() map[string]any {
+	details := make(map[string]any)
+	details["ref_hash"] = i.HashReference()
+	return details
 }

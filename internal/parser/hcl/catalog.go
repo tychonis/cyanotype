@@ -9,6 +9,7 @@ import (
 func (g *BOMGraph) BuildCatalog() {
 	g.buildNameIdx()
 	g.buildPartNumberIdx()
+	g.buildCatalogDetails()
 }
 
 func (g *BOMGraph) buildNameIdx() {
@@ -21,9 +22,22 @@ func (g *BOMGraph) buildPartNumberIdx() {
 	for _, item := range g.Items {
 		partNumber := item.GetPartNumber()
 		if partNumber == "" {
-			partNumber = g.generatePartNumber(item)
+			part, ok := item.(*model.Item)
+			if ok {
+				partNumber = g.generatePartNumber(item)
+				part.PartNumber = partNumber
+			}
 		}
 		g.Catalog.PartNumberIdx[partNumber] = item.GetID()
+	}
+}
+
+func (g *BOMGraph) buildCatalogDetails() {
+	for _, item := range g.Items {
+		details := item.GetDetails()
+		details["name"] = item.GetName()
+		details["part_number"] = item.GetPartNumber()
+		g.Catalog.Catalog[item.GetID()] = details
 	}
 }
 
