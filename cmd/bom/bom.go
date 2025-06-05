@@ -24,6 +24,11 @@ func run(cmd *cobra.Command, args []string) {
 		slog.Warn("Failed to parse bpo.", "error", err)
 	}
 
+	if len(args) > 2 {
+		variant := args[2]
+		bom = bom.InstantiateVariant(variant)
+	}
+
 	rootItem, ok := bom.Items[rootPart]
 	if !ok {
 		slog.Warn("Root item not found.", "item", rootPart)

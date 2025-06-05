@@ -153,6 +153,11 @@ func (g *BOMGraph) resolveRefs() {
 	}
 }
 
+func (g *BOMGraph) Build() {
+	g.assignIDs()
+	g.resolveRefs()
+}
+
 func parseFile(filename string) *BOMGraph {
 	parser := hclparse.NewParser()
 	file, diags := parser.ParseHCLFile(filename)
@@ -176,8 +181,7 @@ func parseFile(filename string) *BOMGraph {
 
 func ParseFile(filename string) *BOMGraph {
 	bomGraph := parseFile(filename)
-	bomGraph.assignIDs()
-	bomGraph.resolveRefs()
+	bomGraph.Build()
 	return bomGraph
 }
 
@@ -193,8 +197,7 @@ func ParseFolder(dir string) *BOMGraph {
 			bomGraph.MergeGraph(partialBOM)
 		}
 	}
-	bomGraph.assignIDs()
-	bomGraph.resolveRefs()
+	bomGraph.Build()
 	return bomGraph
 }
 
