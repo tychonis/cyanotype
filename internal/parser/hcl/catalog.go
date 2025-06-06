@@ -34,10 +34,7 @@ func (g *BOMGraph) buildPartNumberIdx() {
 
 func (g *BOMGraph) buildItems(items Items) {
 	for _, item := range items {
-		details := item.GetDetails()
-		details["name"] = item.GetName()
-		details["part_number"] = item.GetPartNumber()
-		g.Catalog.Catalog[item.GetID()] = details
+		g.Catalog.Catalog[item.GetID()] = item
 	}
 }
 

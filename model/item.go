@@ -15,10 +15,10 @@ import (
 type Item struct {
 	ID         uuid.UUID    `json:"id" yaml:"id"`
 	Name       string       `json:"name" yaml:"name"`
-	Source     string       `json:"source" yaml:"source"`
+	Source     string       `json:"source,omitempty" yaml:"source,omitempty"`
 	PartNumber string       `json:"part_number" yaml:"part_number"`
-	Reference  string       `json:"ref" yaml:"ref"`
-	Components []*Component `json:"components" yaml:"components"`
+	Reference  string       `json:"ref,omitempty" yaml:"ref,omitempty"`
+	Components []*Component `json:"-" yaml:"-"`
 }
 
 type Component struct {
