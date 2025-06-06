@@ -12,9 +12,9 @@ type BOMItem interface {
 }
 
 type SymbolicRef struct {
-	Name   string
-	Kind   string
-	Target BOMItem
+	Name   string  `json:"name" yaml:"name"`
+	Kind   string  `json:"kind" yaml:"kind"`
+	Target BOMItem `json:"target" yaml:"target"`
 }
 
 func (r *SymbolicRef) GetID() uuid.UUID {

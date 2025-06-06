@@ -32,12 +32,19 @@ func (g *BOMGraph) buildPartNumberIdx() {
 	}
 }
 
-func (g *BOMGraph) buildCatalogDetails() {
-	for _, item := range g.Items {
+func (g *BOMGraph) buildItems(items Items) {
+	for _, item := range items {
 		details := item.GetDetails()
 		details["name"] = item.GetName()
 		details["part_number"] = item.GetPartNumber()
 		g.Catalog.Catalog[item.GetID()] = details
+	}
+}
+
+func (g *BOMGraph) buildCatalogDetails() {
+	g.buildItems(g.Items)
+	for _, items := range g.Variants {
+		g.buildItems(items)
 	}
 }
 

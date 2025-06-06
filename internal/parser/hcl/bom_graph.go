@@ -16,7 +16,7 @@ import (
 
 const EXTENSION = ".bpo"
 
-type Items = map[string]model.BOMItem
+type Items map[string]model.BOMItem
 
 type BOMGraph struct {
 	Catalog  *states.Catalog
@@ -130,6 +130,14 @@ func (g *BOMGraph) assignIDs() {
 			g.Changes[name] = id
 		}
 		item.SetID(id)
+	}
+	// TODO: rethink how to handle variants.
+	for _, variant := range g.Variants {
+		for _, item := range variant {
+			if item.GetID() == uuid.Nil {
+				item.SetID(uuid.New())
+			}
+		}
 	}
 }
 
