@@ -15,9 +15,18 @@ var Cmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(2),
 }
 
+func init() {
+	Cmd.Flags().StringP("output", "o", "csv", "set output format")
+}
+
 func run(cmd *cobra.Command, args []string) {
 	bomPath := args[0]
 	rootPart := args[1]
+
+	outputFmt := cmd.Flag("output").Value.String()
+	if outputFmt != "csv" {
+		slog.Warn("Format not supported.", "format", outputFmt)
+	}
 
 	bom, err := hcl.Parse(bomPath)
 	if err != nil {

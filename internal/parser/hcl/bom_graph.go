@@ -35,6 +35,9 @@ func NewBOMGraph() *BOMGraph {
 }
 
 func (g *BOMGraph) MergeGraph(g2 *BOMGraph) error {
+	if g2 == nil {
+		return nil
+	}
 	g.Catalog.MergeCatalog(g2.Catalog)
 	maps.Copy(g.Items, g2.Items)
 	maps.Copy(g.Changes, g2.Changes)
@@ -56,7 +59,7 @@ func (g *BOMGraph) parseBlock(block *hclsyntax.Block) error {
 
 func (g *BOMGraph) parseImportBlock(block *hclsyntax.Block) error {
 	path := block.Labels[0]
-	toImport := ParseFolder(path)
+	toImport := parseFolder(path)
 	return g.MergeGraph(toImport)
 }
 
@@ -193,7 +196,7 @@ func ParseFile(filename string) *BOMGraph {
 	return bomGraph
 }
 
-func ParseFolder(dir string) *BOMGraph {
+func parseFolder(dir string) *BOMGraph {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil
@@ -205,6 +208,11 @@ func ParseFolder(dir string) *BOMGraph {
 			bomGraph.MergeGraph(partialBOM)
 		}
 	}
+	return bomGraph
+}
+
+func ParseFolder(dir string) *BOMGraph {
+	bomGraph := parseFolder(dir)
 	bomGraph.Build()
 	return bomGraph
 }

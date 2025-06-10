@@ -8,6 +8,7 @@ import (
 )
 
 func (g *BOMGraph) countParts(name string, multiplier float64, counter map[string]float64) {
+	slog.Debug("Counting...", "name", name, "multiplier", multiplier)
 	item, ok := g.Items[name]
 	if !ok {
 		slog.Info("Unknown items.", "item", name)
