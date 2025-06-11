@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/tychonis/cyanotype/internal/symbols"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -66,7 +67,7 @@ func readComponent(obj *hclsyntax.ObjectConsExpr) *model.Component {
 		case "ref":
 			se, ok := item.ValueExpr.(*hclsyntax.ScopeTraversalExpr)
 			if ok && len(se.Traversal) == 2 {
-				ret.Item = &model.SymbolicRef{
+				ret.Item = &symbols.Ref{
 					Kind: se.Traversal[0].(hcl.TraverseRoot).Name,
 					Name: se.Traversal[1].(hcl.TraverseAttr).Name,
 				}

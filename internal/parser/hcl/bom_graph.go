@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/tychonis/cyanotype/internal/states"
+	"github.com/tychonis/cyanotype/internal/symbols"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -151,7 +152,7 @@ func (g *BOMGraph) resolveRefs() {
 			continue
 		}
 		for _, comp := range asm.Components {
-			ref, ok := comp.Item.(*model.SymbolicRef)
+			ref, ok := comp.Item.(*symbols.Ref)
 			if ok {
 				target, found := g.Items[ref.Name]
 				if found {

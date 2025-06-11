@@ -51,6 +51,11 @@ func (i *Item) GetComponents() []*Component {
 	return i.Components
 }
 
+// TODO: implement attrs
+func (i *Item) Resolve(path []string) (Symbol, error) {
+	return nil, nil
+}
+
 func sha256FromFile(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
