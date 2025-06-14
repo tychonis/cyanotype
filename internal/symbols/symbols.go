@@ -33,3 +33,23 @@ func (t *SymbolTable) AddSymbol(module string, name string, symbol model.Symbol)
 	t.Modules[module].Symbols[name] = symbol
 	return nil
 }
+
+func (t *SymbolTable) Resolve(ref []string) (model.Symbol, error) {
+	mod, ok := t.Modules["."]
+	if !ok {
+		return nil, errors.New("no registered symbols")
+	}
+	return mod.Resolve(ref)
+}
+
+func (m *ModuleScope) Resolve(ref []string) (model.Symbol, error) {
+	if len(ref) <= 0 {
+		return nil, errors.New("resolving empty symbol")
+	}
+	sym := ref[0]
+	resolver, ok := m.Symbols[sym]
+	if !ok {
+		return nil, errors.New("symbol not registered")
+	}
+	return resolver.Resolve(ref[1:])
+}

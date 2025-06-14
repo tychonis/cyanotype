@@ -3,9 +3,11 @@ package bom
 import (
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tychonis/cyanotype/internal/parser/hcl"
+	"github.com/tychonis/cyanotype/model"
 )
 
 var Cmd = &cobra.Command{
@@ -28,23 +30,25 @@ func run(cmd *cobra.Command, args []string) {
 		slog.Warn("Format not supported.", "format", outputFmt)
 	}
 
-	bom, err := hcl.Parse(bomPath)
+	core := hcl.NewCore()
+	err := core.Parse(bomPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
-	}
-
-	if len(args) > 2 {
-		variant := args[2]
-		bom = bom.InstantiateVariant(variant)
-	}
-
-	rootItem, ok := bom.Items[rootPart]
-	if !ok {
-		slog.Warn("Root item not found.", "item", rootPart)
 		return
 	}
 
-	counter := bom.Count(rootPart)
+	rootPath := strings.Split(rootPart, ".")
+	rootSymbol, err := core.Symbols.Resolve(rootPath)
+	if err != nil {
+		slog.Warn("Root item not found.", "item", rootPart)
+		return
+	}
+	rootItem, ok := rootSymbol.(model.BOMItem)
+	if !ok {
+		slog.Warn("Root symbol not resolved.", "item", rootPart)
+	}
+
+	counter := core.Count(rootPath)
 	fmt.Printf("Part usage in %s (Part #: %s):\n", rootPart, rootItem.GetPartNumber())
 	// for name, qty := range counter {
 	// 	fmt.Printf("- %s (Part %v #: %s): %1f\n",
@@ -54,5 +58,5 @@ func run(cmd *cobra.Command, args []string) {
 	// 		qty,
 	// 	)
 	// }
-	bom.CounterToCSV(counter)
+	core.CounterToCSV(counter)
 }

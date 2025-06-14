@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/tychonis/cyanotype/internal/symbols"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -54,7 +53,18 @@ func getObjectKey(expr hcl.Expression) string {
 	return val.AsString()
 }
 
-func readComponent(obj *hclsyntax.ObjectConsExpr) *model.Component {
+func getTraverserName(t hcl.Traverser) string {
+	switch t := t.(type) {
+	case hcl.TraverseRoot:
+		return t.Name
+	case hcl.TraverseAttr:
+		return t.Name
+	default:
+		return ""
+	}
+}
+
+func readComponent(ctx *ParserContext, obj *hclsyntax.ObjectConsExpr) *model.Component {
 	ret := &model.Component{
 		Qty: 1,
 	}
@@ -66,12 +76,14 @@ func readComponent(obj *hclsyntax.ObjectConsExpr) *model.Component {
 			ret.Name = val.AsString()
 		case "ref":
 			se, ok := item.ValueExpr.(*hclsyntax.ScopeTraversalExpr)
-			if ok && len(se.Traversal) == 2 {
-				ret.Item = &symbols.Ref{
-					Kind: se.Traversal[0].(hcl.TraverseRoot).Name,
-					Name: se.Traversal[1].(hcl.TraverseAttr).Name,
-				}
+			if !ok {
+				return nil
 			}
+			ref := []string{ctx.CurrentModule()}
+			for _, n := range se.Traversal {
+				ref = append(ref, getTraverserName(n))
+			}
+			ret.Ref = ref
 		case "qty":
 			val, _ := item.ValueExpr.Value(nil)
 			ret.Qty, _ = val.AsBigFloat().Float64()
@@ -80,7 +92,7 @@ func readComponent(obj *hclsyntax.ObjectConsExpr) *model.Component {
 	return ret
 }
 
-func readComponents(attr *hcl.Attribute) []*model.Component {
+func readComponents(ctx *ParserContext, attr *hcl.Attribute) []*model.Component {
 	if attr == nil {
 		return nil
 	}
@@ -96,7 +108,7 @@ func readComponents(attr *hcl.Attribute) []*model.Component {
 		if !ok {
 			continue
 		}
-		comp := readComponent(obj)
+		comp := readComponent(ctx, obj)
 		comps = append(comps, comp)
 	}
 	return comps

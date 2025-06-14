@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/tychonis/cyanotype/internal/states"
-	"github.com/tychonis/cyanotype/internal/symbols"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -86,25 +85,6 @@ func (g *BOMGraph) parseStateBlock(block *hclsyntax.Block) error {
 	return g.Catalog.MergeCatalog(&c)
 }
 
-func blockToItem(block *hclsyntax.Block) (*model.Item, error) {
-	name := block.Labels[0]
-	attrs, diags := block.Body.JustAttributes()
-	if diags.HasErrors() {
-		return nil, diags
-	}
-	pn, _ := getString(attrs, "part_number")
-	ref, _ := getString(attrs, "ref")
-	src, _ := getString(attrs, "source")
-	components := readComponents(attrs["from"])
-	return &model.Item{
-		Name:       name,
-		PartNumber: pn,
-		Reference:  ref,
-		Source:     src,
-		Components: components,
-	}, nil
-}
-
 func (g *BOMGraph) parseItemBlock(block *hclsyntax.Block) error {
 	var ok bool
 	items := g.Items
@@ -117,7 +97,7 @@ func (g *BOMGraph) parseItemBlock(block *hclsyntax.Block) error {
 		}
 	}
 
-	item, err := blockToItem(block)
+	item, err := blockToItem(nil, block)
 	if err != nil {
 		return err
 	}
@@ -145,29 +125,8 @@ func (g *BOMGraph) assignIDs() {
 	}
 }
 
-func (g *BOMGraph) resolveRefs() {
-	for _, item := range g.Items {
-		asm, ok := item.(*model.Item)
-		if !ok {
-			continue
-		}
-		for _, comp := range asm.Components {
-			ref, ok := comp.Item.(*symbols.Ref)
-			if ok {
-				target, found := g.Items[ref.Name]
-				if found {
-					ref.Target = target
-				} else {
-					slog.Warn("Unresolved ref.", "target", ref.Name)
-				}
-			}
-		}
-	}
-}
-
 func (g *BOMGraph) Build() {
 	g.assignIDs()
-	g.resolveRefs()
 }
 
 func parseFile(filename string) *BOMGraph {

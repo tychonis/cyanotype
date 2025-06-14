@@ -8,12 +8,12 @@ item "truckwheel" {
     from = [
         {
             name = "truck"
-            ref = item.truck
+            ref = truck
             qty = 1
         },
         {
             name = "wheel"
-            ref = item.wheel
+            ref = wheel
             qty = 2
         },
     ]
@@ -23,12 +23,12 @@ item "skateboard" {
     from = [
         {
             name = "deck"
-            ref = item.deck
+            ref = deck
             qty = 1
         },
         {
             name = "truckwheel"
-            ref = item.truckwheel
+            ref = truckwheel
             qty = 2
         },
     ]

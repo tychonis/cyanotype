@@ -1,6 +1,8 @@
 package symbols
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -9,6 +11,14 @@ type Ref struct {
 	Name   string
 	Kind   string
 	Target model.BOMItem
+}
+
+func (r *Ref) Resolve(path []string) (model.Symbol, error) {
+	t, ok := r.Target.(model.Symbol)
+	if !ok {
+		return nil, errors.New("resolution failed")
+	}
+	return t.Resolve(path)
 }
 
 func (r *Ref) GetID() uuid.UUID {

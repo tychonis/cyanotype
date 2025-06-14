@@ -18,13 +18,13 @@ type Item struct {
 	Source     string       `json:"source,omitempty" yaml:"source,omitempty"`
 	PartNumber string       `json:"part_number" yaml:"part_number"`
 	Reference  string       `json:"ref,omitempty" yaml:"ref,omitempty"`
-	Components []*Component `json:"-" yaml:"-"`
+	From       []*Component `json:"-" yaml:"-"`
 }
 
 type Component struct {
-	Name string  `json:"name" yaml:"name"`
-	Item BOMItem `json:"item" yaml:"item"`
-	Qty  float64 `json:"qty" yaml:"qty"`
+	Name string   `json:"name" yaml:"name"`
+	Ref  []string `json:"ref" yaml:"ref"`
+	Qty  float64  `json:"qty" yaml:"qty"`
 }
 
 func (i *Item) GetID() uuid.UUID {
@@ -48,12 +48,7 @@ func (i *Item) GetPartNumber() string {
 }
 
 func (i *Item) GetComponents() []*Component {
-	return i.Components
-}
-
-// TODO: implement attrs
-func (i *Item) Resolve(path []string) (Symbol, error) {
-	return nil, nil
+	return i.From
 }
 
 func sha256FromFile(path string) (string, error) {
@@ -91,4 +86,12 @@ func (i *Item) GetDetails() map[string]any {
 	details := make(map[string]any)
 	details["ref_hash"] = i.HashReference()
 	return details
+}
+
+// TODO: implement attrs?
+func (i *Item) Resolve(path []string) (Symbol, error) {
+	if len(path) > 0 {
+		return nil, errors.New("attr not implemented")
+	}
+	return i, nil
 }

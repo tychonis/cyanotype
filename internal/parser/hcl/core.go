@@ -90,6 +90,17 @@ func (c *Core) ParseFile(filename string) error {
 	return c.parseFile(&ctx, filename)
 }
 
+func (c *Core) Parse(path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		return c.ParseFolder(path)
+	}
+	return c.ParseFile(path)
+}
+
 func (c *Core) parseBlock(ctx *ParserContext, block *hclsyntax.Block) error {
 	switch block.Type {
 	case "import":
@@ -123,10 +134,29 @@ func pathToModuleName(path string) string {
 	return components[len(components)-1]
 }
 
+func blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
+	name := block.Labels[0]
+	attrs, diags := block.Body.JustAttributes()
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	pn, _ := getString(attrs, "part_number")
+	ref, _ := getString(attrs, "ref")
+	src, _ := getString(attrs, "source")
+	from := readComponents(ctx, attrs["from"])
+	return &model.Item{
+		Name:       name,
+		PartNumber: pn,
+		Reference:  ref,
+		Source:     src,
+		From:       from,
+	}, nil
+}
+
 func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) error {
 	m := ctx.CurrentModule()
 	name := block.Labels[0]
-	item, err := blockToItem(block)
+	item, err := blockToItem(ctx, block)
 	if err != nil {
 		return err
 	}
