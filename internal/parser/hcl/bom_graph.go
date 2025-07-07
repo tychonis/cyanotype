@@ -17,10 +17,16 @@ import (
 const EXTENSION = ".bpo"
 
 type Items map[string]model.BOMItem
+type Nodes map[string]model.ItemNode
+
+type NodeID = uuid.UUID
+type ItemID = uuid.UUID
 
 type BOMGraph struct {
 	Catalog  *states.Catalog
 	Items    Items
+	Nodes    Nodes
+	Usage    map[ItemID]NodeID
 	Variants map[string]Items
 	Changes  map[string]uuid.UUID
 }

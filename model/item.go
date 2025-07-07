@@ -21,6 +21,13 @@ type Item struct {
 	From       []*Component `json:"-" yaml:"-"`
 }
 
+type ItemNode struct {
+	ID       uuid.UUID   `json:"id" yaml:"id"`
+	ItemID   uuid.UUID   `json:"item_id" yaml:"item_id"`
+	ParentID uuid.UUID   `json:"parent_id" yaml:"parent_id"`
+	Children []uuid.UUID `json:"chlldren" yaml:"children"`
+}
+
 type Component struct {
 	Name string   `json:"name" yaml:"name"`
 	Ref  []string `json:"ref" yaml:"ref"`

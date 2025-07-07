@@ -20,14 +20,15 @@ func run(cmd *cobra.Command, args []string) {
 	bpoPath := args[0]
 	bpcPath := args[1]
 
-	bom, err := hcl.Parse(bpoPath)
+	core := hcl.NewCore()
+
+	bomGraph, err := core.Build(bpoPath)
 	if err != nil {
-		slog.Warn("Failed to parse bpo.", "error", err)
+		slog.Warn("Failed to build bom graph.", "error", err)
 	}
-	bom.BuildCatalog()
 
 	output, _ := os.Create(bpcPath)
 	encoder := json.NewEncoder(output)
 	encoder.SetIndent("", "  ")
-	encoder.Encode(bom.Catalog)
+	encoder.Encode(bomGraph)
 }
