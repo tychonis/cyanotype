@@ -1,40 +1,39 @@
 package hcl
 
 import (
-	"encoding/json"
-	"log/slog"
+	"errors"
 	"maps"
-	"os"
-	"path/filepath"
 
 	"github.com/google/uuid"
-	"github.com/hashicorp/hcl/v2/hclparse"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/tychonis/cyanotype/internal/states"
 	"github.com/tychonis/cyanotype/model"
 )
 
 const EXTENSION = ".bpo"
 
-type Items map[string]model.BOMItem
-type Nodes map[string]model.ItemNode
-
 type NodeID = uuid.UUID
 type ItemID = uuid.UUID
 
+type Items map[ItemID]model.BOMItem
+type Nodes map[NodeID]*model.ItemNode
+
 type BOMGraph struct {
-	Catalog  *states.Catalog
-	Items    Items
-	Nodes    Nodes
-	Usage    map[ItemID]NodeID
-	Variants map[string]Items
-	Changes  map[string]uuid.UUID
+	Catalog  *states.Catalog      `json:"catalog" yaml:"catalog"`
+	Root     NodeID               `json:"root" yaml:"root"`
+	Items    Items                `json:"items" yaml:"items"`
+	Nodes    Nodes                `json:"nodes" yaml:"nodes"`
+	Usage    map[ItemID][]NodeID  `json:"usage" yaml:"usage"`
+	Variants map[string]Items     `json:"-" yaml:"-"`
+	Changes  map[string]uuid.UUID `json:"-" yaml:"-"`
 }
 
 func NewBOMGraph() *BOMGraph {
 	return &BOMGraph{
 		Catalog:  states.NewCatalog(),
 		Items:    make(Items),
+		Nodes:    make(Nodes),
+		Usage:    make(map[ItemID][]NodeID),
 		Variants: make(map[string]Items),
 		Changes:  make(map[string]uuid.UUID),
 	}
@@ -51,73 +50,12 @@ func (g *BOMGraph) MergeGraph(g2 *BOMGraph) error {
 	return nil
 }
 
-func (g *BOMGraph) parseBlock(block *hclsyntax.Block) error {
-	switch block.Type {
-	case "import":
-		return g.parseImportBlock(block)
-	case "state":
-		return g.parseStateBlock(block)
-	case "item":
-		return g.parseItemBlock(block)
-	}
-	return nil
-}
-
-func (g *BOMGraph) parseImportBlock(block *hclsyntax.Block) error {
-	path := block.Labels[0]
-	toImport := parseFolder(path)
-	return g.MergeGraph(toImport)
-}
-
-func (g *BOMGraph) parseStateBlock(block *hclsyntax.Block) error {
-	attrs, diags := block.Body.JustAttributes()
-	if diags.HasErrors() {
-		return diags
-	}
-	filepath, err := getString(attrs, "file")
-	if err != nil {
-		return err
-	}
-	file, err := os.Open(filepath)
-	if err != nil {
-		return err
-	}
-	var c states.Catalog
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&c)
-	if err != nil {
-		return err
-	}
-	return g.Catalog.MergeCatalog(&c)
-}
-
-func (g *BOMGraph) parseItemBlock(block *hclsyntax.Block) error {
-	var ok bool
-	items := g.Items
-	if len(block.Labels) > 1 {
-		variant := block.Labels[1]
-		items, ok = g.Variants[variant]
-		if !ok {
-			items = make(Items)
-			g.Variants[variant] = items
-		}
-	}
-
-	item, err := blockToItem(nil, block)
-	if err != nil {
-		return err
-	}
-
-	items[item.Name] = item
-	return nil
-}
-
 func (g *BOMGraph) assignIDs() {
-	for name, item := range g.Items {
-		id, ok := g.Catalog.NameIdx[name]
+	for _, item := range g.Items {
+		id, ok := g.Catalog.NameIdx[item.GetName()]
 		if !ok {
 			id = uuid.New()
-			g.Changes[name] = id
+			g.Changes[item.GetName()] = id
 		}
 		item.SetID(id)
 	}
@@ -135,64 +73,19 @@ func (g *BOMGraph) Build() {
 	g.assignIDs()
 }
 
-func parseFile(filename string) *BOMGraph {
-	parser := hclparse.NewParser()
-	file, diags := parser.ParseHCLFile(filename)
-	if diags.HasErrors() {
-		slog.Error("Failed to parse file.", "error", diags.Error())
-		return nil
+func (g *BOMGraph) AddItem(item *model.Item) error {
+	if item == nil {
+		return errors.New("nil item")
 	}
-
-	content, ok := file.Body.(*hclsyntax.Body)
-	if !ok {
-		slog.Error("Failed to parse content.")
-		return nil
+	if item.ID == uuid.Nil {
+		item.ID = uuid.New()
+		g.Items[item.ID] = item
 	}
-
-	bomGraph := NewBOMGraph()
-	for _, block := range content.Blocks {
-		bomGraph.parseBlock(block)
-	}
-	return bomGraph
+	return nil
 }
 
-func ParseFile(filename string) *BOMGraph {
-	bomGraph := parseFile(filename)
-	bomGraph.Build()
-	return bomGraph
-}
-
-func parseFolder(dir string) *BOMGraph {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil
-	}
-	bomGraph := NewBOMGraph()
-	for _, entry := range entries {
-		if !entry.IsDir() && filepath.Ext(entry.Name()) == EXTENSION {
-			partialBOM := parseFile(filepath.Join(dir, entry.Name()))
-			bomGraph.MergeGraph(partialBOM)
-		}
-	}
-	return bomGraph
-}
-
-func ParseFolder(dir string) *BOMGraph {
-	bomGraph := parseFolder(dir)
-	bomGraph.Build()
-	return bomGraph
-}
-
-func Parse(path string) (*BOMGraph, error) {
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-	var bom *BOMGraph
-	if info.IsDir() {
-		bom = ParseFolder(path)
-	} else {
-		bom = ParseFile(path)
-	}
-	return bom, nil
+func (g *BOMGraph) AddNode(node *model.ItemNode) error {
+	g.Nodes[node.ID] = node
+	g.Usage[node.ItemID] = append(g.Usage[node.ItemID], node.ID)
+	return nil
 }

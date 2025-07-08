@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tychonis/cyanotype/internal/parser/hcl"
@@ -16,13 +17,28 @@ var Cmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(2),
 }
 
+func init() {
+	// TODO: distinguish from output format
+	Cmd.Flags().StringP("output", "o", "", "set output path")
+}
+
 func run(cmd *cobra.Command, args []string) {
 	bpoPath := args[0]
-	bpcPath := args[1]
+	rootPart := args[1]
 
+	bpcPath := cmd.Flag("output").Value.String()
+	if bpcPath == "" {
+		bpcPath = strings.ReplaceAll(bpoPath, ".bpo", ".bpc")
+	}
 	core := hcl.NewCore()
+	err := core.Parse(bpoPath)
+	if err != nil {
+		slog.Warn("Failed to parse bpo.", "error", err)
+		return
+	}
 
-	bomGraph, err := core.Build(bpoPath)
+	rootPath := strings.Split(rootPart, ".")
+	bomGraph, err := core.Build(bpoPath, rootPath)
 	if err != nil {
 		slog.Warn("Failed to build bom graph.", "error", err)
 	}

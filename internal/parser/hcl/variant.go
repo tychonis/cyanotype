@@ -17,7 +17,7 @@ func (g *BOMGraph) InstantiateVariant(variant string) *BOMGraph {
 		if asm.Source != "virtual" {
 			continue
 		}
-		imp, ok := ng.Variants[variant][asm.Name]
+		imp, ok := ng.Variants[variant][asm.ID]
 		if !ok {
 			slog.Warn("Unimplemented variant.", "part", asm.Name, "variant", variant)
 			continue

@@ -13,8 +13,8 @@ func (g *BOMGraph) BuildCatalog() {
 }
 
 func (g *BOMGraph) buildNameIdx() {
-	for name, item := range g.Items {
-		g.Catalog.NameIdx[name] = item.GetID()
+	for _, item := range g.Items {
+		g.Catalog.NameIdx[item.GetName()] = item.GetID()
 	}
 }
 

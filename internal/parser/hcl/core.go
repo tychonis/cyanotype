@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/tychonis/cyanotype/internal/symbols"
@@ -163,27 +164,51 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) error 
 	return c.Symbols.AddSymbol(m, name, item)
 }
 
-func (c *Core) Build(path string) (*BOMGraph, error) {
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-	if info.IsDir() {
-		c.ParseFolder(path)
-	} else {
-		c.ParseFile(path)
-	}
+func (c *Core) Build(path string, root []string) (*BOMGraph, error) {
+	// TODO: check parsed.
 	bomGraph := NewBOMGraph()
-	for moduleName, module := range c.Symbols.Modules {
-		for symbolName, symbol := range module.Symbols {
-			item, ok := symbol.(model.BOMItem)
-			if !ok {
-				continue
-			}
-			fullName := moduleName + "." + symbolName
-			bomGraph.Items[fullName] = item
-		}
+	rootSymbol, err := c.Symbols.Resolve(root)
+	if err != nil {
+		return bomGraph, nil
 	}
-	bomGraph.Build()
+	rootItem, ok := rootSymbol.(*model.Item)
+	if !ok {
+		return bomGraph, errors.New("unrecongnized root")
+	}
+	bomGraph.AddItem(rootItem)
+	rootNode := &model.ItemNode{
+		ID:       uuid.New(),
+		ItemID:   rootItem.ID,
+		Children: make([]NodeID, 0),
+	}
+	bomGraph.Root = rootNode.ID
+	bomGraph.AddNode(rootNode)
+	for _, comp := range rootItem.GetComponents() {
+		c.buildBom(comp.Ref, bomGraph, rootNode)
+	}
+
 	return bomGraph, nil
+}
+
+func (c *Core) buildBom(ref []string, bom *BOMGraph, parent *model.ItemNode) {
+	symbol, err := c.Symbols.Resolve(ref)
+	if err != nil {
+		return
+	}
+	item, ok := symbol.(*model.Item)
+	if !ok {
+		return
+	}
+	bom.AddItem(item)
+	node := &model.ItemNode{
+		ID:       uuid.New(),
+		ItemID:   item.ID,
+		ParentID: parent.ID,
+		Children: make([]NodeID, 0),
+	}
+	bom.AddNode(node)
+	parent.Children = append(parent.Children, node.ID)
+	for _, comp := range item.GetComponents() {
+		c.buildBom(comp.Ref, bom, node)
+	}
 }
