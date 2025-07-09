@@ -186,6 +186,7 @@ func (c *Core) Build(path string, root []string) (*BOMGraph, error) {
 	for _, comp := range rootItem.GetComponents() {
 		c.buildBom(comp.Ref, bomGraph, rootNode)
 	}
+	bomGraph.BuildCatalog()
 
 	return bomGraph, nil
 }
