@@ -79,7 +79,10 @@ func readComponent(ctx *ParserContext, obj *hclsyntax.ObjectConsExpr) *model.Com
 			if !ok {
 				return nil
 			}
-			ref := []string{ctx.CurrentModule()}
+			ref := make([]string, 0)
+			if ctx.CurrentModule() != "." {
+				ref = append(ref, ctx.CurrentModule())
+			}
 			for _, n := range se.Traversal {
 				ref = append(ref, getTraverserName(n))
 			}
