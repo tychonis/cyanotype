@@ -180,18 +180,19 @@ func (c *Core) Build(path string, root []string) (*BOMGraph, error) {
 		ID:       uuid.New(),
 		ItemID:   rootItem.ID,
 		Children: make([]NodeID, 0),
+		Qty:      1,
 	}
 	bomGraph.Root = rootNode.ID
 	bomGraph.AddNode(rootNode)
 	for _, comp := range rootItem.GetComponents() {
-		c.buildBom(comp.Ref, bomGraph, rootNode)
+		c.buildBom(comp.Ref, bomGraph, rootNode, comp.Qty)
 	}
 	bomGraph.BuildCatalog()
 
 	return bomGraph, nil
 }
 
-func (c *Core) buildBom(ref []string, bom *BOMGraph, parent *model.ItemNode) {
+func (c *Core) buildBom(ref []string, bom *BOMGraph, parent *model.ItemNode, qty float64) {
 	symbol, err := c.Symbols.Resolve(ref)
 	if err != nil {
 		return
@@ -206,10 +207,11 @@ func (c *Core) buildBom(ref []string, bom *BOMGraph, parent *model.ItemNode) {
 		ItemID:   item.ID,
 		ParentID: parent.ID,
 		Children: make([]NodeID, 0),
+		Qty:      qty,
 	}
 	bom.AddNode(node)
 	parent.Children = append(parent.Children, node.ID)
 	for _, comp := range item.GetComponents() {
-		c.buildBom(comp.Ref, bom, node)
+		c.buildBom(comp.Ref, bom, node, comp.Qty)
 	}
 }

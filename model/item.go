@@ -26,6 +26,7 @@ type ItemNode struct {
 	ItemID   uuid.UUID   `json:"item_id" yaml:"item_id"`
 	ParentID uuid.UUID   `json:"parent_id" yaml:"parent_id"`
 	Children []uuid.UUID `json:"children" yaml:"children"`
+	Qty      float64     `json:"qty" yaml:"qty"`
 }
 
 type Component struct {
