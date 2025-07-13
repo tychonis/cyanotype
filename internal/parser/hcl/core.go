@@ -1,7 +1,9 @@
 package hcl
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -16,6 +18,7 @@ import (
 
 type Core struct {
 	Symbols *symbols.SymbolTable
+	States  map[NodeID]*BOMGraph
 }
 
 type ParserContext struct {
@@ -38,7 +41,10 @@ func (ctx *ParserContext) CurrentModule() string {
 }
 
 func NewCore() *Core {
-	return &Core{Symbols: symbols.NewSymbolTable()}
+	return &Core{
+		Symbols: symbols.NewSymbolTable(),
+		States:  make(map[NodeID]*BOMGraph),
+	}
 }
 
 func (c *Core) parseFolder(ctx *ParserContext, dir string) error {
@@ -106,8 +112,11 @@ func (c *Core) parseBlock(ctx *ParserContext, block *hclsyntax.Block) error {
 	switch block.Type {
 	case "import":
 		return c.parseImportBlock(ctx, block)
-	// case "state":
-	// 	return c.parseStateBlock(block)
+	case "state":
+		err := c.parseStateBlock(ctx, block)
+		if err != nil {
+			fmt.Printf("%+v", err)
+		}
 	case "item":
 		return c.parseItemBlock(ctx, block)
 	}
@@ -128,6 +137,31 @@ func (c *Core) parseImportBlock(ctx *ParserContext, block *hclsyntax.Block) erro
 		return err
 	}
 	return c.parseFolder(newCtx, path)
+}
+
+func (c *Core) parseStateBlock(_ *ParserContext, block *hclsyntax.Block) error {
+	fmt.Print("Parse states\n")
+	attrs, diags := block.Body.JustAttributes()
+	if diags.HasErrors() {
+		return diags
+	}
+	path, err := getString(attrs, "file")
+	if err != nil {
+		return err
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	decoder := json.NewDecoder(file)
+	b := BOMGraph{}
+	err = decoder.Decode(&b)
+	if err != nil {
+		return err
+	}
+	c.States[b.Root] = &b
+	fmt.Printf("Saved state for %+v", b.Root)
+	return nil
 }
 
 func pathToModuleName(path string) string {

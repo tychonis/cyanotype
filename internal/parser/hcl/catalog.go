@@ -22,11 +22,8 @@ func (g *BOMGraph) buildPartNumberIdx() {
 	for _, item := range g.Items {
 		partNumber := item.GetPartNumber()
 		if partNumber == "" {
-			part, ok := item.(*model.Item)
-			if ok {
-				partNumber = g.generatePartNumber(item)
-				part.PartNumber = partNumber
-			}
+			partNumber = g.generatePartNumber(item)
+			item.PartNumber = partNumber
 		}
 		g.Catalog.PartNumberIdx[partNumber] = item.GetID()
 	}

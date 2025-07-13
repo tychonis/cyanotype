@@ -15,7 +15,7 @@ const EXTENSION = ".bpo"
 type NodeID = uuid.UUID
 type ItemID = uuid.UUID
 
-type Items map[ItemID]model.BOMItem
+type Items map[ItemID]*model.Item
 type Nodes map[NodeID]*model.ItemNode
 
 type BOMGraph struct {
