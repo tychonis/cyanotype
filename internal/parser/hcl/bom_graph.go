@@ -3,6 +3,7 @@ package hcl
 import (
 	"errors"
 	"maps"
+	"sort"
 	"strings"
 
 	"github.com/google/uuid"
@@ -225,5 +226,14 @@ func (g *BOMGraph) Reference(ref *BOMGraph) *BOMGraph {
 	}
 	ret.Root = refRoot
 	ret.BuildCatalog()
+	ret.SortUsage()
 	return ret
+}
+
+func (g *BOMGraph) SortUsage() {
+	for _, nodeIDs := range g.Usage {
+		sort.Slice(nodeIDs, func(i, j int) bool {
+			return nodeIDs[i].String() < nodeIDs[j].String()
+		})
+	}
 }
