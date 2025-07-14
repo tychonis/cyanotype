@@ -189,6 +189,7 @@ func (g *BOMGraph) Reference(ref *BOMGraph) *BOMGraph {
 		refItemID, ok := itemIDMapping[item.ID]
 		if ok {
 			newItem.ID = refItemID
+			newItem.PartNumber = ref.Items[refItemID].PartNumber
 		}
 		ret.AddItem(&newItem)
 	}
