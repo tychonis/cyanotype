@@ -3,7 +3,6 @@ package hcl
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -18,7 +17,7 @@ import (
 
 type Core struct {
 	Symbols *symbols.SymbolTable
-	States  map[NodeID]*BOMGraph
+	States  map[string]*BOMGraph
 }
 
 type ParserContext struct {
@@ -51,7 +50,7 @@ func (ctx *ParserContext) NameToQualifier(name string) string {
 func NewCore() *Core {
 	return &Core{
 		Symbols: symbols.NewSymbolTable(),
-		States:  make(map[NodeID]*BOMGraph),
+		States:  make(map[string]*BOMGraph),
 	}
 }
 
@@ -121,10 +120,7 @@ func (c *Core) parseBlock(ctx *ParserContext, block *hclsyntax.Block) error {
 	case "import":
 		return c.parseImportBlock(ctx, block)
 	case "state":
-		err := c.parseStateBlock(ctx, block)
-		if err != nil {
-			fmt.Printf("%+v", err)
-		}
+		return c.parseStateBlock(ctx, block)
 	case "item":
 		return c.parseItemBlock(ctx, block)
 	}
@@ -166,7 +162,7 @@ func (c *Core) parseStateBlock(_ *ParserContext, block *hclsyntax.Block) error {
 	if err != nil {
 		return err
 	}
-	c.States[b.Root] = &b
+	c.States[b.RootItem().Qualifier] = &b
 	return nil
 }
 

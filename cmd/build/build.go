@@ -43,6 +43,12 @@ func run(cmd *cobra.Command, args []string) {
 		slog.Warn("Failed to build bom graph.", "error", err)
 	}
 
+	rootQualifer := bomGraph.RootItem().Qualifier
+	ref, ok := core.States[rootQualifer]
+	if ok {
+		bomGraph = bomGraph.Reference(ref)
+	}
+
 	output, _ := os.Create(bpcPath)
 	encoder := json.NewEncoder(output)
 	encoder.SetIndent("", "  ")

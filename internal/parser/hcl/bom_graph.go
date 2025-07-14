@@ -3,9 +3,11 @@ package hcl
 import (
 	"errors"
 	"maps"
+	"strings"
 
 	"github.com/google/uuid"
 
+	"github.com/tychonis/cyanotype/internal/match"
 	"github.com/tychonis/cyanotype/internal/states"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -82,14 +84,26 @@ func (g *BOMGraph) Build() {
 	g.assignIDs()
 }
 
+func (g *BOMGraph) RootNode() *model.ItemNode {
+	return g.Nodes[g.Root]
+}
+
+func (g *BOMGraph) RootItem() *model.Item {
+	return g.Items[g.RootNode().ItemID]
+}
+
 func (g *BOMGraph) AddItem(item *model.Item) error {
 	if item == nil {
 		return errors.New("nil item")
 	}
+	_, exist := g.QualifierIndex[item.Qualifier]
+	if exist {
+		return errors.New("existed item")
+	}
 	if item.ID == uuid.Nil {
 		item.ID = uuid.New()
-		g.Items[item.ID] = item
 	}
+	g.Items[item.ID] = item
 	return nil
 }
 
@@ -97,4 +111,118 @@ func (g *BOMGraph) AddNode(node *model.ItemNode) error {
 	g.Nodes[node.ID] = node
 	g.Usage[node.ItemID] = append(g.Usage[node.ItemID], node.ID)
 	return nil
+}
+
+func (g *BOMGraph) refItemIDMapping(ref *BOMGraph) map[ItemID]ItemID {
+	qualifierMapping := make(map[string]string)
+	matched := make(map[string]bool)
+	notMatched := make([][]string, 0)
+	toMatch := make([][]string, 0)
+	for _, item := range g.Items {
+		refItemID, ok := ref.QualifierIndex[item.Qualifier]
+		if ok {
+			refItem := ref.Items[refItemID]
+			qualifierMapping[item.Qualifier] = refItem.Qualifier
+			matched[refItem.Qualifier] = true
+		} else {
+			toMatch = append(toMatch, strings.Split(item.Qualifier, "."))
+		}
+	}
+	for _, item := range ref.Items {
+		_, ok := matched[item.Qualifier]
+		if !ok {
+			notMatched = append(notMatched, strings.Split(item.Qualifier, "."))
+		}
+	}
+	greedy := match.GreedyMatch(toMatch, notMatched)
+	maps.Copy(qualifierMapping, greedy)
+
+	itemIDMapping := make(map[ItemID]ItemID)
+	for _, item := range g.Items {
+		refItemQualifier, ok := qualifierMapping[item.Qualifier]
+		if ok {
+			itemIDMapping[item.ID] = ref.QualifierIndex[refItemQualifier]
+		}
+	}
+	return itemIDMapping
+}
+
+func (g *BOMGraph) refNodeIDMapping(ref *BOMGraph) map[NodeID]NodeID {
+	pathMapping := make(map[string]string)
+	matched := make(map[string]bool)
+	notMatched := make([][]string, 0)
+	toMatch := make([][]string, 0)
+	for _, node := range g.Nodes {
+		refNodeID, ok := ref.PathIndex[node.Path]
+		if ok {
+			refNode := ref.Nodes[refNodeID]
+			pathMapping[node.Path] = refNode.Path
+			matched[refNode.Path] = true
+		} else {
+			toMatch = append(toMatch, strings.Split(node.Path, "/"))
+		}
+	}
+	for _, node := range ref.Nodes {
+		_, ok := matched[node.Path]
+		if !ok {
+			notMatched = append(notMatched, strings.Split(node.Path, "/"))
+		}
+	}
+	greedy := match.GreedyMatch(toMatch, notMatched)
+	maps.Copy(pathMapping, greedy)
+
+	nodeIDMapping := make(map[NodeID]NodeID)
+	for _, node := range g.Nodes {
+		refNodePath, ok := pathMapping[node.Path]
+		if ok {
+			nodeIDMapping[node.ID] = ref.PathIndex[refNodePath]
+		}
+	}
+	return nodeIDMapping
+}
+
+func (g *BOMGraph) Reference(ref *BOMGraph) *BOMGraph {
+	ret := NewBOMGraph()
+	itemIDMapping := g.refItemIDMapping(ref)
+	for _, item := range g.Items {
+		newItem := *item
+		refItemID, ok := itemIDMapping[item.ID]
+		if ok {
+			newItem.ID = refItemID
+		}
+		ret.AddItem(&newItem)
+	}
+	nodeIDMapping := g.refNodeIDMapping(ref)
+	for _, node := range g.Nodes {
+		newNode := *node
+		refNodeID, ok := nodeIDMapping[node.ID]
+		if ok {
+			newNode.ID = refNodeID
+		}
+		refItemID, ok := itemIDMapping[node.ItemID]
+		if ok {
+			newNode.ItemID = refItemID
+		}
+		refParentID, ok := nodeIDMapping[node.ParentID]
+		if ok {
+			newNode.ParentID = refParentID
+		}
+		newNode.Children = make([]NodeID, len(node.Children))
+		for i, childID := range node.Children {
+			refChildID, ok := nodeIDMapping[childID]
+			if !ok {
+				refChildID = childID
+			}
+			newNode.Children[i] = refChildID
+		}
+		ret.AddNode(&newNode)
+	}
+	rootID := g.RootNode().ID
+	refRoot, ok := nodeIDMapping[rootID]
+	if !ok {
+		refRoot = rootID
+	}
+	ret.Root = refRoot
+	ret.BuildCatalog()
+	return ret
 }
