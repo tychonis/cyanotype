@@ -9,7 +9,8 @@ import (
 func (g *BOMGraph) BuildCatalog() {
 	g.buildNameIdx()
 	g.buildPartNumberIdx()
-	g.buildCatalogDetails()
+	g.buildQualifierIdx()
+	g.buildPathIdx()
 }
 
 func (g *BOMGraph) buildNameIdx() {
@@ -29,16 +30,15 @@ func (g *BOMGraph) buildPartNumberIdx() {
 	}
 }
 
-func (g *BOMGraph) buildItems(items Items) {
-	for _, item := range items {
-		g.Catalog.Catalog[item.GetID()] = item
+func (g *BOMGraph) buildQualifierIdx() {
+	for _, item := range g.Items {
+		g.QualifierIndex[item.Qualifier] = item.GetID()
 	}
 }
 
-func (g *BOMGraph) buildCatalogDetails() {
-	g.buildItems(g.Items)
-	for _, items := range g.Variants {
-		g.buildItems(items)
+func (g *BOMGraph) buildPathIdx() {
+	for _, node := range g.Nodes {
+		g.PathIndex[node.Path] = node.ID
 	}
 }
 

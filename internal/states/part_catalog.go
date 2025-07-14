@@ -13,7 +13,6 @@ type Catalog struct {
 	Version       string               `json:"version"`
 	NameIdx       map[string]uuid.UUID `json:"name_index"`
 	PartNumberIdx map[string]uuid.UUID `json:"part_number_index"`
-	Catalog       map[uuid.UUID]any    `json:"catalog"`
 }
 
 func NewCatalog() *Catalog {
@@ -22,7 +21,6 @@ func NewCatalog() *Catalog {
 		Version:       "alpha-0",
 		NameIdx:       make(map[string]uuid.UUID),
 		PartNumberIdx: make(map[string]uuid.UUID),
-		Catalog:       make(map[uuid.UUID]any),
 	}
 }
 
@@ -35,6 +33,5 @@ func (c *Catalog) MergeCatalog(c2 *Catalog) error {
 	// TODO: handle key conflict.
 	maps.Copy(c.NameIdx, c2.NameIdx)
 	maps.Copy(c.PartNumberIdx, c2.PartNumberIdx)
-	maps.Copy(c.Catalog, c2.Catalog)
 	return nil
 }

@@ -40,6 +40,14 @@ func (ctx *ParserContext) CurrentModule() string {
 	return ctx.ImportStack[0]
 }
 
+func (ctx *ParserContext) NameToQualifier(name string) string {
+	prefix := ctx.CurrentModule()
+	if prefix == "." {
+		prefix = ""
+	}
+	return prefix + "." + name
+}
+
 func NewCore() *Core {
 	return &Core{
 		Symbols: symbols.NewSymbolTable(),
@@ -140,7 +148,6 @@ func (c *Core) parseImportBlock(ctx *ParserContext, block *hclsyntax.Block) erro
 }
 
 func (c *Core) parseStateBlock(_ *ParserContext, block *hclsyntax.Block) error {
-	fmt.Print("Parse states\n")
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
 		return diags
@@ -160,7 +167,6 @@ func (c *Core) parseStateBlock(_ *ParserContext, block *hclsyntax.Block) error {
 		return err
 	}
 	c.States[b.Root] = &b
-	fmt.Printf("Saved state for %+v", b.Root)
 	return nil
 }
 
@@ -181,6 +187,7 @@ func blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error
 	from := readComponents(ctx, attrs["from"])
 	return &model.Item{
 		Name:       name,
+		Qualifier:  ctx.NameToQualifier(name),
 		PartNumber: pn,
 		Reference:  ref,
 		Source:     src,
@@ -213,20 +220,21 @@ func (c *Core) Build(path string, root []string) (*BOMGraph, error) {
 	rootNode := &model.ItemNode{
 		ID:       uuid.New(),
 		ItemID:   rootItem.ID,
+		Path:     "/" + "root",
 		Children: make([]NodeID, 0),
 		Qty:      1,
 	}
 	bomGraph.Root = rootNode.ID
 	bomGraph.AddNode(rootNode)
 	for _, comp := range rootItem.GetComponents() {
-		c.buildBom(comp.Ref, bomGraph, rootNode, comp.Qty)
+		c.buildBom(bomGraph, comp.Name, comp.Ref, rootNode, comp.Qty)
 	}
 	bomGraph.BuildCatalog()
 
 	return bomGraph, nil
 }
 
-func (c *Core) buildBom(ref []string, bom *BOMGraph, parent *model.ItemNode, qty float64) {
+func (c *Core) buildBom(bom *BOMGraph, name string, ref []string, parent *model.ItemNode, qty float64) {
 	symbol, err := c.Symbols.Resolve(ref)
 	if err != nil {
 		return
@@ -239,6 +247,7 @@ func (c *Core) buildBom(ref []string, bom *BOMGraph, parent *model.ItemNode, qty
 	node := &model.ItemNode{
 		ID:       uuid.New(),
 		ItemID:   item.ID,
+		Path:     parent.Path + "/" + name,
 		ParentID: parent.ID,
 		Children: make([]NodeID, 0),
 		Qty:      qty,
@@ -246,6 +255,6 @@ func (c *Core) buildBom(ref []string, bom *BOMGraph, parent *model.ItemNode, qty
 	bom.AddNode(node)
 	parent.Children = append(parent.Children, node.ID)
 	for _, comp := range item.GetComponents() {
-		c.buildBom(comp.Ref, bom, node, comp.Qty)
+		c.buildBom(bom, comp.Name, comp.Ref, node, comp.Qty)
 	}
 }

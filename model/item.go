@@ -14,6 +14,7 @@ import (
 
 type Item struct {
 	ID         uuid.UUID    `json:"id" yaml:"id"`
+	Qualifier  string       `json:"qualifier" yaml:"qualifier"`
 	Name       string       `json:"name" yaml:"name"`
 	Source     string       `json:"source,omitempty" yaml:"source,omitempty"`
 	PartNumber string       `json:"part_number" yaml:"part_number"`
@@ -23,6 +24,7 @@ type Item struct {
 
 type ItemNode struct {
 	ID       uuid.UUID   `json:"id" yaml:"id"`
+	Path     string      `json:"path" yaml:"path"`
 	ItemID   uuid.UUID   `json:"item_id" yaml:"item_id"`
 	ParentID uuid.UUID   `json:"parent_id" yaml:"parent_id"`
 	Children []uuid.UUID `json:"children" yaml:"children"`
