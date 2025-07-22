@@ -1,13 +1,11 @@
 package bom
 
 import (
-	"fmt"
 	"log/slog"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tychonis/cyanotype/internal/parser/hcl"
-	"github.com/tychonis/cyanotype/model"
 )
 
 var Cmd = &cobra.Command{
@@ -38,25 +36,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	rootPath := strings.Split(rootPart, ".")
-	rootSymbol, err := core.Symbols.Resolve(rootPath)
-	if err != nil {
-		slog.Warn("Root item not found.", "item", rootPart)
-		return
-	}
-	rootItem, ok := rootSymbol.(model.BOMItem)
-	if !ok {
-		slog.Warn("Root symbol not resolved.", "item", rootPart)
-	}
 
 	counter := core.Count(rootPath)
-	fmt.Printf("Part usage in %s (Part #: %s):\n", rootPart, rootItem.GetPartNumber())
-	// for name, qty := range counter {
-	// 	fmt.Printf("- %s (Part %v #: %s): %1f\n",
-	// 		name,
-	// 		bom.Items[name].GetID(),
-	// 		bom.Items[name].GetPartNumber(),
-	// 		qty,
-	// 	)
-	// }
 	core.CounterToCSV(counter)
 }
