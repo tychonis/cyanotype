@@ -92,7 +92,10 @@ func (c *Core) parseFile(ctx *ParserContext, filename string) error {
 	}
 
 	for _, block := range content.Blocks {
-		c.parseBlock(ctx, block)
+		err := c.parseBlock(ctx, block)
+		if err != nil {
+			slog.Warn("Error parsing block.", "error", err)
+		}
 	}
 	return nil
 }
