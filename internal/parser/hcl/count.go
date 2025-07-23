@@ -17,19 +17,19 @@ func (c *Core) countParts(ref []string, multiplier float64, counter map[string]f
 		return
 	}
 
-	item, ok := sym.(model.BOMItem)
+	item, ok := sym.(*model.Item)
 	if !ok {
 		slog.Info("Unknown item.", "error", err, "ref", ref)
 		return
 	}
 
 	if len(item.GetComponents()) == 0 {
-		counter[item.GetName()] += multiplier
+		counter[item.Qualifier] += multiplier
 		return
 	}
 
 	// also count assembly?
-	counter[item.GetName()] += multiplier
+	counter[item.Qualifier] += multiplier
 
 	for _, comp := range item.GetComponents() {
 		c.countParts(comp.Ref, comp.Qty*multiplier, counter)
