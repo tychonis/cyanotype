@@ -29,6 +29,10 @@ func run(cmd *cobra.Command, args []string) {
 	bpcPath := cmd.Flag("output").Value.String()
 	if bpcPath == "" {
 		bpcPath = strings.ReplaceAll(bpoPath, ".bpo", ".bpc")
+		// Folder
+		if !strings.Contains(bpcPath, ".bpc") {
+			bpcPath = "ouptput.bpc"
+		}
 	}
 	core := hcl.NewCore()
 	err := core.Parse(bpoPath)
