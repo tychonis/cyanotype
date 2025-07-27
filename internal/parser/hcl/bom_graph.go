@@ -64,10 +64,10 @@ func (g *BOMGraph) MergeGraph(g2 *BOMGraph) error {
 
 func (g *BOMGraph) assignIDs() {
 	for _, item := range g.Items {
-		id, ok := g.Catalog.NameIdx[item.GetName()]
+		id, ok := g.QualifierIndex[item.Qualifier]
 		if !ok {
 			id = uuid.New()
-			g.Changes[item.GetName()] = id
+			g.Changes[item.Qualifier] = id
 		}
 		item.SetID(id)
 	}

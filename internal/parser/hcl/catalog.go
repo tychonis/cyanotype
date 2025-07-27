@@ -7,16 +7,9 @@ import (
 )
 
 func (g *BOMGraph) BuildCatalog() {
-	g.buildNameIdx()
 	g.buildPartNumberIdx()
 	g.buildQualifierIdx()
 	g.buildPathIdx()
-}
-
-func (g *BOMGraph) buildNameIdx() {
-	for _, item := range g.Items {
-		g.Catalog.NameIdx[item.GetName()] = item.GetID()
-	}
 }
 
 func (g *BOMGraph) buildPartNumberIdx() {
