@@ -6,7 +6,7 @@ import (
 	"github.com/tychonis/cyanotype/model"
 )
 
-func (g *BOMGraph) BuildCatalog() {
+func (g *BOMGraph) BuildIndex() {
 	g.buildPartNumberIdx()
 	g.buildQualifierIdx()
 	g.buildPathIdx()
@@ -19,7 +19,7 @@ func (g *BOMGraph) buildPartNumberIdx() {
 			partNumber = g.generatePartNumber(item)
 			item.PartNumber = partNumber
 		}
-		g.Catalog.PartNumberIdx[partNumber] = item.GetID()
+		g.PartNumberIndex[partNumber] = item.GetID()
 	}
 }
 
@@ -39,12 +39,12 @@ func (g *BOMGraph) buildPathIdx() {
 func (g *BOMGraph) generatePartNumber(item model.BOMItem) string {
 	id := item.GetID()
 	short := strings.Split(id.String(), "-")[0]
-	existing, ok := g.Catalog.PartNumberIdx[short]
+	existing, ok := g.PartNumberIndex[short]
 	if ok && existing != id {
 		const suffixes = "ghijklmnopqrstuvwxyz" // non-hex chars
 		for i := 0; i < len(suffixes); i++ {
 			candidate := short[:len(short)-1] + string(suffixes[i])
-			existing, ok := g.Catalog.PartNumberIdx[candidate]
+			existing, ok := g.PartNumberIndex[candidate]
 			if !ok || existing == id {
 				return candidate
 			}

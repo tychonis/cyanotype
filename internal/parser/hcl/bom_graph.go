@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/tychonis/cyanotype/internal/match"
-	"github.com/tychonis/cyanotype/internal/states"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -22,30 +21,36 @@ type Items map[ItemID]*model.Item
 type Nodes map[NodeID]*model.ItemNode
 
 type BOMGraph struct {
-	Catalog *states.Catalog     `json:"catalog" yaml:"catalog"`
-	Root    NodeID              `json:"root" yaml:"root"`
-	Items   Items               `json:"items" yaml:"items"`
-	Nodes   Nodes               `json:"nodes" yaml:"nodes"`
-	Usage   map[ItemID][]NodeID `json:"usage" yaml:"usage"`
+	Root  NodeID              `json:"root" yaml:"root"`
+	Items Items               `json:"items" yaml:"items"`
+	Nodes Nodes               `json:"nodes" yaml:"nodes"`
+	Usage map[ItemID][]NodeID `json:"usage" yaml:"usage"`
 
 	Variants map[string]Items     `json:"-" yaml:"-"`
 	Changes  map[string]uuid.UUID `json:"-" yaml:"-"`
 
-	QualifierIndex map[string]ItemID `json:"qualifier_index" yaml:"qualifier_index"`
-	PathIndex      map[string]NodeID `json:"path_index" yaml:"path_index"`
+	ID      uuid.UUID `json:"id" yaml:"id"`
+	Version string    `json:"version" yaml:"version"`
+
+	QualifierIndex  map[string]ItemID `json:"qualifier_index" yaml:"qualifier_index"`
+	PartNumberIndex map[string]ItemID `json:"part_number_index" yaml:"part_number_index"`
+	PathIndex       map[string]NodeID `json:"path_index" yaml:"path_index"`
 }
 
 func NewBOMGraph() *BOMGraph {
 	return &BOMGraph{
-		Catalog:  states.NewCatalog(),
+		ID:      uuid.New(),
+		Version: "alpha-0",
+
 		Items:    make(Items),
 		Nodes:    make(Nodes),
 		Usage:    make(map[ItemID][]NodeID),
 		Variants: make(map[string]Items),
 		Changes:  make(map[string]uuid.UUID),
 
-		QualifierIndex: make(map[string]ItemID),
-		PathIndex:      make(map[string]NodeID),
+		QualifierIndex:  make(map[string]ItemID),
+		PartNumberIndex: make(map[string]ItemID),
+		PathIndex:       make(map[string]NodeID),
 	}
 }
 
@@ -53,11 +58,11 @@ func (g *BOMGraph) MergeGraph(g2 *BOMGraph) error {
 	if g2 == nil {
 		return nil
 	}
-	g.Catalog.MergeCatalog(g2.Catalog)
 	maps.Copy(g.Items, g2.Items)
 	maps.Copy(g.Changes, g2.Changes)
 	maps.Copy(g.Variants, g2.Variants)
 	maps.Copy(g.QualifierIndex, g2.QualifierIndex)
+	maps.Copy(g.PartNumberIndex, g2.PartNumberIndex)
 	maps.Copy(g.PathIndex, g2.PathIndex)
 	return nil
 }
@@ -225,7 +230,7 @@ func (g *BOMGraph) Reference(ref *BOMGraph) *BOMGraph {
 		refRoot = rootID
 	}
 	ret.Root = refRoot
-	ret.BuildCatalog()
+	ret.BuildIndex()
 	ret.SortUsage()
 	return ret
 }
