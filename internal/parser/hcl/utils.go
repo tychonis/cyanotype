@@ -10,6 +10,15 @@ import (
 	"github.com/tychonis/cyanotype/model"
 )
 
+type ErrorWithRange struct {
+	Err   error
+	Range *hcl.Range
+}
+
+func (e *ErrorWithRange) Error() string {
+	return e.Err.Error()
+}
+
 func getString(attrs hcl.Attributes, key string) (string, error) {
 	attr, ok := attrs[key]
 	if !ok {

@@ -42,7 +42,7 @@ func (g *BOMGraph) generatePartNumber(item model.BOMItem) string {
 	existing, ok := g.PartNumberIndex[short]
 	if ok && existing != id {
 		const suffixes = "ghijklmnopqrstuvwxyz" // non-hex chars
-		for i := 0; i < len(suffixes); i++ {
+		for i := range len(suffixes) {
 			candidate := short[:len(short)-1] + string(suffixes[i])
 			existing, ok := g.PartNumberIndex[candidate]
 			if !ok || existing == id {
