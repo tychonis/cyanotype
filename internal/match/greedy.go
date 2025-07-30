@@ -24,11 +24,11 @@ func GreedyMatch(srcTokens [][]string, dstTokens [][]string) map[string]string {
 	usedDst := make([]bool, len(dstTokens))
 	result := make(map[string]string)
 
-	for i := 0; i < len(srcTokens); i++ {
+	for i := range len(srcTokens) {
 		minDist := -1
 		minJ := -1
 
-		for j := 0; j < len(dstTokens); j++ {
+		for j := range len(dstTokens) {
 			if usedDst[j] {
 				continue
 			}
