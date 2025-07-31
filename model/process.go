@@ -1,6 +1,7 @@
 package model
 
 type Process struct {
-	Input  []*Process
-	Output []*Process
+	Input          []*Component
+	Output         []*Component
+	Transformation func([]*Contract) *[]Contract
 }
