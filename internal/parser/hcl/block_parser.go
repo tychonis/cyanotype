@@ -100,10 +100,57 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) error 
 	return c.Symbols.AddSymbol(m, name, item)
 }
 
+func blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*model.Process, error) {
+	name := block.Labels[0]
+	attrs, diags := block.Body.JustAttributes()
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	input := readComponents(ctx, attrs["input"])
+	output := readComponents(ctx, attrs["output"])
+	return &model.Process{
+		Name:      name,
+		Qualifier: ctx.NameToQualifier(name),
+		Input:     input,
+		Output:    output,
+	}, nil
+}
+
 func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) error {
-	return nil
+	m := ctx.CurrentModule()
+	name := block.Labels[0]
+	process, err := blockToProcess(ctx, block)
+	if err != nil {
+		return err
+	}
+	return c.Symbols.AddSymbol(m, name, process)
+}
+
+func blockToContract(ctx *ParserContext, block *hclsyntax.Block) (*model.Contract, error) {
+	name := block.Labels[0]
+	attrs, diags := block.Body.JustAttributes()
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	params := make(map[string]any)
+	for attr := range attrs {
+		// TODO: support more types?
+		param, _ := getString(attrs, attr)
+		params[attr] = param
+	}
+	return &model.Contract{
+		Name:      name,
+		Qualifier: ctx.NameToQualifier(name),
+		Params:    params,
+	}, nil
 }
 
 func (c *Core) parseContractBlock(ctx *ParserContext, block *hclsyntax.Block) error {
-	return nil
+	m := ctx.CurrentModule()
+	name := block.Labels[0]
+	contract, err := blockToContract(ctx, block)
+	if err != nil {
+		return err
+	}
+	return c.Symbols.AddSymbol(m, name, contract)
 }
