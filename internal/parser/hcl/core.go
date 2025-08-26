@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/tychonis/cyanotype/internal/symbols"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -135,7 +136,7 @@ func (c *Core) Build(path string, root []string) (*BOMGraph, error) {
 		Children: make([]NodeID, 0),
 		Qty:      1,
 	}
-	bomGraph.Root = rootNode.ID
+	bomGraph.Roots = []NodeID{rootNode.ID}
 	bomGraph.AddNode(rootNode)
 	for _, comp := range rootItem.GetComponents() {
 		c.buildBom(bomGraph, comp.Name, comp.Ref, rootNode, comp.Qty)

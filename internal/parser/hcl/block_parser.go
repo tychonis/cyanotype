@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/tychonis/cyanotype/internal/symbols"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -43,6 +44,7 @@ func (c *Core) parseImportBlock(ctx *ParserContext, block *hclsyntax.Block) erro
 }
 
 func (c *Core) parseStateBlock(_ *ParserContext, block *hclsyntax.Block) error {
+	stateName := block.Labels[0]
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
 		return diags
@@ -61,7 +63,7 @@ func (c *Core) parseStateBlock(_ *ParserContext, block *hclsyntax.Block) error {
 	if err != nil {
 		return err
 	}
-	c.States[b.RootItem().Qualifier] = &b
+	c.States[stateName] = &b
 	return nil
 }
 

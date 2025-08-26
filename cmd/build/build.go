@@ -47,10 +47,8 @@ func run(cmd *cobra.Command, args []string) {
 		slog.Warn("Failed to build bom graph.", "error", err)
 	}
 
-	rootQualifer := bomGraph.RootItem().Qualifier
-	ref, ok := core.States[rootQualifer]
-	if ok {
-		bomGraph = bomGraph.Reference(ref)
+	for _, state := range core.States {
+		bomGraph = bomGraph.Reference(state)
 	}
 
 	output, _ := os.Create(bpcPath)

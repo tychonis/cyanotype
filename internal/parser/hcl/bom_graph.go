@@ -21,7 +21,7 @@ type Items map[ItemID]*model.Item
 type Nodes map[NodeID]*model.ItemNode
 
 type BOMGraph struct {
-	Root  NodeID              `json:"root" yaml:"root"`
+	Roots []NodeID            `json:"roots" yaml:"roots"`
 	Items Items               `json:"items" yaml:"items"`
 	Nodes Nodes               `json:"nodes" yaml:"nodes"`
 	Usage map[ItemID][]NodeID `json:"usage" yaml:"usage"`
@@ -90,12 +90,20 @@ func (g *BOMGraph) Build() {
 	g.assignIDs()
 }
 
-func (g *BOMGraph) RootNode() *model.ItemNode {
-	return g.Nodes[g.Root]
+func (g *BOMGraph) RootNodes() []*model.ItemNode {
+	ret := make([]*model.ItemNode, 0, len(g.Roots))
+	for _, root := range g.Roots {
+		ret = append(ret, g.Nodes[root])
+	}
+	return ret
 }
 
-func (g *BOMGraph) RootItem() *model.Item {
-	return g.Items[g.RootNode().ItemID]
+func (g *BOMGraph) RootItems() []*model.Item {
+	ret := make([]*model.Item, 0, len(g.Roots))
+	for _, node := range g.RootNodes() {
+		ret = append(ret, g.Items[node.ItemID])
+	}
+	return ret
 }
 
 func (g *BOMGraph) AddItem(item *model.Item) error {
@@ -224,12 +232,16 @@ func (g *BOMGraph) Reference(ref *BOMGraph) *BOMGraph {
 		}
 		ret.AddNode(&newNode)
 	}
-	rootID := g.RootNode().ID
-	refRoot, ok := nodeIDMapping[rootID]
-	if !ok {
-		refRoot = rootID
+
+	ret.Roots = make([]NodeID, 0, len(g.Roots))
+	for _, root := range g.RootNodes() {
+		refRoot, ok := nodeIDMapping[root.ID]
+		if !ok {
+			refRoot = root.ID
+		}
+		ret.Roots = append(ret.Roots, refRoot)
 	}
-	ret.Root = refRoot
+
 	ret.BuildIndex()
 	ret.SortUsage()
 	return ret
