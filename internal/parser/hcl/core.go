@@ -120,6 +120,7 @@ func (c *Core) Parse(path string) error {
 func (c *Core) Build(path string, root []string) (*BOMGraph, error) {
 	// TODO: check parsed.
 	bomGraph := NewBOMGraph()
+	c.AddItemsTo(bomGraph)
 	rootSymbol, err := c.Symbols.Resolve(root)
 	if err != nil {
 		return bomGraph, nil
@@ -128,7 +129,6 @@ func (c *Core) Build(path string, root []string) (*BOMGraph, error) {
 	if !ok {
 		return bomGraph, errors.New("unrecognized root")
 	}
-	bomGraph.AddItem(rootItem)
 	rootNode := &model.ItemNode{
 		ID:       uuid.New(),
 		ItemID:   rootItem.ID,
@@ -155,7 +155,6 @@ func (c *Core) buildBom(bom *BOMGraph, name string, ref []string, parent *model.
 	if !ok {
 		return
 	}
-	bom.AddItem(item)
 	node := &model.ItemNode{
 		ID:       uuid.New(),
 		ItemID:   item.ID,
@@ -168,5 +167,23 @@ func (c *Core) buildBom(bom *BOMGraph, name string, ref []string, parent *model.
 	parent.Children = append(parent.Children, node.ID)
 	for _, comp := range item.GetComponents() {
 		c.buildBom(bom, comp.Name, comp.Ref, node, comp.Qty)
+	}
+}
+
+func addModuleItemsToGraph(m *symbols.ModuleScope, bom *BOMGraph) {
+	for _, symbol := range m.Symbols {
+		switch s := symbol.(type) {
+		case *symbols.ModuleScope:
+			addModuleItemsToGraph(s, bom)
+		case *model.Item:
+			bom.AddItem(s)
+		default:
+		}
+	}
+}
+
+func (c *Core) AddItemsTo(bom *BOMGraph) {
+	for _, module := range c.Symbols.Modules {
+		addModuleItemsToGraph(module, bom)
 	}
 }
