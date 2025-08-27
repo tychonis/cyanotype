@@ -126,7 +126,7 @@ func (c *Core) Build(path string, root []string) (*BOMGraph, error) {
 	}
 	rootItem, ok := rootSymbol.(*model.Item)
 	if !ok {
-		return bomGraph, errors.New("unrecongnized root")
+		return bomGraph, errors.New("unrecognized root")
 	}
 	bomGraph.AddItem(rootItem)
 	rootNode := &model.ItemNode{
