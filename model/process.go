@@ -6,8 +6,10 @@ import (
 	"github.com/google/uuid"
 )
 
+type ProcessID = uuid.UUID
+
 type Process struct {
-	ID             uuid.UUID `json:"id" yaml:"id"`
+	ID             ProcessID `json:"id" yaml:"id"`
 	Qualifier      string    `json:"qualifier" yaml:"qualifier"`
 	Name           string    `json:"name" yaml:"name"`
 	Input          []*Component

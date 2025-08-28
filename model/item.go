@@ -12,8 +12,11 @@ import (
 	"github.com/google/uuid"
 )
 
+type ItemID = uuid.UUID
+type NodeID = uuid.UUID
+
 type Item struct {
-	ID         uuid.UUID    `json:"id" yaml:"id"`
+	ID         ItemID       `json:"id" yaml:"id"`
 	Qualifier  string       `json:"qualifier" yaml:"qualifier"`
 	Name       string       `json:"name" yaml:"name"`
 	Source     string       `json:"source,omitempty" yaml:"source,omitempty"`
@@ -23,12 +26,12 @@ type Item struct {
 }
 
 type ItemNode struct {
-	ID       uuid.UUID   `json:"id" yaml:"id"`
-	Path     string      `json:"path" yaml:"path"`
-	ItemID   uuid.UUID   `json:"item_id" yaml:"item_id"`
-	ParentID uuid.UUID   `json:"parent_id" yaml:"parent_id"`
-	Children []uuid.UUID `json:"children" yaml:"children"`
-	Qty      float64     `json:"qty" yaml:"qty"`
+	ID       NodeID   `json:"id" yaml:"id"`
+	Path     string   `json:"path" yaml:"path"`
+	ItemID   ItemID   `json:"item_id" yaml:"item_id"`
+	ParentID NodeID   `json:"parent_id" yaml:"parent_id"`
+	Children []NodeID `json:"children" yaml:"children"`
+	Qty      float64  `json:"qty" yaml:"qty"`
 }
 
 type Component struct {
@@ -37,11 +40,11 @@ type Component struct {
 	Qty  float64  `json:"qty" yaml:"qty"`
 }
 
-func (i *Item) GetID() uuid.UUID {
+func (i *Item) GetID() ItemID {
 	return i.ID
 }
 
-func (i *Item) SetID(id uuid.UUID) error {
+func (i *Item) SetID(id ItemID) error {
 	if i.ID != uuid.Nil && i.ID != id {
 		return errors.New("id conflict")
 	}

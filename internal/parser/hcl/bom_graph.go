@@ -14,8 +14,8 @@ import (
 
 const EXTENSION = ".bpo"
 
-type NodeID = uuid.UUID
-type ItemID = uuid.UUID
+type NodeID = model.NodeID
+type ItemID = model.ItemID
 
 type Items map[ItemID]*model.Item
 type Nodes map[NodeID]*model.ItemNode

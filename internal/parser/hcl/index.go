@@ -36,7 +36,7 @@ func (g *BOMGraph) buildPathIdx() {
 }
 
 // TODO: In the future, consider support user-defined part numbers with structured revision/variant metadata.
-func (g *BOMGraph) generatePartNumber(item model.BOMItem) string {
+func (g *BOMGraph) generatePartNumber(item *model.Item) string {
 	id := item.GetID()
 	short := strings.Split(id.String(), "-")[0]
 	existing, ok := g.PartNumberIndex[short]
