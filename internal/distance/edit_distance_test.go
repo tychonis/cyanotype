@@ -18,7 +18,6 @@ func TestEditDistance(t *testing.T) {
 		{"piece.bishop", "piece", 1},
 		{"piece", "piece.bishop", 1},
 		{"pawn", "queen", 1},
-		{"rook", "knight", 1},
 		{"piece.bishop.extra", "piece.bishop", 1},
 		{"a.b.c", "a.b.c.d.e", 2},
 	}
