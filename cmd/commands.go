@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tychonis/cyanotype/cmd/bom"
 	"github.com/tychonis/cyanotype/cmd/build"
+	"github.com/tychonis/cyanotype/cmd/initialize"
 )
 
 var rootCmd = &cobra.Command{
@@ -14,6 +15,7 @@ var rootCmd = &cobra.Command{
 
 func Run() {
 	rootCmd.AddCommand(
+		initialize.Cmd,
 		bom.Cmd,
 		build.Cmd,
 	)
