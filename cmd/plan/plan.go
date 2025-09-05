@@ -4,7 +4,7 @@ import "github.com/spf13/cobra"
 
 var Cmd = &cobra.Command{
 	Use:   "plan",
-	Short: "plan shows the diff between working-tree and committed state",
+	Short: "Plan shows the diff between working-tree and committed state",
 	Run:   run,
 }
 

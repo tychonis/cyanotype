@@ -10,7 +10,7 @@ import (
 
 var Cmd = &cobra.Command{
 	Use:   "bom [filename] [bom root]",
-	Short: "generate bom from bpo",
+	Short: "Generate bom from bpo",
 	Run:   run,
 	Args:  cobra.MinimumNArgs(2),
 }

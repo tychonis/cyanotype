@@ -12,7 +12,7 @@ import (
 
 var Cmd = &cobra.Command{
 	Use:   "commit",
-	Short: "build bpc from bpo",
+	Short: "Build bpc from bpo",
 	Run:   run,
 	Args:  cobra.MinimumNArgs(2),
 }

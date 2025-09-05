@@ -10,7 +10,7 @@ import (
 
 var Cmd = &cobra.Command{
 	Use:   "init",
-	Short: "initialize current folder",
+	Short: "Initialize current folder",
 	Run:   run,
 }
 
