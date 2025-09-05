@@ -28,7 +28,7 @@ Cyanotype is part of the [Tychonis](https://tychonis.com) ecosystem, which is bu
 
 ## ⚠️ Disclaimer
 
-Cyanotype is in a very early stage of development.
+Cyanotype is in a **very early stage** of development.
 The DSL, data models, and APIs are subject to rapid iteration and change.
 Expect breaking changes until we approach a stable release. We encourage experimentation, feedback, and contributions—but do not rely on Cyanotype yet for production-critical workloads.
 
