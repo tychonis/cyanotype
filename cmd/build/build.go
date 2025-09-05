@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
 	"github.com/tychonis/cyanotype/internal/parser/hcl"
 )
 
