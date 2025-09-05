@@ -25,14 +25,26 @@ type Item struct {
 	Derivation *Derivation `json:"derivation" yaml:"derivation"`
 	Process    ProcessID   `json:"process" yaml:"process"`
 
+	Require   []ContractID `json:"require" yaml:"require"`
+	Implement []ContractID `json:"implement" yaml:"implement"`
+
 	Content *ItemContent `json:"content" yaml:"content"`
+
+	Digest string `json:"-" yaml:"-"`
 }
 
 type ItemContent struct {
-	Name       string `json:"name" yaml:"name"`
-	Source     string `json:"source,omitempty" yaml:"source,omitempty"`
-	PartNumber string `json:"part_number" yaml:"part_number"`
-	Reference  string `json:"ref,omitempty" yaml:"ref,omitempty"`
+	Name       string       `json:"name" yaml:"name"`
+	Source     string       `json:"source,omitempty" yaml:"source,omitempty"`
+	PartNumber string       `json:"part_number" yaml:"part_number"`
+	References []*Reference `json:"ref,omitempty" yaml:"ref,omitempty"`
+}
+
+type Reference struct {
+	Reference string `json:"ref" yaml:"ref"`
+	Tag       string `json:"tag" yaml:"tag"`
+	Path      string `json:"path" yaml:"path"`
+	Digest    string `json:"digest" yaml:"digest"`
 }
 
 type ItemNode struct {

@@ -15,16 +15,16 @@ type BOMLine struct {
 }
 
 type Process struct {
-	ID          ProcessID `json:"id" yaml:"id"`
-	Qualifier   string    `json:"qualifier" yaml:"qualifier"`
-	Predecessor ProcessID
-	Input       []*BOMLine
-	Output      []*BOMLine
+	ID          ProcessID  `json:"id" yaml:"id"`
+	Qualifier   string     `json:"qualifier" yaml:"qualifier"`
+	Predecessor ProcessID  `json:"predecessor" yaml:"predecessor"`
+	Input       []*BOMLine `json:"input" yaml:"input"`
+	Output      []*BOMLine `json:"output" yaml:"output"`
 }
 
 type ProcessContent struct {
-	Name           string `json:"name" yaml:"name"`
-	Transformation func([]*Contract) *[]Contract
+	Name            string             `json:"name" yaml:"name"`
+	Transformations []TransformationID `json:"transformations" yaml:"transformations"`
 }
 
 // TODO: implement attrs?
