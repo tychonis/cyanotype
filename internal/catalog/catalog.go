@@ -3,6 +3,7 @@ package catalog
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -22,7 +23,20 @@ type LocalCatalog struct {
 	index map[uuid.UUID]string
 }
 
-func (c *LocalCatalog) saveIndex() {}
+func (c *LocalCatalog) appendIndexItem(key uuid.UUID, val string) error {
+	indexPath := filepath.Join(".bpc", "index")
+	f, err := os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return fmt.Errorf("open index: %w", err)
+	}
+	defer f.Close()
+	rec := key.String() + ":" + val + "\n"
+	_, err = f.Write([]byte(rec))
+	if err != nil {
+		return fmt.Errorf("write index: %w", err)
+	}
+	return f.Sync()
+}
 
 func digestToPath(digest string) string {
 	folder := digest[:2]
@@ -42,7 +56,7 @@ func (c *LocalCatalog) AddItem(item *model.Item) error {
 		return err
 	}
 	c.index[item.ID] = item.Digest
-	c.saveIndex()
+	c.appendIndexItem(item.ID, item.Digest)
 	return atomicWrite(digestToPath(item.Digest), body, 0o644)
 }
 
