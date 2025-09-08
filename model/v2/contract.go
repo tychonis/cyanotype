@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/tychonis/cyanotype/model"
 )
 
 type ContractID = uuid.UUID
@@ -16,7 +17,7 @@ type Contract struct {
 }
 
 // TODO: implement attrs?
-func (c *Contract) Resolve(path []string) (Symbol, error) {
+func (c *Contract) Resolve(path []string) (model.Symbol, error) {
 	if len(path) > 0 {
 		return nil, errors.New("attr not implemented")
 	}

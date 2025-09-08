@@ -12,7 +12,6 @@ var Cmd = &cobra.Command{
 	Use:   "commit",
 	Short: "Build bpc from bpo",
 	Run:   run,
-	Args:  cobra.MinimumNArgs(2),
 }
 
 func init() {

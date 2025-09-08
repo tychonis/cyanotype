@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/tychonis/cyanotype/internal/symbols"
-	"github.com/tychonis/cyanotype/model"
+	"github.com/tychonis/cyanotype/model/v2"
 )
 
 func (c *Core) parseBlock(ctx *ParserContext, block *hclsyntax.Block) error {
@@ -51,16 +51,16 @@ func blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error
 		return nil, diags
 	}
 	pn, _ := getString(attrs, "part_number")
-	ref, _ := getString(attrs, "ref")
+	// ref, _ := getString(attrs, "ref")
 	src, _ := getString(attrs, "source")
-	from := readComponents(ctx, attrs["from"])
+	// from := readComponents(ctx, attrs["from"])
 	return &model.Item{
-		Name:       name,
-		Qualifier:  ctx.NameToQualifier(name),
-		PartNumber: pn,
-		Reference:  ref,
-		Source:     src,
-		From:       from,
+		Qualifier: ctx.NameToQualifier(name),
+		Content: &model.ItemContent{
+			Name:       name,
+			PartNumber: pn,
+			Source:     src,
+		},
 	}, nil
 }
 
@@ -76,17 +76,14 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) error 
 
 func blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*model.Process, error) {
 	name := block.Labels[0]
-	attrs, diags := block.Body.JustAttributes()
+	_, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
 		return nil, diags
 	}
-	input := readComponents(ctx, attrs["input"])
-	output := readComponents(ctx, attrs["output"])
+	// input := readComponents(ctx, attrs["input"])
+	// output := readComponents(ctx, attrs["output"])
 	return &model.Process{
-		Name:      name,
 		Qualifier: ctx.NameToQualifier(name),
-		Input:     input,
-		Output:    output,
 	}, nil
 }
 

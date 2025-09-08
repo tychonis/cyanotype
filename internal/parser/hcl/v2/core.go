@@ -14,6 +14,8 @@ import (
 	"github.com/tychonis/cyanotype/model/v2"
 )
 
+const EXTENSION = ".bpo"
+
 type Core struct {
 	Symbols *symbols.SymbolTable
 	Catalog catalog.Catalog
@@ -49,7 +51,7 @@ func (ctx *ParserContext) NameToQualifier(name string) string {
 func NewCore() *Core {
 	return &Core{
 		Symbols: symbols.NewSymbolTable(),
-		Catalog: &catalog.LocalCatalog{},
+		Catalog: catalog.NewLocalCatalog(),
 	}
 }
 
@@ -128,7 +130,11 @@ func addModuleItemsToCatalog(m *symbols.ModuleScope, c catalog.Catalog) {
 		case *symbols.ModuleScope:
 			addModuleItemsToCatalog(s, c)
 		case *model.Item:
-			c.AddItem(s)
+			slog.Info("Adding item", "item", s)
+			err := c.AddItem(s)
+			if err != nil {
+				slog.Warn("Error adding item.", "error", err, "item", s)
+			}
 		default:
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/tychonis/cyanotype/model"
 )
 
 type ProcessID = uuid.UUID
@@ -28,7 +29,7 @@ type ProcessContent struct {
 }
 
 // TODO: implement attrs?
-func (p *Process) Resolve(path []string) (Symbol, error) {
+func (p *Process) Resolve(path []string) (model.Symbol, error) {
 	if len(path) > 0 {
 		return nil, errors.New("attr not implemented")
 	}

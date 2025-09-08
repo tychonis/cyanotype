@@ -23,6 +23,10 @@ type LocalCatalog struct {
 	index map[uuid.UUID]string
 }
 
+func NewLocalCatalog() *LocalCatalog {
+	return &LocalCatalog{index: make(map[uuid.UUID]string)}
+}
+
 func (c *LocalCatalog) appendIndexItem(key uuid.UUID, val string) error {
 	indexPath := filepath.Join(".bpc", "index")
 	f, err := os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
@@ -40,7 +44,7 @@ func (c *LocalCatalog) appendIndexItem(key uuid.UUID, val string) error {
 
 func digestToPath(digest string) string {
 	folder := digest[:2]
-	return filepath.Join(".bpc", folder, digest)
+	return filepath.Join(".bpc", "objects", folder, digest)
 }
 
 func (c *LocalCatalog) AddItem(item *model.Item) error {
