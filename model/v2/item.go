@@ -1,7 +1,11 @@
 package model
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
+
+	"github.com/tychonis/cyanotype/model"
 )
 
 type ItemID = uuid.UUID
@@ -59,4 +63,12 @@ type ItemNode struct {
 type Derivation struct {
 	DerivedFrom ItemID
 	Type        LinkType
+}
+
+// TODO: implement attrs?
+func (i *Item) Resolve(path []string) (model.Symbol, error) {
+	if len(path) > 0 {
+		return nil, errors.New("attr not implemented")
+	}
+	return i, nil
 }
