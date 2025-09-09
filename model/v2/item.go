@@ -3,13 +3,11 @@ package model
 import (
 	"errors"
 
-	"github.com/google/uuid"
-
+	"github.com/tychonis/cyanotype/internal/stable"
 	"github.com/tychonis/cyanotype/model"
 )
 
-type ItemID = uuid.UUID
-type NodeID = uuid.UUID
+type ItemID = Digest
 type LinkType string
 
 const (
@@ -26,14 +24,14 @@ type Item struct {
 	Qualifier string `json:"qualifier" yaml:"qualifier"`
 
 	Derivation *Derivation `json:"derivation" yaml:"derivation"`
-	Process    ProcessID   `json:"process" yaml:"process"`
+	Process    string      `json:"process" yaml:"process"`
 
 	Require   []ContractID `json:"require" yaml:"require"`
 	Implement []ContractID `json:"implement" yaml:"implement"`
 
 	Content *ItemContent `json:"content" yaml:"content"`
 
-	Digest string `json:"-" yaml:"-"`
+	Digest ItemID `json:"-" yaml:"-"`
 }
 
 type ItemContent struct {
@@ -41,6 +39,7 @@ type ItemContent struct {
 	Source     string       `json:"source,omitempty" yaml:"source,omitempty"`
 	PartNumber string       `json:"part_number" yaml:"part_number"`
 	References []*Reference `json:"ref,omitempty" yaml:"ref,omitempty"`
+	Details    stable.Map   `json:"details" yaml:"details"`
 }
 
 type Reference struct {
@@ -48,15 +47,6 @@ type Reference struct {
 	Tag       string `json:"tag" yaml:"tag"`
 	Path      string `json:"path" yaml:"path"`
 	Digest    string `json:"digest" yaml:"digest"`
-}
-
-type ItemNode struct {
-	ID       NodeID   `json:"id" yaml:"id"`
-	Path     string   `json:"path" yaml:"path"`
-	ItemID   ItemID   `json:"item_id" yaml:"item_id"`
-	ParentID NodeID   `json:"parent_id" yaml:"parent_id"`
-	Children []NodeID `json:"children" yaml:"children"`
-	Qty      float64  `json:"qty" yaml:"qty"`
 }
 
 type Derivation struct {

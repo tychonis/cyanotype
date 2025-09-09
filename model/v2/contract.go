@@ -3,17 +3,18 @@ package model
 import (
 	"errors"
 
-	"github.com/google/uuid"
+	"github.com/tychonis/cyanotype/internal/stable"
 	"github.com/tychonis/cyanotype/model"
 )
 
-type ContractID = uuid.UUID
+type ContractID = Digest
 
 type Contract struct {
-	ID        ContractID `json:"id" yaml:"id"`
 	Qualifier string     `json:"qualifier" yaml:"qualifier"`
 	Name      string     `json:"name" yaml:"name"`
-	Params    map[string]any
+	Params    stable.Map `json:"params" yaml:"params"`
+
+	Digest ContractID `json:"-" yaml:"-"`
 }
 
 // TODO: implement attrs?

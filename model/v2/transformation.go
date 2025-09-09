@@ -1,9 +1,9 @@
 package model
 
-import "github.com/google/uuid"
-
-type TransformationID = uuid.UUID
+type TransformationID = Digest
 
 type Transformation struct {
-	ID TransformationID
+	Qualifier string `json:"qualifier" yaml:"qualifier"`
+
+	Digest TransformationID `json:"-" yaml:"-"`
 }

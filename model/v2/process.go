@@ -3,11 +3,10 @@ package model
 import (
 	"errors"
 
-	"github.com/google/uuid"
 	"github.com/tychonis/cyanotype/model"
 )
 
-type ProcessID = uuid.UUID
+type ProcessID = Digest
 
 type BOMLine struct {
 	ID   ItemID  `json:"id" yaml:"id"`
@@ -16,16 +15,17 @@ type BOMLine struct {
 }
 
 type Process struct {
-	ID          ProcessID  `json:"id" yaml:"id"`
 	Qualifier   string     `json:"qualifier" yaml:"qualifier"`
 	Predecessor ProcessID  `json:"predecessor" yaml:"predecessor"`
 	Input       []*BOMLine `json:"input" yaml:"input"`
 	Output      []*BOMLine `json:"output" yaml:"output"`
+
+	Digest ProcessID `json:"-" yaml:"-"`
 }
 
 type ProcessContent struct {
-	Name            string             `json:"name" yaml:"name"`
-	Transformations []TransformationID `json:"transformations" yaml:"transformations"`
+	Name            string   `json:"name" yaml:"name"`
+	Transformations []string `json:"transformations" yaml:"transformations"`
 }
 
 // TODO: implement attrs?
