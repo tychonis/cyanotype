@@ -2,12 +2,9 @@ package catalog
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/google/uuid"
 
 	"github.com/tychonis/cyanotype/internal/digest"
 	"github.com/tychonis/cyanotype/internal/serializer"
@@ -16,25 +13,52 @@ import (
 
 type Catalog interface {
 	AddItem(item *model.Item) error
-	GetItem(id model.ItemID) (*model.Item, error)
+	GetItem(digest string) (*model.Item, error)
 }
 
 type LocalCatalog struct {
-	index map[uuid.UUID]string
+	index map[string]string
 }
 
 func NewLocalCatalog() *LocalCatalog {
-	return &LocalCatalog{index: make(map[uuid.UUID]string)}
+	cat := &LocalCatalog{index: make(map[string]string)}
+	cat.loadIndex()
+	return cat
 }
 
-func (c *LocalCatalog) appendIndexItem(key uuid.UUID, val string) error {
+func (c *LocalCatalog) loadIndex() error {
+	indexPath := filepath.Join(".bpc", "index")
+	data, err := os.ReadFile(indexPath)
+	if err != nil {
+		return fmt.Errorf("open index: %w", err)
+	}
+	lines := bytes.Split(data, []byte("\n"))
+	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+
+		parts := bytes.SplitN(line, []byte(":"), 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("malformed part")
+		}
+
+		dhex := string(parts[0])
+		qualifier := string(parts[1])
+
+		c.index[dhex] = qualifier
+	}
+	return nil
+}
+
+func (c *LocalCatalog) appendIndexItem(key string, val string) error {
 	indexPath := filepath.Join(".bpc", "index")
 	f, err := os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return fmt.Errorf("open index: %w", err)
 	}
 	defer f.Close()
-	rec := key.String() + ":" + val + "\n"
+	rec := key + ":" + val + "\n"
 	_, err = f.Write([]byte(rec))
 	if err != nil {
 		return fmt.Errorf("write index: %w", err)
@@ -48,9 +72,6 @@ func digestToPath(digest string) string {
 }
 
 func (c *LocalCatalog) AddItem(item *model.Item) error {
-	if item.ID == uuid.Nil {
-		item.ID = uuid.New()
-	}
 	body, err := serializer.SerializeItem(item)
 	if err != nil {
 		return err
@@ -59,16 +80,12 @@ func (c *LocalCatalog) AddItem(item *model.Item) error {
 	if err != nil {
 		return err
 	}
-	c.index[item.ID] = item.Digest
-	c.appendIndexItem(item.ID, item.Digest)
+	c.index[item.Digest] = item.Qualifier
+	c.appendIndexItem(item.Digest, item.Qualifier)
 	return atomicWrite(digestToPath(item.Digest), body, 0o644)
 }
 
-func (c *LocalCatalog) GetItem(id model.ItemID) (*model.Item, error) {
-	digest, ok := c.index[id]
-	if !ok {
-		return nil, errors.New("not found")
-	}
+func (c *LocalCatalog) GetItem(digest string) (*model.Item, error) {
 	path := digestToPath(digest)
 	body, err := os.ReadFile(path)
 	if err != nil {

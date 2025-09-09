@@ -23,7 +23,6 @@ const (
 // Any change to spec, composition, process or metadata produces a new Item.
 // Items are linked through Predecessor for traceability supersession or interchangeability.
 type Item struct {
-	ID        ItemID `json:"id" yaml:"id"`
 	Qualifier string `json:"qualifier" yaml:"qualifier"`
 
 	Derivation *Derivation `json:"derivation" yaml:"derivation"`
