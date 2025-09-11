@@ -74,23 +74,40 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) error 
 	return c.Symbols.AddSymbol(m, name, item)
 }
 
-func blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*model.Process, error) {
+func (c *Core) blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*model.Process, error) {
 	name := block.Labels[0]
-	_, diags := block.Body.JustAttributes()
+	ret := &model.Process{
+		Qualifier: ctx.NameToQualifier(name),
+	}
+	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
 		return nil, diags
 	}
-	// input := readComponents(ctx, attrs["input"])
-	// output := readComponents(ctx, attrs["output"])
-	return &model.Process{
-		Qualifier: ctx.NameToQualifier(name),
-	}, nil
+	input := readComponents(ctx, attrs["input"])
+	ret.Input = make([]*model.BOMLine, 0, len(input))
+	for _, line := range input {
+		resolved, err := c.ResolveBOMLine(ctx, line)
+		if err != nil {
+			return nil, err
+		}
+		ret.Input = append(ret.Input, resolved)
+	}
+	output := readComponents(ctx, attrs["output"])
+	ret.Output = make([]*model.BOMLine, 0, len(output))
+	for _, line := range output {
+		resolved, err := c.ResolveBOMLine(ctx, line)
+		if err != nil {
+			return nil, err
+		}
+		ret.Output = append(ret.Output, resolved)
+	}
+	return ret, nil
 }
 
 func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) error {
 	m := ctx.CurrentModule()
 	name := block.Labels[0]
-	process, err := blockToProcess(ctx, block)
+	process, err := c.blockToProcess(ctx, block)
 	if err != nil {
 		return err
 	}

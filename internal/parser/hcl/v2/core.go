@@ -145,3 +145,8 @@ func (c *Core) AddItemsTo(cat catalog.Catalog) {
 		addModuleItemsToCatalog(module, cat)
 	}
 }
+
+func (c *Core) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*model.BOMLine, error) {
+	// c.Symbols.Resolve(line.Ref)
+	return nil, nil
+}

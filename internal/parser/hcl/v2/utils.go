@@ -6,9 +6,13 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
-
-	"github.com/tychonis/cyanotype/model"
 )
+
+type UnresolvedBOMLine struct {
+	Role string   `json:"role" yaml:"role"`
+	Ref  []string `json:"ref" yaml:"ref"`
+	Qty  float64  `json:"qty" yaml:"qty"`
+}
 
 type ErrorWithRange struct {
 	Err   error
@@ -73,16 +77,16 @@ func getTraverserName(t hcl.Traverser) string {
 	}
 }
 
-func readComponent(ctx *ParserContext, obj *hclsyntax.ObjectConsExpr) *model.Component {
-	ret := &model.Component{
+func readComponent(ctx *ParserContext, obj *hclsyntax.ObjectConsExpr) *UnresolvedBOMLine {
+	ret := &UnresolvedBOMLine{
 		Qty: 1,
 	}
 	for _, item := range obj.Items {
 		key := getObjectKey(item.KeyExpr)
 		switch key {
-		case "name":
+		case "role":
 			val, _ := item.ValueExpr.Value(nil)
-			ret.Name = val.AsString()
+			ret.Role = val.AsString()
 		case "ref":
 			se, ok := item.ValueExpr.(*hclsyntax.ScopeTraversalExpr)
 			if !ok {
@@ -104,7 +108,7 @@ func readComponent(ctx *ParserContext, obj *hclsyntax.ObjectConsExpr) *model.Com
 	return ret
 }
 
-func readComponents(ctx *ParserContext, attr *hcl.Attribute) []*model.Component {
+func readComponents(ctx *ParserContext, attr *hcl.Attribute) []*UnresolvedBOMLine {
 	if attr == nil {
 		return nil
 	}
@@ -114,7 +118,7 @@ func readComponents(ctx *ParserContext, attr *hcl.Attribute) []*model.Component 
 		return nil
 	}
 
-	comps := make([]*model.Component, 0)
+	comps := make([]*UnresolvedBOMLine, 0)
 	for _, elem := range expr.Exprs {
 		obj, ok := elem.(*hclsyntax.ObjectConsExpr)
 		if !ok {
