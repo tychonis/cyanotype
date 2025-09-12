@@ -147,6 +147,21 @@ func (c *Core) AddItemsTo(cat catalog.Catalog) {
 }
 
 func (c *Core) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*model.BOMLine, error) {
-	// c.Symbols.Resolve(line.Ref)
-	return nil, nil
+	current, ok := c.Symbols.Modules[ctx.CurrentModule()]
+	if !ok {
+		return nil, errors.New("module not found")
+	}
+	s, err := current.Resolve(line.Ref)
+	if err != nil {
+		return nil, err
+	}
+	item, ok := s.(*model.Item)
+	if !ok {
+		return nil, errors.New("ref is not an item")
+	}
+	return &model.BOMLine{
+		Role: line.Role,
+		ID:   item.Digest,
+		Qty:  line.Qty,
+	}, nil
 }
