@@ -17,6 +17,7 @@ type BOMLine struct {
 type Process struct {
 	Qualifier   string     `json:"qualifier" yaml:"qualifier"`
 	Predecessor ProcessID  `json:"predecessor" yaml:"predecessor"`
+	CycleTime   float64    `json:"cycle_time" yaml:"cycle_time"`
 	Input       []*BOMLine `json:"input" yaml:"input"`
 	Output      []*BOMLine `json:"output" yaml:"output"`
 

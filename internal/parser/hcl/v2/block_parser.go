@@ -83,6 +83,8 @@ func (c *Core) blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*mode
 	if diags.HasErrors() {
 		return nil, diags
 	}
+	cycle, _ := getNumber(attrs, "cycle")
+	ret.CycleTime = cycle
 	input := readComponents(ctx, attrs["input"])
 	ret.Input = make([]*model.BOMLine, 0, len(input))
 	for _, line := range input {

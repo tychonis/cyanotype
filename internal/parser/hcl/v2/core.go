@@ -135,6 +135,7 @@ func addModuleItemsToCatalog(m *symbols.ModuleScope, c catalog.Catalog) {
 			if err != nil {
 				slog.Warn("Error adding item.", "error", err, "item", s)
 			}
+		case *model.Process:
 		default:
 		}
 	}
