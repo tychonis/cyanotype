@@ -24,3 +24,7 @@ func (c *Contract) Resolve(path []string) (model.Symbol, error) {
 	}
 	return c, nil
 }
+
+func (c *Contract) Fulfill(c2 *Contract) bool {
+	return false
+}

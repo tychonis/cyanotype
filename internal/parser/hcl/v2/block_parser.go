@@ -1,6 +1,7 @@
 package hcl
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -72,6 +73,13 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) error 
 		return err
 	}
 	return c.Symbols.AddSymbol(m, name, item)
+}
+
+func (c *Core) createProcessContract(process *model.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {
+	ret := &model.Contract{
+		Qualifier: fmt.Sprintf("%s.%s.%s", process.Qualifier, mode, line.Role),
+	}
+	return ret, nil
 }
 
 func (c *Core) blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*model.Process, error) {

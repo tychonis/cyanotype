@@ -9,9 +9,9 @@ import (
 type ProcessID = Digest
 
 type BOMLine struct {
-	ID   ItemID  `json:"id" yaml:"id"`
-	Qty  float64 `json:"qty" yaml:"qty"`
-	Role string  `json:"role" yaml:"role"`
+	Contract ContractID `json:"contract" yaml:"contract"`
+	Qty      float64    `json:"qty" yaml:"qty"`
+	Role     string     `json:"role" yaml:"role"`
 }
 
 type Process struct {
@@ -25,14 +25,23 @@ type Process struct {
 }
 
 type ProcessContent struct {
-	Name            string   `json:"name" yaml:"name"`
-	Transformations []string `json:"transformations" yaml:"transformations"`
+	Name            string             `json:"name" yaml:"name"`
+	Transformations []TransformationID `json:"transformations" yaml:"transformations"`
 }
 
-// TODO: implement attrs?
 func (p *Process) Resolve(path []string) (model.Symbol, error) {
-	if len(path) > 0 {
-		return nil, errors.New("attr not implemented")
+	if len(path) == 0 {
+		return p, nil
 	}
-	return p, nil
+	if len(path) < 2 {
+		return nil, errors.New("insufficient path length")
+	}
+	switch path[0] {
+	case "input":
+		return nil, nil
+	case "output":
+		return nil, nil
+	default:
+		return nil, errors.New("illformed token")
+	}
 }

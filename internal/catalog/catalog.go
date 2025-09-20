@@ -72,7 +72,7 @@ func digestToPath(digest string) string {
 }
 
 func (c *LocalCatalog) AddItem(item *model.Item) error {
-	body, err := serializer.SerializeItem(item)
+	body, err := serializer.Serialize(item)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func (c *LocalCatalog) GetItem(digest string) (*model.Item, error) {
 	if err != nil {
 		return nil, err
 	}
-	ret, err := serializer.DeserializeItem(body)
+	ret, err := serializer.Deserialize[*model.Item](body)
 	if err != nil {
 		return ret, err
 	}

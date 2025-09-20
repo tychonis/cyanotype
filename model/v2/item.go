@@ -24,7 +24,7 @@ type Item struct {
 	Qualifier string `json:"qualifier" yaml:"qualifier"`
 
 	Derivation *Derivation `json:"derivation" yaml:"derivation"`
-	Process    string      `json:"process" yaml:"process"`
+	Process    ProcessID   `json:"process" yaml:"process"`
 
 	Require   []ContractID `json:"require" yaml:"require"`
 	Implement []ContractID `json:"implement" yaml:"implement"`
