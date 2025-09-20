@@ -79,9 +79,9 @@ func blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error
 		return nil, diags
 	}
 	pn, _ := getString(attrs, "part_number")
-	ref, _ := getString(attrs, "ref")
 	src, _ := getString(attrs, "source")
 	from := readComponents(ctx, attrs["from"])
+	ref := readReferences(ctx, attrs["ref"])
 	return &model.Item{
 		Name:       name,
 		Qualifier:  ctx.NameToQualifier(name),

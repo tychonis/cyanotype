@@ -15,7 +15,7 @@ type Item struct {
 	Name       string       `json:"name" yaml:"name"`
 	Source     string       `json:"source,omitempty" yaml:"source,omitempty"`
 	PartNumber string       `json:"part_number" yaml:"part_number"`
-	Reference  string       `json:"ref,omitempty" yaml:"ref,omitempty"`
+	Reference  []*Reference `json:"ref,omitempty" yaml:"ref,omitempty"`
 	From       []*Component `json:"-" yaml:"-"`
 }
 

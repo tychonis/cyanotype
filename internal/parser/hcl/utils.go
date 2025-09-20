@@ -125,3 +125,41 @@ func readComponents(ctx *ParserContext, attr *hcl.Attribute) []*model.Component 
 	}
 	return comps
 }
+
+func readReference(_ *ParserContext, obj *hclsyntax.ObjectConsExpr) *model.Reference {
+	ret := &model.Reference{}
+	for _, item := range obj.Items {
+		key := getObjectKey(item.KeyExpr)
+		switch key {
+		case "tag":
+			val, _ := item.ValueExpr.Value(nil)
+			ret.Tag = val.AsString()
+		case "uri":
+			val, _ := item.ValueExpr.Value(nil)
+			ret.URI = val.AsString()
+		}
+	}
+	return ret
+}
+
+func readReferences(ctx *ParserContext, attr *hcl.Attribute) []*model.Reference {
+	if attr == nil {
+		return nil
+	}
+
+	expr, ok := attr.Expr.(*hclsyntax.TupleConsExpr)
+	if !ok {
+		return nil
+	}
+
+	refs := make([]*model.Reference, 0)
+	for _, elem := range expr.Exprs {
+		obj, ok := elem.(*hclsyntax.ObjectConsExpr)
+		if !ok {
+			continue
+		}
+		ref := readReference(ctx, obj)
+		refs = append(refs, ref)
+	}
+	return refs
+}
