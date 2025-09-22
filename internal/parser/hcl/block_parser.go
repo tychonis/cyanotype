@@ -2,6 +2,7 @@ package hcl
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 
@@ -34,11 +35,11 @@ func (c *Core) parseImportBlock(ctx *ParserContext, block *hclsyntax.Block) erro
 	err := c.Symbols.AddSymbol(currentModule, moduleName,
 		&symbols.Import{Symbols: c.Symbols, Identifier: path})
 	if err != nil {
-		return err
+		return fmt.Errorf("error parse block %s: %w", path, err)
 	}
 	newCtx, err := ctx.Import(path)
 	if err != nil {
-		return err
+		return fmt.Errorf("error parse block %s: %w", path, err)
 	}
 	return c.parseFolder(newCtx, path)
 }
@@ -97,7 +98,7 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) error 
 	name := block.Labels[0]
 	item, err := blockToItem(ctx, block)
 	if err != nil {
-		return err
+		return fmt.Errorf("error parse block %s: %w", name, err)
 	}
 	return c.Symbols.AddSymbol(m, name, item)
 }
