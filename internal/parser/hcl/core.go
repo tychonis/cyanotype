@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
+	"github.com/tychonis/cyanotype/internal/manager"
 	"github.com/tychonis/cyanotype/internal/symbols"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -176,6 +177,10 @@ func addModuleItemsToGraph(m *symbols.ModuleScope, bom *BOMGraph) {
 		case *symbols.ModuleScope:
 			addModuleItemsToGraph(s, bom)
 		case *model.Item:
+			err := manager.TrackItem(s)
+			if err != nil {
+				slog.Error("Error track item.", "error", err)
+			}
 			bom.AddItem(s)
 		default:
 		}
