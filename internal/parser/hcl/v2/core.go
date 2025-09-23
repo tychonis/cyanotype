@@ -161,8 +161,8 @@ func (c *Core) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*mod
 		return nil, errors.New("ref is not an item")
 	}
 	return &model.BOMLine{
-		Role:     line.Role,
-		Contract: item.Digest,
-		Qty:      line.Qty,
+		Role: line.Role,
+		Item: item.Digest,
+		Qty:  line.Qty,
 	}, nil
 }

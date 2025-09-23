@@ -21,17 +21,20 @@ const (
 // Any change to spec, composition, process or metadata produces a new Item.
 // Items are linked through Predecessor for traceability supersession or interchangeability.
 type Item struct {
-	Qualifier string `json:"qualifier" yaml:"qualifier"`
-
-	Derivation *Derivation `json:"derivation" yaml:"derivation"`
-	Process    ProcessID   `json:"process" yaml:"process"`
-
-	Require   []ContractID `json:"require" yaml:"require"`
+	Qualifier string       `json:"qualifier" yaml:"qualifier"`
 	Implement []ContractID `json:"implement" yaml:"implement"`
 
 	Content *ItemContent `json:"content" yaml:"content"`
+	Digest  ItemID       `json:"-" yaml:"-"`
+}
 
-	Digest ItemID `json:"-" yaml:"-"`
+// CoItem defines requirements.
+type CoItem struct {
+	Qualifier string       `json:"qualifier" yaml:"qualifier"`
+	Require   []ContractID `json:"require" yaml:"require"`
+
+	Content *ItemContent `json:"content" yaml:"content"`
+	Digest  ItemID       `json:"-" yaml:"-"`
 }
 
 type ItemContent struct {
