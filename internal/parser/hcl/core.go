@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/hcl/v2/hclparse"
@@ -14,6 +15,8 @@ import (
 	"github.com/tychonis/cyanotype/internal/symbols"
 	"github.com/tychonis/cyanotype/model"
 )
+
+const IMPLICIT string = "implicit."
 
 type Core struct {
 	Symbols *symbols.SymbolTable
@@ -43,6 +46,11 @@ func (ctx *ParserContext) NameToQualifier(name string) string {
 	prefix := ctx.CurrentModule()
 	if prefix == "." {
 		prefix = ""
+	}
+
+	rawName, implicit := strings.CutPrefix(name, IMPLICIT)
+	if implicit {
+		return IMPLICIT + prefix + "." + rawName
 	}
 	return prefix + "." + name
 }
