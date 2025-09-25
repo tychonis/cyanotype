@@ -93,15 +93,15 @@ func (c *Core) blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*mode
 	}
 	cycle, _ := getNumber(attrs, "cycle")
 	ret.CycleTime = cycle
-	// input := readComponents(ctx, attrs["input"])
-	// ret.Input = make([]*model.BOMLine, 0, len(input))
-	// for _, line := range input {
-	// 	resolved, err := c.ResolveBOMLine(ctx, line)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	ret.Input = append(ret.Input, resolved)
-	// }
+	input := readComponents(ctx, attrs["input"])
+	ret.Input = make([]*model.BOMLine, 0, len(input))
+	for _, line := range input {
+		resolved, err := c.ResolveBOMLine(ctx, line)
+		if err != nil {
+			return nil, err
+		}
+		ret.Input = append(ret.Input, resolved)
+	}
 	output := readComponents(ctx, attrs["output"])
 	ret.Output = make([]*model.BOMLine, 0, len(output))
 	for _, line := range output {
