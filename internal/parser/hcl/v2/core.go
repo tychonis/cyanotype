@@ -14,7 +14,8 @@ import (
 	"github.com/tychonis/cyanotype/model/v2"
 )
 
-const EXTENSION = ".bpo"
+const EXTENSION string = ".bpo"
+const IMPLICIT string = "implicit."
 
 type Core struct {
 	Symbols *symbols.SymbolTable

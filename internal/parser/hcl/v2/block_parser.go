@@ -65,10 +65,33 @@ func blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error
 	}, nil
 }
 
+func blockToItemSymbol(ctx *ParserContext, block *hclsyntax.Block) (*ItemSymbol, error) {
+	name := block.Labels[0]
+	attrs, diags := block.Body.JustAttributes()
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	pn, _ := getString(attrs, "part_number")
+	// ref, _ := getString(attrs, "ref")
+	src, _ := getString(attrs, "source")
+	from := readComponents(ctx, attrs["from"])
+	return &ItemSymbol{
+		Qualifier: ctx.NameToQualifier(name),
+		Content: &model.ItemContent{
+			Name:       name,
+			PartNumber: pn,
+			Source:     src,
+		},
+		SyntaxSugar: &ItemSyntaxSugar{
+			From: from,
+		},
+	}, nil
+}
+
 func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) error {
 	m := ctx.CurrentModule()
 	name := block.Labels[0]
-	item, err := blockToItem(ctx, block)
+	item, err := blockToItemSymbol(ctx, block)
 	if err != nil {
 		return err
 	}

@@ -8,12 +8,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-type UnresolvedBOMLine struct {
-	Role string   `json:"role" yaml:"role"`
-	Ref  []string `json:"ref" yaml:"ref"`
-	Qty  float64  `json:"qty" yaml:"qty"`
-}
-
 type ErrorWithRange struct {
 	Err   error
 	Range *hcl.Range
