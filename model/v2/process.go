@@ -2,8 +2,6 @@ package model
 
 import (
 	"errors"
-
-	"github.com/tychonis/cyanotype/model"
 )
 
 type ProcessID = Digest
@@ -39,7 +37,7 @@ type ProcessContent struct {
 	Transformations []TransformationID `json:"transformations" yaml:"transformations"`
 }
 
-func (p *Process) Resolve(path []string) (model.Symbol, error) {
+func (p *Process) Resolve(path []string) (Symbol, error) {
 	if len(path) == 0 {
 		return p, nil
 	}

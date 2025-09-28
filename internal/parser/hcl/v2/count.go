@@ -6,8 +6,18 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/tychonis/cyanotype/model"
+	"github.com/tychonis/cyanotype/model/v2"
 )
+
+type Component struct {
+	Name string
+	Ref  []string
+	Qty  float64
+}
+
+func (c *Core) getComponents(item *model.Item) []*Component {
+	return nil
+}
 
 func (c *Core) countParts(ref []string, multiplier float64, counter map[string]float64) {
 	slog.Debug("Counting...", "name", ref, "multiplier", multiplier)
@@ -23,7 +33,9 @@ func (c *Core) countParts(ref []string, multiplier float64, counter map[string]f
 		return
 	}
 
-	if len(item.GetComponents()) == 0 {
+	components := c.getComponents(item)
+
+	if len(components) == 0 {
 		counter[item.Qualifier] += multiplier
 		return
 	}
@@ -31,7 +43,7 @@ func (c *Core) countParts(ref []string, multiplier float64, counter map[string]f
 	// also count assembly?
 	counter[item.Qualifier] += multiplier
 
-	for _, comp := range item.GetComponents() {
+	for _, comp := range components {
 		c.countParts(comp.Ref, comp.Qty*multiplier, counter)
 	}
 }

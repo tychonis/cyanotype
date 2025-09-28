@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/tychonis/cyanotype/internal/stable"
-	"github.com/tychonis/cyanotype/model"
 )
 
 type ContractID = Digest
@@ -18,7 +17,7 @@ type Contract struct {
 }
 
 // TODO: implement attrs?
-func (c *Contract) Resolve(path []string) (model.Symbol, error) {
+func (c *Contract) Resolve(path []string) (Symbol, error) {
 	if len(path) > 0 {
 		return nil, errors.New("attr not implemented")
 	}

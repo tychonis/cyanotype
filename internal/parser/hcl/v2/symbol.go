@@ -1,7 +1,6 @@
 package hcl
 
 import (
-	v1 "github.com/tychonis/cyanotype/model"
 	"github.com/tychonis/cyanotype/model/v2"
 )
 
@@ -24,7 +23,7 @@ type ItemSymbol struct {
 	SyntaxSugar *ItemSyntaxSugar
 }
 
-func (is *ItemSymbol) Resolve(path []string) (v1.Symbol, error) {
+func (is *ItemSymbol) Resolve(path []string) (model.Symbol, error) {
 	return nil, nil
 }
 
@@ -35,6 +34,6 @@ type ProcessSymbol struct {
 	Output    []*UnresolvedBOMLine
 }
 
-func (ps *ProcessSymbol) Resolve(path []string) (v1.Symbol, error) {
+func (ps *ProcessSymbol) Resolve(path []string) (model.Symbol, error) {
 	return nil, nil
 }
