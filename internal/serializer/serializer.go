@@ -16,7 +16,7 @@ func DeserializeItem(body []byte) (*model.Item, error) {
 	return &ret, err
 }
 
-func Serialize[T model.Symbol](s T) ([]byte, error) {
+func Serialize(s model.Symbol) ([]byte, error) {
 	return json.Marshal(s)
 }
 

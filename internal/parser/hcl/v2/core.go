@@ -16,6 +16,7 @@ import (
 
 const EXTENSION string = ".bpo"
 const IMPLICIT string = "implicit."
+const DEFAULT string = "default"
 
 type Core struct {
 	Symbols *symbols.SymbolTable
@@ -24,6 +25,12 @@ type Core struct {
 
 type ParserContext struct {
 	ImportStack []string
+}
+
+func NewParserContext() *ParserContext {
+	return &ParserContext{
+		ImportStack: []string{"."},
+	}
 }
 
 func (ctx *ParserContext) Import(path string) (*ParserContext, error) {
@@ -56,6 +63,14 @@ func NewCore() *Core {
 	}
 }
 
+func (c *Core) Resolve(ctx *ParserContext, ref []string) (model.Symbol, error) {
+	mod, ok := c.Symbols.Modules[ctx.CurrentModule()]
+	if !ok {
+		return nil, errors.New("no registered symbols")
+	}
+	return mod.Resolve(ref)
+}
+
 func (c *Core) parseFolder(ctx *ParserContext, dir string) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -73,10 +88,8 @@ func (c *Core) parseFolder(ctx *ParserContext, dir string) error {
 }
 
 func (c *Core) ParseFolder(dir string) error {
-	ctx := ParserContext{
-		ImportStack: []string{"."},
-	}
-	return c.parseFolder(&ctx, dir)
+	ctx := NewParserContext()
+	return c.parseFolder(ctx, dir)
 }
 
 func (c *Core) parseFile(ctx *ParserContext, filename string) error {
@@ -94,7 +107,7 @@ func (c *Core) parseFile(ctx *ParserContext, filename string) error {
 	}
 
 	for _, block := range content.Blocks {
-		err := c.parseBlock(ctx, block)
+		err := c.registerBlock(ctx, block)
 		if err != nil {
 			slog.Warn("Error parsing block.", "error", err)
 		}
@@ -103,10 +116,8 @@ func (c *Core) parseFile(ctx *ParserContext, filename string) error {
 }
 
 func (c *Core) ParseFile(filename string) error {
-	ctx := ParserContext{
-		ImportStack: []string{"."},
-	}
-	return c.parseFile(&ctx, filename)
+	ctx := NewParserContext()
+	return c.parseFile(ctx, filename)
 }
 
 func (c *Core) Parse(path string) error {
@@ -118,6 +129,41 @@ func (c *Core) Parse(path string) error {
 		return c.ParseFolder(path)
 	}
 	return c.ParseFile(path)
+}
+
+func (c *Core) Process(path string) error {
+	err := c.Parse(path)
+	if err != nil {
+		return err
+	}
+	return c.processModules(c.Catalog)
+}
+
+func (c *Core) processModules(cat catalog.Catalog) error {
+	for _, module := range c.Symbols.Modules {
+		err := c.processModuleScope(module, cat)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Core) processModuleScope(m *symbols.ModuleScope, cat catalog.Catalog) error {
+	for _, symbol := range m.Symbols {
+		switch s := symbol.(type) {
+		case *symbols.ModuleScope:
+			c.processModuleScope(s, cat)
+		case *UnprocessedSymbol:
+			slog.Info("Process item", "item", s)
+			err := c.ParseSymbol(s)
+			if err != nil {
+				slog.Warn("Error adding item.", "error", err, "item", s)
+			}
+		default:
+		}
+	}
+	return nil
 }
 
 func (c *Core) Build(path string) error {
@@ -149,11 +195,7 @@ func (c *Core) AddItemsTo(cat catalog.Catalog) {
 }
 
 func (c *Core) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*model.BOMLine, error) {
-	current, ok := c.Symbols.Modules[ctx.CurrentModule()]
-	if !ok {
-		return nil, errors.New("module not found")
-	}
-	s, err := current.Resolve(line.Ref)
+	s, err := c.Resolve(ctx, line.Ref)
 	if err != nil {
 		return nil, err
 	}

@@ -34,17 +34,18 @@ func (t *SymbolTable) AddSymbol(module string, name string, symbol model.Symbol)
 	return nil
 }
 
-func (t *SymbolTable) Resolve(ref []string) (model.Symbol, error) {
-	mod, ok := t.Modules["."]
+func (t *SymbolTable) UpdateSymbol(module string, name string, symbol model.Symbol) error {
+	_, ok := t.Modules[module].Symbols[name]
 	if !ok {
-		return nil, fmt.Errorf("no registered symbols")
+		return fmt.Errorf("symbol %s does not exist in %s", name, module)
 	}
-	return mod.Resolve(ref)
+	t.Modules[module].Symbols[name] = symbol
+	return nil
 }
 
 func (m *ModuleScope) Resolve(ref []string) (model.Symbol, error) {
 	if len(ref) <= 0 {
-		return nil, fmt.Errorf("resolving empty symbol")
+		return m, nil
 	}
 	sym := ref[0]
 	resolver, ok := m.Symbols[sym]

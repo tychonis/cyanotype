@@ -1,8 +1,19 @@
 package hcl
 
 import (
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/tychonis/cyanotype/model/v2"
 )
+
+type UnprocessedSymbol struct {
+	Context *ParserContext
+	Block   *hclsyntax.Block
+}
+
+func (us *UnprocessedSymbol) Resolve(path []string) (model.Symbol, error) {
+	return nil, nil
+}
 
 type UnresolvedBOMLine struct {
 	Role string   `json:"role" yaml:"role"`

@@ -1,71 +1,63 @@
 package hcl
 
 import (
+	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
-	"github.com/tychonis/cyanotype/internal/symbols/v2"
+	"github.com/tychonis/cyanotype/internal/digest"
 	"github.com/tychonis/cyanotype/model/v2"
 )
 
-func (c *Core) parseBlock(ctx *ParserContext, block *hclsyntax.Block) error {
-	switch block.Type {
-	case "import":
-		return c.parseImportBlock(ctx, block)
-	case "item":
-		return c.parseItemBlock(ctx, block)
-	case "process":
-		return c.parseProcessBlock(ctx, block)
-	case "contract":
-		return c.parseContractBlock(ctx, block)
+func (c *Core) ParseSymbol(s *UnprocessedSymbol) error {
+	if s.Block == nil || s.Context == nil {
+		return errors.New("illegal nil symbol")
 	}
+	switch s.Block.Type {
+	case "item":
+		return c.parseItemBlock(s.Context, s.Block)
+	case "process":
+		return c.parseProcessBlock(s.Context, s.Block)
+	case "contract":
+		return c.parseContractBlock(s.Context, s.Block)
+	default:
+		return errors.New("unknown block type")
+	}
+}
+
+func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from []*UnresolvedBOMLine) error {
+	if len(from) <= 0 {
+		return nil
+	}
+	for _, comp := range from {
+		ref, err := c.Resolve(ctx, comp.Ref)
+		if err != nil {
+			return err
+		}
+		switch s := ref.(type) {
+		case *UnprocessedSymbol:
+			err = c.ParseSymbol(s)
+			if err != nil {
+				return err
+			}
+		default:
+		}
+	}
+	// p := &model.Process{
+	// 	Qualifier: IMPLICIT + item.Qualifier + ".process",
+	// 	Output: []*model.BOMLine{
+	// 		{
+	// 			Item: item.Digest,
+	// 			Qty:  1,
+	// 			Role: DEFAULT,
+	// 		},
+	// 	},
+	// }
 	return nil
 }
 
-func (c *Core) parseImportBlock(ctx *ParserContext, block *hclsyntax.Block) error {
-	path := block.Labels[0]
-	moduleName := pathToModuleName(path)
-	currentModule := ctx.CurrentModule()
-	err := c.Symbols.AddSymbol(currentModule, moduleName,
-		&symbols.Import{Symbols: c.Symbols, Identifier: path})
-	if err != nil {
-		return err
-	}
-	newCtx, err := ctx.Import(path)
-	if err != nil {
-		return err
-	}
-	return c.parseFolder(newCtx, path)
-}
-
-func pathToModuleName(path string) string {
-	components := strings.Split(path, "/")
-	return components[len(components)-1]
-}
-
-func blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
-	name := block.Labels[0]
-	attrs, diags := block.Body.JustAttributes()
-	if diags.HasErrors() {
-		return nil, diags
-	}
-	pn, _ := getString(attrs, "part_number")
-	// ref, _ := getString(attrs, "ref")
-	src, _ := getString(attrs, "source")
-	// from := readComponents(ctx, attrs["from"])
-	return &model.Item{
-		Qualifier: ctx.NameToQualifier(name),
-		Content: &model.ItemContent{
-			Name:       name,
-			PartNumber: pn,
-			Source:     src,
-		},
-	}, nil
-}
-
-func blockToItemSymbol(ctx *ParserContext, block *hclsyntax.Block) (*ItemSymbol, error) {
+func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
 	name := block.Labels[0]
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
@@ -75,27 +67,31 @@ func blockToItemSymbol(ctx *ParserContext, block *hclsyntax.Block) (*ItemSymbol,
 	// ref, _ := getString(attrs, "ref")
 	src, _ := getString(attrs, "source")
 	from := readComponents(ctx, attrs["from"])
-	return &ItemSymbol{
+	item := &model.Item{
 		Qualifier: ctx.NameToQualifier(name),
 		Content: &model.ItemContent{
 			Name:       name,
-			PartNumber: pn,
 			Source:     src,
+			PartNumber: pn,
 		},
-		SyntaxSugar: &ItemSyntaxSugar{
-			From: from,
-		},
-	}, nil
+	}
+	var err error
+	item.Digest, err = digest.SHA256FromSymbol(item)
+	if err != nil {
+		return item, err
+	}
+	err = c.buildCompanionForItem(ctx, item, from)
+	return item, err
 }
 
 func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) error {
 	m := ctx.CurrentModule()
 	name := block.Labels[0]
-	item, err := blockToItemSymbol(ctx, block)
+	item, err := c.blockToItem(ctx, block)
 	if err != nil {
 		return err
 	}
-	return c.Symbols.AddSymbol(m, name, item)
+	return c.Symbols.UpdateSymbol(m, name, item)
 }
 
 func (c *Core) createProcessContract(process *model.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {
