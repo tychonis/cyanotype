@@ -54,6 +54,14 @@ func (p *Process) Resolve(path []string) (Symbol, error) {
 	}
 }
 
+func (p *Process) GetQualifier() string {
+	return p.Qualifier
+}
+
+func (p *Process) GetDigest() string {
+	return p.Digest
+}
+
 func (cp *CoProcess) Resolve(path []string) (Symbol, error) {
 	if len(path) == 0 {
 		return cp, nil
@@ -69,4 +77,12 @@ func (cp *CoProcess) Resolve(path []string) (Symbol, error) {
 	default:
 		return nil, errors.New("illformed token")
 	}
+}
+
+func (cp *CoProcess) GetQualifier() string {
+	return cp.Qualifier
+}
+
+func (cp *CoProcess) GetDigest() string {
+	return cp.Digest
 }

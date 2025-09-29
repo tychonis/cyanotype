@@ -178,7 +178,7 @@ func addModuleItemsToCatalog(m *symbols.ModuleScope, c catalog.Catalog) {
 			addModuleItemsToCatalog(s, c)
 		case *model.Item:
 			slog.Info("Adding item", "item", s)
-			err := c.AddItem(s)
+			err := c.Add(s)
 			if err != nil {
 				slog.Warn("Error adding item.", "error", err, "item", s)
 			}

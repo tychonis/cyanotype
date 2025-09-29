@@ -6,13 +6,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/tychonis/cyanotype/internal/digest"
 	"github.com/tychonis/cyanotype/internal/serializer"
 	"github.com/tychonis/cyanotype/model/v2"
 )
 
 type Catalog interface {
-	AddItem(item *model.Item) error
+	Add(symbol model.ConcreteSymbol) error
 	GetItem(digest string) (*model.Item, error)
 }
 
@@ -71,18 +70,14 @@ func digestToPath(digest string) string {
 	return filepath.Join(".bpc", "objects", folder, digest)
 }
 
-func (c *LocalCatalog) AddItem(item *model.Item) error {
+func (c *LocalCatalog) Add(item model.ConcreteSymbol) error {
 	body, err := serializer.Serialize(item)
 	if err != nil {
 		return err
 	}
-	item.Digest, err = digest.SHA256FromReader(bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	c.index[item.Digest] = item.Qualifier
-	c.appendIndexItem(item.Digest, item.Qualifier)
-	return atomicWrite(digestToPath(item.Digest), body, 0o644)
+	c.index[item.GetDigest()] = item.GetDigest()
+	c.appendIndexItem(item.GetDigest(), item.GetDigest())
+	return atomicWrite(digestToPath(item.GetDigest()), body, 0o644)
 }
 
 func (c *LocalCatalog) GetItem(digest string) (*model.Item, error) {

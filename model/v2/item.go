@@ -64,10 +64,26 @@ func (i *Item) Resolve(path []string) (Symbol, error) {
 	return i, nil
 }
 
+func (i *Item) GetQualifier() string {
+	return i.Qualifier
+}
+
+func (i *Item) GetDigest() string {
+	return i.Digest
+}
+
 // TODO: implement attrs?
 func (ci *CoItem) Resolve(path []string) (Symbol, error) {
 	if len(path) > 0 {
 		return nil, errors.New("attr not implemented")
 	}
 	return ci, nil
+}
+
+func (ci *CoItem) GetQualifier() string {
+	return ci.Qualifier
+}
+
+func (ci *CoItem) GetDigest() string {
+	return ci.Digest
 }

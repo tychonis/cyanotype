@@ -27,3 +27,11 @@ func (c *Contract) Resolve(path []string) (Symbol, error) {
 func (c *Contract) Fulfill(c2 *Contract) bool {
 	return false
 }
+
+func (c *Contract) GetQualifier() string {
+	return c.Qualifier
+}
+
+func (c *Contract) GetDigest() string {
+	return c.Digest
+}
