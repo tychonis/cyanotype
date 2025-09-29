@@ -54,7 +54,9 @@ func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from 
 		default:
 			return errors.New("incorrect ref")
 		}
-		co := &model.CoItem{}
+		co := &model.CoItem{
+			Qualifier: IMPLICIT + itemRef.Qualifier + ".coitem",
+		}
 		co.Digest, err = digest.SHA256FromSymbol(co)
 		if err != nil {
 			return err
@@ -65,6 +67,7 @@ func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from 
 		})
 
 		cp := &model.CoProcess{
+			Qualifier: IMPLICIT + itemRef.Qualifier + ".coprocess",
 			Input: []*model.BOMLine{
 				{
 					Item: itemRef.Digest,
