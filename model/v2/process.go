@@ -53,3 +53,20 @@ func (p *Process) Resolve(path []string) (Symbol, error) {
 		return nil, errors.New("illformed token")
 	}
 }
+
+func (cp *CoProcess) Resolve(path []string) (Symbol, error) {
+	if len(path) == 0 {
+		return cp, nil
+	}
+	if len(path) < 2 {
+		return nil, errors.New("insufficient path length")
+	}
+	switch path[0] {
+	case "input":
+		return nil, nil
+	case "output":
+		return nil, nil
+	default:
+		return nil, errors.New("illformed token")
+	}
+}

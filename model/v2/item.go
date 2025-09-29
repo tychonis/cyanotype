@@ -63,3 +63,11 @@ func (i *Item) Resolve(path []string) (Symbol, error) {
 	}
 	return i, nil
 }
+
+// TODO: implement attrs?
+func (ci *CoItem) Resolve(path []string) (Symbol, error) {
+	if len(path) > 0 {
+		return nil, errors.New("attr not implemented")
+	}
+	return ci, nil
+}

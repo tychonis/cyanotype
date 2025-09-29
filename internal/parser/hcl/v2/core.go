@@ -156,7 +156,7 @@ func (c *Core) processModuleScope(m *symbols.ModuleScope, cat catalog.Catalog) e
 			c.processModuleScope(s, cat)
 		case *UnprocessedSymbol:
 			slog.Info("Process item", "item", s)
-			err := c.ParseSymbol(s)
+			_, err := c.ParseSymbol(s)
 			if err != nil {
 				slog.Warn("Error adding item.", "error", err, "item", s)
 			}

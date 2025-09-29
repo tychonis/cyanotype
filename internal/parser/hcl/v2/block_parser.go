@@ -10,9 +10,9 @@ import (
 	"github.com/tychonis/cyanotype/model/v2"
 )
 
-func (c *Core) ParseSymbol(s *UnprocessedSymbol) error {
+func (c *Core) ParseSymbol(s *UnprocessedSymbol) (model.Symbol, error) {
 	if s.Block == nil || s.Context == nil {
-		return errors.New("illegal nil symbol")
+		return nil, errors.New("illegal nil symbol")
 	}
 	switch s.Block.Type {
 	case "item":
@@ -22,39 +22,80 @@ func (c *Core) ParseSymbol(s *UnprocessedSymbol) error {
 	case "contract":
 		return c.parseContractBlock(s.Context, s.Block)
 	default:
-		return errors.New("unknown block type")
+		return nil, errors.New("unknown block type")
 	}
 }
 
 func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from []*UnresolvedBOMLine) error {
+	var err error
 	if len(from) <= 0 {
 		return nil
 	}
+	input := make([]*model.BOMLine, 0, len(from))
 	for _, comp := range from {
 		ref, err := c.Resolve(ctx, comp.Ref)
 		if err != nil {
 			return err
 		}
+		var itemRef *model.Item
 		switch s := ref.(type) {
 		case *UnprocessedSymbol:
-			err = c.ParseSymbol(s)
+			itemSymbol, err := c.ParseSymbol(s)
 			if err != nil {
 				return err
 			}
+			item, ok := itemSymbol.(*model.Item)
+			if !ok {
+				return errors.New("incorrect ref")
+			}
+			itemRef = item
+		case *model.Item:
+			itemRef = s
 		default:
+			return errors.New("incorrect ref")
+		}
+		co := &model.CoItem{}
+		co.Digest, err = digest.SHA256FromSymbol(co)
+		if err != nil {
+			return err
+		}
+		input = append(input, &model.BOMLine{
+			Item: co.Digest,
+			Qty:  comp.Qty,
+		})
+
+		cp := &model.CoProcess{
+			Input: []*model.BOMLine{
+				{
+					Item: itemRef.Digest,
+					Qty:  1,
+				},
+			},
+			Output: []*model.BOMLine{
+				{
+					Item: co.Digest,
+					Qty:  1,
+				},
+			},
+		}
+		cp.Digest, err = digest.SHA256FromSymbol(cp)
+		if err != nil {
+			return err
 		}
 	}
-	// p := &model.Process{
-	// 	Qualifier: IMPLICIT + item.Qualifier + ".process",
-	// 	Output: []*model.BOMLine{
-	// 		{
-	// 			Item: item.Digest,
-	// 			Qty:  1,
-	// 			Role: DEFAULT,
-	// 		},
-	// 	},
-	// }
-	return nil
+	p := &model.Process{
+		Qualifier: IMPLICIT + item.Qualifier + ".process",
+		Output: []*model.BOMLine{
+			{
+				Item: item.Digest,
+				Qty:  1,
+				Role: DEFAULT,
+			},
+		},
+		Input: input,
+	}
+	p.Digest, err = digest.SHA256FromSymbol(p)
+	return err
 }
 
 func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
@@ -84,14 +125,14 @@ func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.I
 	return item, err
 }
 
-func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) error {
+func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (model.Symbol, error) {
 	m := ctx.CurrentModule()
 	name := block.Labels[0]
 	item, err := c.blockToItem(ctx, block)
 	if err != nil {
-		return err
+		return item, err
 	}
-	return c.Symbols.UpdateSymbol(m, name, item)
+	return item, c.Symbols.UpdateSymbol(m, name, item)
 }
 
 func (c *Core) createProcessContract(process *model.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {
@@ -133,14 +174,14 @@ func (c *Core) blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*mode
 	return ret, nil
 }
 
-func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) error {
+func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (model.Symbol, error) {
 	m := ctx.CurrentModule()
 	name := block.Labels[0]
 	process, err := c.blockToProcess(ctx, block)
 	if err != nil {
-		return err
+		return process, err
 	}
-	return c.Symbols.AddSymbol(m, name, process)
+	return process, c.Symbols.UpdateSymbol(m, name, process)
 }
 
 func blockToContract(ctx *ParserContext, block *hclsyntax.Block) (*model.Contract, error) {
@@ -162,12 +203,12 @@ func blockToContract(ctx *ParserContext, block *hclsyntax.Block) (*model.Contrac
 	}, nil
 }
 
-func (c *Core) parseContractBlock(ctx *ParserContext, block *hclsyntax.Block) error {
+func (c *Core) parseContractBlock(ctx *ParserContext, block *hclsyntax.Block) (model.Symbol, error) {
 	m := ctx.CurrentModule()
 	name := block.Labels[0]
 	contract, err := blockToContract(ctx, block)
 	if err != nil {
-		return err
+		return contract, err
 	}
-	return c.Symbols.AddSymbol(m, name, contract)
+	return contract, c.Symbols.UpdateSymbol(m, name, contract)
 }
