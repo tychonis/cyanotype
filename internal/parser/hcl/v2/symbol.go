@@ -9,6 +9,8 @@ import (
 type UnprocessedSymbol struct {
 	Context *ParserContext
 	Block   *hclsyntax.Block
+
+	qualifier string
 }
 
 func (us *UnprocessedSymbol) Resolve(path []string) (model.Symbol, error) {

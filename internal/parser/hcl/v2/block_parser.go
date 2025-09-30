@@ -10,20 +10,28 @@ import (
 	"github.com/tychonis/cyanotype/model/v2"
 )
 
-func (c *Core) ParseSymbol(s *UnprocessedSymbol) (model.Symbol, error) {
+func (c *Core) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, err error) {
+	// Already parsed before.
+	if s.qualifier != "" {
+		return c.Catalog.Find(s.qualifier)
+	}
+
+	// New symbol.
 	if s.Block == nil || s.Context == nil {
 		return nil, errors.New("illegal nil symbol")
 	}
 	switch s.Block.Type {
 	case "item":
-		return c.parseItemBlock(s.Context, s.Block)
+		sym, err = c.parseItemBlock(s.Context, s.Block)
 	case "process":
-		return c.parseProcessBlock(s.Context, s.Block)
+		sym, err = c.parseProcessBlock(s.Context, s.Block)
 	case "contract":
-		return c.parseContractBlock(s.Context, s.Block)
+		sym, err = c.parseContractBlock(s.Context, s.Block)
 	default:
 		return nil, errors.New("unknown block type")
 	}
+	s.qualifier = sym.GetQualifier()
+	return
 }
 
 func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from []*UnresolvedBOMLine) error {
@@ -49,8 +57,6 @@ func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from 
 				return errors.New("incorrect ref")
 			}
 			itemRef = item
-		case *model.Item:
-			itemRef = s
 		default:
 			return errors.New("incorrect ref")
 		}
@@ -128,14 +134,12 @@ func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.I
 	return item, err
 }
 
-func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (model.Symbol, error) {
-	m := ctx.CurrentModule()
-	name := block.Labels[0]
+func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (model.ConcreteSymbol, error) {
 	item, err := c.blockToItem(ctx, block)
 	if err != nil {
 		return item, err
 	}
-	return item, c.Symbols.UpdateSymbol(m, name, item)
+	return item, c.Catalog.Add(item)
 }
 
 func (c *Core) createProcessContract(process *model.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {
@@ -177,14 +181,12 @@ func (c *Core) blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*mode
 	return ret, nil
 }
 
-func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (model.Symbol, error) {
-	m := ctx.CurrentModule()
-	name := block.Labels[0]
+func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (model.ConcreteSymbol, error) {
 	process, err := c.blockToProcess(ctx, block)
 	if err != nil {
 		return process, err
 	}
-	return process, c.Symbols.UpdateSymbol(m, name, process)
+	return process, c.Catalog.Add(process)
 }
 
 func blockToContract(ctx *ParserContext, block *hclsyntax.Block) (*model.Contract, error) {
@@ -206,12 +208,10 @@ func blockToContract(ctx *ParserContext, block *hclsyntax.Block) (*model.Contrac
 	}, nil
 }
 
-func (c *Core) parseContractBlock(ctx *ParserContext, block *hclsyntax.Block) (model.Symbol, error) {
-	m := ctx.CurrentModule()
-	name := block.Labels[0]
+func (c *Core) parseContractBlock(ctx *ParserContext, block *hclsyntax.Block) (model.ConcreteSymbol, error) {
 	contract, err := blockToContract(ctx, block)
 	if err != nil {
 		return contract, err
 	}
-	return contract, c.Symbols.UpdateSymbol(m, name, contract)
+	return contract, c.Catalog.Add(contract)
 }

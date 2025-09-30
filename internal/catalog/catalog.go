@@ -12,7 +12,8 @@ import (
 
 type Catalog interface {
 	Add(symbol model.ConcreteSymbol) error
-	GetItem(digest string) (*model.Item, error)
+	Get(digest string) (model.ConcreteSymbol, error)
+	Find(qualifier string) (model.ConcreteSymbol, error)
 }
 
 type LocalCatalog struct {
@@ -75,12 +76,12 @@ func (c *LocalCatalog) Add(item model.ConcreteSymbol) error {
 	if err != nil {
 		return err
 	}
-	c.index[item.GetDigest()] = item.GetDigest()
-	c.appendIndexItem(item.GetDigest(), item.GetDigest())
+	c.index[item.GetQualifier()] = item.GetDigest()
+	c.appendIndexItem(item.GetQualifier(), item.GetDigest())
 	return atomicWrite(digestToPath(item.GetDigest()), body, 0o644)
 }
 
-func (c *LocalCatalog) GetItem(digest string) (*model.Item, error) {
+func (c *LocalCatalog) Get(digest string) (model.ConcreteSymbol, error) {
 	path := digestToPath(digest)
 	body, err := os.ReadFile(path)
 	if err != nil {
@@ -92,4 +93,12 @@ func (c *LocalCatalog) GetItem(digest string) (*model.Item, error) {
 	}
 	ret.Digest = digest
 	return ret, nil
+}
+
+func (c *LocalCatalog) Find(qualifier string) (model.ConcreteSymbol, error) {
+	digest, ok := c.index[qualifier]
+	if !ok {
+		return nil, fmt.Errorf("could not find qualifier %s", qualifier)
+	}
+	return c.Get(digest)
 }
