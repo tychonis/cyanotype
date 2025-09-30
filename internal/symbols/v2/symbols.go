@@ -34,15 +34,6 @@ func (t *SymbolTable) AddSymbol(module string, name string, symbol model.Symbol)
 	return nil
 }
 
-func (t *SymbolTable) UpdateSymbol(module string, name string, symbol model.Symbol) error {
-	_, ok := t.Modules[module].Symbols[name]
-	if !ok {
-		return fmt.Errorf("symbol %s does not exist in %s", name, module)
-	}
-	t.Modules[module].Symbols[name] = symbol
-	return nil
-}
-
 func (m *ModuleScope) Resolve(ref []string) (model.Symbol, error) {
 	if len(ref) <= 0 {
 		return m, nil

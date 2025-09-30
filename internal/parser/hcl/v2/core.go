@@ -166,33 +166,10 @@ func (c *Core) processModuleScope(m *symbols.ModuleScope, cat catalog.Catalog) e
 	return nil
 }
 
-func (c *Core) Build(path string) error {
-	c.AddItemsTo(c.Catalog)
-	return nil
-}
-
-func addModuleItemsToCatalog(m *symbols.ModuleScope, c catalog.Catalog) {
-	for _, symbol := range m.Symbols {
-		switch s := symbol.(type) {
-		case *symbols.ModuleScope:
-			addModuleItemsToCatalog(s, c)
-		case *model.Item:
-			slog.Info("Adding item", "item", s)
-			err := c.Add(s)
-			if err != nil {
-				slog.Warn("Error adding item.", "error", err, "item", s)
-			}
-		case *model.Process:
-		default:
-		}
-	}
-}
-
-func (c *Core) AddItemsTo(cat catalog.Catalog) {
-	for _, module := range c.Symbols.Modules {
-		addModuleItemsToCatalog(module, cat)
-	}
-}
+// func (c *Core) Build(path string) error {
+// 	c.AddItemsTo(c.Catalog)
+// 	return nil
+// }
 
 func (c *Core) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*model.BOMLine, error) {
 	s, err := c.Resolve(ctx, line.Ref)
