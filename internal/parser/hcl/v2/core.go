@@ -166,11 +166,6 @@ func (c *Core) processModuleScope(m *symbols.ModuleScope, cat catalog.Catalog) e
 	return nil
 }
 
-// func (c *Core) Build(path string) error {
-// 	c.AddItemsTo(c.Catalog)
-// 	return nil
-// }
-
 func (c *Core) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*model.BOMLine, error) {
 	s, err := c.Resolve(ctx, line.Ref)
 	if err != nil {

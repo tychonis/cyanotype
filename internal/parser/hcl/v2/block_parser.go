@@ -45,23 +45,23 @@ func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from 
 		if err != nil {
 			return err
 		}
-		var itemRef *model.Item
+		var compItem *model.Item
+		var ok bool
 		switch s := ref.(type) {
 		case *UnprocessedSymbol:
 			itemSymbol, err := c.ParseSymbol(s)
 			if err != nil {
 				return err
 			}
-			item, ok := itemSymbol.(*model.Item)
+			compItem, ok = itemSymbol.(*model.Item)
 			if !ok {
 				return errors.New("incorrect ref")
 			}
-			itemRef = item
 		default:
 			return errors.New("incorrect ref")
 		}
 		co := &model.CoItem{
-			Qualifier: IMPLICIT + itemRef.Qualifier + ".coitem",
+			Qualifier: getImplicitCoItemQualifier(compItem),
 		}
 		co.Digest, err = digest.SHA256FromSymbol(co)
 		if err != nil {
@@ -73,10 +73,10 @@ func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from 
 		})
 
 		cp := &model.CoProcess{
-			Qualifier: IMPLICIT + itemRef.Qualifier + ".coprocess",
+			Qualifier: getImplicitCoProcessQualifier(compItem),
 			Input: []*model.BOMLine{
 				{
-					Item: itemRef.Digest,
+					Item: compItem.Digest,
 					Qty:  1,
 				},
 			},
@@ -93,7 +93,7 @@ func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from 
 		}
 	}
 	p := &model.Process{
-		Qualifier: IMPLICIT + item.Qualifier + ".process",
+		Qualifier: getImplicitProcessQualifier(item),
 		Output: []*model.BOMLine{
 			{
 				Item: item.Digest,

@@ -10,6 +10,14 @@ import (
 	"github.com/tychonis/cyanotype/model/v2"
 )
 
+type Qualifier = string
+type Digest = string
+
+type IndexEntry struct {
+	Processes   []Qualifier
+	CoProcesses []Qualifier
+}
+
 type Catalog interface {
 	Add(symbol model.ConcreteSymbol) error
 	Get(digest string) (model.ConcreteSymbol, error)
@@ -17,11 +25,15 @@ type Catalog interface {
 }
 
 type LocalCatalog struct {
-	index map[string]string
+	index        map[Qualifier]Digest
+	processIndex map[Qualifier]*IndexEntry
 }
 
 func NewLocalCatalog() *LocalCatalog {
-	cat := &LocalCatalog{index: make(map[string]string)}
+	cat := &LocalCatalog{
+		index:        make(map[Qualifier]Digest),
+		processIndex: make(map[Qualifier]*IndexEntry),
+	}
 	cat.loadIndex()
 	return cat
 }
