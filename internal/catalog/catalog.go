@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,8 +15,8 @@ type Qualifier = string
 type Digest = string
 
 type IndexEntry struct {
-	Processes   []Qualifier
-	CoProcesses []Qualifier
+	Processes   []Digest
+	CoProcesses []Digest
 }
 
 func NewIndexEntry() *IndexEntry {
@@ -27,8 +28,11 @@ func NewIndexEntry() *IndexEntry {
 
 type Catalog interface {
 	Add(symbol model.ConcreteSymbol) error
-	Get(digest string) (model.ConcreteSymbol, error)
-	Find(qualifier string) (model.ConcreteSymbol, error)
+	Get(digest Digest) (model.ConcreteSymbol, error)
+	Find(qualifier Qualifier) (model.ConcreteSymbol, error)
+
+	GetItemProcesses(item Digest) ([]*model.Process, error)
+	GetItemCoProcesses(item Digest) ([]*model.CoProcess, error)
 }
 
 type LocalCatalog struct {
@@ -135,7 +139,7 @@ func (c *LocalCatalog) Add(sym model.ConcreteSymbol) error {
 	return atomicWrite(digestToPath(sym.GetDigest()), body, 0o644)
 }
 
-func (c *LocalCatalog) Get(digest string) (model.ConcreteSymbol, error) {
+func (c *LocalCatalog) Get(digest Digest) (model.ConcreteSymbol, error) {
 	path := digestToPath(digest)
 	body, err := os.ReadFile(path)
 	if err != nil {
@@ -149,10 +153,42 @@ func (c *LocalCatalog) Get(digest string) (model.ConcreteSymbol, error) {
 	return ret, nil
 }
 
-func (c *LocalCatalog) Find(qualifier string) (model.ConcreteSymbol, error) {
+func (c *LocalCatalog) Find(qualifier Qualifier) (model.ConcreteSymbol, error) {
 	digest, ok := c.index[qualifier]
 	if !ok {
 		return nil, fmt.Errorf("could not find qualifier %s", qualifier)
 	}
 	return c.Get(digest)
+}
+
+func getSymbols[T model.ConcreteSymbol](c Catalog, ids []Digest) ([]T, error) {
+	ret := make([]T, 0, len(ids))
+	for _, pid := range ids {
+		sym, err := c.Get(pid)
+		if err != nil {
+			return nil, err
+		}
+		s, ok := sym.(T)
+		if !ok {
+			return nil, errors.New("incorrect symbol type")
+		}
+		ret = append(ret, s)
+	}
+	return ret, nil
+}
+
+func (c *LocalCatalog) GetItemProcesses(item Digest) ([]*model.Process, error) {
+	index, ok := c.processIndex[item]
+	if !ok {
+		return nil, nil
+	}
+	return getSymbols[*model.Process](c, index.Processes)
+}
+
+func (c *LocalCatalog) GetItemCoProcesses(item Digest) ([]*model.CoProcess, error) {
+	index, ok := c.processIndex[item]
+	if !ok {
+		return nil, nil
+	}
+	return getSymbols[*model.CoProcess](c, index.CoProcesses)
 }
