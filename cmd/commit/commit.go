@@ -29,7 +29,7 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	err = core.Build(bpoPath)
+	err = core.Parse(bpoPath)
 	if err != nil {
 		slog.Warn("Failed to build bom graph.", "error", err)
 	}

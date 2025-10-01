@@ -31,6 +31,10 @@ func (c *Core) findImplicitProcess(item *model.Item) (*model.Process, error) {
 	return p, nil
 }
 
+func (c *Core) findProcesses(item *model.Item) ([]*model.Process, error) {
+	return nil, nil
+}
+
 func (c *Core) Build(item *model.Item) error {
 	return nil
 }

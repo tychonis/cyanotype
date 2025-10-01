@@ -18,6 +18,13 @@ type IndexEntry struct {
 	CoProcesses []Qualifier
 }
 
+func NewIndexEntry() *IndexEntry {
+	return &IndexEntry{
+		Processes:   make([]Qualifier, 0),
+		CoProcesses: make([]Qualifier, 0),
+	}
+}
+
 type Catalog interface {
 	Add(symbol model.ConcreteSymbol) error
 	Get(digest string) (model.ConcreteSymbol, error)
@@ -26,7 +33,7 @@ type Catalog interface {
 
 type LocalCatalog struct {
 	index        map[Qualifier]Digest
-	processIndex map[Qualifier]*IndexEntry
+	processIndex map[model.ItemID]*IndexEntry
 }
 
 func NewLocalCatalog() *LocalCatalog {
@@ -83,14 +90,49 @@ func digestToPath(digest string) string {
 	return filepath.Join(".bpc", "objects", folder, digest)
 }
 
-func (c *LocalCatalog) Add(item model.ConcreteSymbol) error {
-	body, err := serializer.Serialize(item)
+func (c *LocalCatalog) linkProcessToItem(item model.ItemID, process model.ProcessID) {
+	if c.processIndex[item] == nil {
+		c.processIndex[item] = NewIndexEntry()
+	}
+	c.processIndex[item].Processes = append(c.processIndex[item].Processes, process)
+}
+
+func (c *LocalCatalog) linkCoProcessToItem(item model.ItemID, coProcess model.ProcessID) {
+	if c.processIndex[item] == nil {
+		c.processIndex[item] = NewIndexEntry()
+	}
+	c.processIndex[item].Processes = append(c.processIndex[item].CoProcesses, coProcess)
+}
+
+func (c *LocalCatalog) indexProcess(sym model.ConcreteSymbol) error {
+	switch resolved := sym.(type) {
+	case *model.Process:
+		for _, bomLine := range resolved.Input {
+			c.linkProcessToItem(bomLine.Item, resolved.Digest)
+		}
+		for _, bomLine := range resolved.Output {
+			c.linkProcessToItem(bomLine.Item, resolved.Digest)
+		}
+	case *model.CoProcess:
+		for _, bomLine := range resolved.Input {
+			c.linkCoProcessToItem(bomLine.Item, resolved.Digest)
+		}
+		for _, bomLine := range resolved.Output {
+			c.linkCoProcessToItem(bomLine.Item, resolved.Digest)
+		}
+	}
+	return nil
+}
+
+func (c *LocalCatalog) Add(sym model.ConcreteSymbol) error {
+	body, err := serializer.Serialize(sym)
 	if err != nil {
 		return err
 	}
-	c.index[item.GetQualifier()] = item.GetDigest()
-	c.appendIndexItem(item.GetQualifier(), item.GetDigest())
-	return atomicWrite(digestToPath(item.GetDigest()), body, 0o644)
+	c.index[sym.GetQualifier()] = sym.GetDigest()
+	c.appendIndexItem(sym.GetQualifier(), sym.GetDigest())
+	c.indexProcess(sym)
+	return atomicWrite(digestToPath(sym.GetDigest()), body, 0o644)
 }
 
 func (c *LocalCatalog) Get(digest string) (model.ConcreteSymbol, error) {
