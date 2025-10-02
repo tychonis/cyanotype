@@ -5,7 +5,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/tychonis/cyanotype/internal/parser/hcl"
+
+	"github.com/tychonis/cyanotype/internal/parser/hcl/v2"
 )
 
 var Cmd = &cobra.Command{
@@ -29,7 +30,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	core := hcl.NewCore()
-	err := core.Parse(bomPath)
+	err := core.Process(bomPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
 		return
@@ -37,6 +38,6 @@ func run(cmd *cobra.Command, args []string) {
 
 	rootPath := strings.Split(rootPart, ".")
 
-	counter := core.Count(rootPath)
+	counter, _ := core.Count(rootPath)
 	core.CounterToCSV(counter)
 }

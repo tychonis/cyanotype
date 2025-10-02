@@ -64,6 +64,7 @@ func NewCore() *Core {
 }
 
 func (c *Core) Resolve(ctx *ParserContext, ref []string) (model.Symbol, error) {
+	slog.Debug("Resolving ref", "module", ctx.CurrentModule(), "ref", ref)
 	mod, ok := c.Symbols.Modules[ctx.CurrentModule()]
 	if !ok {
 		return nil, errors.New("no registered symbols")
@@ -155,7 +156,7 @@ func (c *Core) processModuleScope(m *symbols.ModuleScope, cat catalog.Catalog) e
 		case *symbols.ModuleScope:
 			c.processModuleScope(s, cat)
 		case *UnprocessedSymbol:
-			slog.Info("Process item", "item", s)
+			slog.Debug("Process item", "item", s)
 			_, err := c.ParseSymbol(s)
 			if err != nil {
 				slog.Warn("Error adding item.", "error", err, "item", s)

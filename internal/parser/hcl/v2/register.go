@@ -1,6 +1,7 @@
 package hcl
 
 import (
+	"log/slog"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -44,5 +45,6 @@ func (c *Core) registerUnprocessedBlock(ctx *ParserContext, block *hclsyntax.Blo
 		Context: ctx,
 		Block:   block,
 	}
+	slog.Debug("Register symbol.", "module", ctx.CurrentModule(), "name", name)
 	return c.Symbols.AddSymbol(ctx.CurrentModule(), name, symbol)
 }

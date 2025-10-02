@@ -31,6 +31,8 @@ type ItemProcess = struct {
 	Process Digest
 }
 
+var ErrNotFound = errors.New("symbol not found")
+
 type Catalog interface {
 	Add(symbol model.ConcreteSymbol) error
 	Get(digest Digest) (model.ConcreteSymbol, error)
@@ -164,7 +166,7 @@ func (c *LocalCatalog) Get(digest Digest) (model.ConcreteSymbol, error) {
 func (c *LocalCatalog) Find(qualifier Qualifier) (model.ConcreteSymbol, error) {
 	digest, ok := c.index[qualifier]
 	if !ok {
-		return nil, fmt.Errorf("could not find qualifier %s", qualifier)
+		return nil, ErrNotFound
 	}
 	return c.Get(digest)
 }

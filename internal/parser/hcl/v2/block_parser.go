@@ -3,9 +3,12 @@ package hcl
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
+	"github.com/tychonis/cyanotype/internal/catalog"
 	"github.com/tychonis/cyanotype/internal/digest"
 	"github.com/tychonis/cyanotype/model/v2"
 )
@@ -34,32 +37,48 @@ func (c *Core) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, err 
 	return
 }
 
+func refToQualifier(ctx *ParserContext, ref []string) string {
+	if ctx.CurrentModule() == "." {
+		return "." + strings.Join(ref, ".")
+	} else {
+		return strings.Join(append([]string{ctx.CurrentModule()}, ref...), ".")
+	}
+}
+
 func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from []*UnresolvedBOMLine) error {
+	slog.Debug("build companions", "module", ctx.CurrentModule(), "item", item.Qualifier)
 	var err error
 	if len(from) <= 0 {
 		return nil
 	}
 	input := make([]*model.BOMLine, 0, len(from))
 	for _, comp := range from {
-		ref, err := c.Resolve(ctx, comp.Ref)
+		qualifier := refToQualifier(ctx, comp.Ref)
+		item, err := c.Catalog.Find(qualifier)
 		if err != nil {
-			return err
-		}
-		var compItem *model.Item
-		var ok bool
-		switch s := ref.(type) {
-		case *UnprocessedSymbol:
-			itemSymbol, err := c.ParseSymbol(s)
-			if err != nil {
+			if err != catalog.ErrNotFound {
 				return err
+			} else {
+				sym, err := c.Resolve(ctx, comp.Ref)
+				if err != nil {
+					return err
+				}
+				unprocessed, ok := sym.(*UnprocessedSymbol)
+				if !ok {
+					return errors.New("wrong symbol type")
+				}
+				item, err = c.ParseSymbol(unprocessed)
+				if err != nil {
+					return err
+				}
 			}
-			compItem, ok = itemSymbol.(*model.Item)
-			if !ok {
-				return errors.New("incorrect ref")
-			}
-		default:
+		}
+
+		compItem, ok := item.(*model.Item)
+		if !ok {
 			return errors.New("incorrect ref")
 		}
+
 		co := &model.CoItem{
 			Qualifier: getImplicitCoItemQualifier(compItem),
 		}

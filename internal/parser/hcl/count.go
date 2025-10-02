@@ -19,7 +19,7 @@ func (c *Core) countParts(ref []string, multiplier float64, counter map[string]f
 
 	item, ok := sym.(*model.Item)
 	if !ok {
-		slog.Info("Unknown item.", "error", err, "ref", ref)
+		slog.Info("Unknown item.", "ref", ref)
 		return
 	}
 

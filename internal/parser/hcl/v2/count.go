@@ -25,7 +25,6 @@ func (c Core) Count(root []string) (map[string]float64, error) {
 
 	item, ok := sym.(*model.Item)
 	if !ok {
-		slog.Info("Unknown item.", "error", err, "ref", root)
 		return nil, errors.New("unknown item")
 	}
 
