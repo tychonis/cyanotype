@@ -2,6 +2,7 @@ package hcl
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -15,44 +16,25 @@ type Component struct {
 	Qty  float64
 }
 
-func (c *Core) getComponents(item *model.Item) []*Component {
-	return nil
-}
-
-func (c *Core) countParts(ref []string, multiplier float64, counter map[string]float64) {
-	slog.Debug("Counting...", "name", ref, "multiplier", multiplier)
-	sym, err := c.Resolve(NewParserContext(), ref)
+func (c Core) Count(root []string) (map[string]float64, error) {
+	sym, err := c.Resolve(NewParserContext(), root)
 	if err != nil {
-		slog.Info("Unknown symbol.", "error", err, "ref", ref)
-		return
+		slog.Info("Unknown symbol.", "error", err, "ref", root)
+		return nil, err
 	}
 
 	item, ok := sym.(*model.Item)
 	if !ok {
-		slog.Info("Unknown item.", "error", err, "ref", ref)
-		return
+		slog.Info("Unknown item.", "error", err, "ref", root)
+		return nil, errors.New("unknown item")
 	}
 
-	components := c.getComponents(item)
-
-	if len(components) == 0 {
-		counter[item.Qualifier] += multiplier
-		return
+	tree, err := c.Build(item)
+	if err != nil {
+		return nil, err
 	}
 
-	// also count assembly?
-	counter[item.Qualifier] += multiplier
-
-	for _, comp := range components {
-		c.countParts(comp.Ref, comp.Qty*multiplier, counter)
-	}
-}
-
-func (c Core) Count(root []string) map[string]float64 {
-	counter := make(map[string]float64)
-	c.countParts(root, 1, counter)
-
-	return counter
+	return tree.Count(), nil
 }
 
 func getHeader() []string {
