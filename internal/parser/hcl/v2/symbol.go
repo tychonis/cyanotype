@@ -14,7 +14,7 @@ type UnprocessedSymbol struct {
 }
 
 func (us *UnprocessedSymbol) Resolve(path []string) (model.Symbol, error) {
-	return nil, nil
+	return us, nil
 }
 
 type UnresolvedBOMLine struct {
