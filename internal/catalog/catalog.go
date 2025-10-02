@@ -14,16 +14,21 @@ import (
 type Qualifier = string
 type Digest = string
 
-type IndexEntry struct {
+type ProcessIndexEntry struct {
 	Processes   []Digest
 	CoProcesses []Digest
 }
 
-func NewIndexEntry() *IndexEntry {
-	return &IndexEntry{
+func NewProcessIndexEntry() *ProcessIndexEntry {
+	return &ProcessIndexEntry{
 		Processes:   make([]Qualifier, 0),
 		CoProcesses: make([]Qualifier, 0),
 	}
+}
+
+type ItemProcess = struct {
+	Item    Digest
+	Process Digest
 }
 
 type Catalog interface {
@@ -33,17 +38,20 @@ type Catalog interface {
 
 	GetItemProcesses(item Digest) ([]*model.Process, error)
 	GetItemCoProcesses(item Digest) ([]*model.CoProcess, error)
+
+	GetCoItems(item Digest) ([]*ItemProcess, error)
+	GetItems(coItem Digest) ([]*ItemProcess, error)
 }
 
 type LocalCatalog struct {
 	index        map[Qualifier]Digest
-	processIndex map[model.ItemID]*IndexEntry
+	processIndex map[model.ItemID]*ProcessIndexEntry
 }
 
 func NewLocalCatalog() *LocalCatalog {
 	cat := &LocalCatalog{
 		index:        make(map[Qualifier]Digest),
-		processIndex: make(map[Qualifier]*IndexEntry),
+		processIndex: make(map[Qualifier]*ProcessIndexEntry),
 	}
 	cat.loadIndex()
 	return cat
@@ -96,14 +104,14 @@ func digestToPath(digest string) string {
 
 func (c *LocalCatalog) linkProcessToItem(item model.ItemID, process model.ProcessID) {
 	if c.processIndex[item] == nil {
-		c.processIndex[item] = NewIndexEntry()
+		c.processIndex[item] = NewProcessIndexEntry()
 	}
 	c.processIndex[item].Processes = append(c.processIndex[item].Processes, process)
 }
 
 func (c *LocalCatalog) linkCoProcessToItem(item model.ItemID, coProcess model.ProcessID) {
 	if c.processIndex[item] == nil {
-		c.processIndex[item] = NewIndexEntry()
+		c.processIndex[item] = NewProcessIndexEntry()
 	}
 	c.processIndex[item].Processes = append(c.processIndex[item].CoProcesses, coProcess)
 }
@@ -191,4 +199,40 @@ func (c *LocalCatalog) GetItemCoProcesses(item Digest) ([]*model.CoProcess, erro
 		return nil, nil
 	}
 	return getSymbols[*model.CoProcess](c, index.CoProcesses)
+}
+
+func (c *LocalCatalog) GetCoItems(item Digest) ([]*ItemProcess, error) {
+	cps, err := c.GetItemCoProcesses(item)
+	if err != nil {
+		return nil, err
+	}
+	ret := make([]*ItemProcess, 0, len(cps))
+	for _, cp := range cps {
+		if len(cp.Output) != 1 {
+			return nil, errors.New("multiple output not implemented yet")
+		}
+		ret = append(ret, &ItemProcess{
+			Item:    cp.Output[0].Item,
+			Process: cp.Digest,
+		})
+	}
+	return ret, nil
+}
+
+func (c *LocalCatalog) GetItems(coItem Digest) ([]*ItemProcess, error) {
+	cps, err := c.GetItemCoProcesses(coItem)
+	if err != nil {
+		return nil, err
+	}
+	ret := make([]*ItemProcess, 0, len(cps))
+	for _, cp := range cps {
+		if len(cp.Output) != 1 {
+			return nil, errors.New("multiple input not implemented yet")
+		}
+		ret = append(ret, &ItemProcess{
+			Item:    cp.Input[0].Item,
+			Process: cp.Digest,
+		})
+	}
+	return ret, nil
 }
