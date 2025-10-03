@@ -1,2 +1,2 @@
-2025/10/02 17:14:42 DEBUG Resolving ref module=. ref=[advanced-circuit]
-2025/10/02 17:14:42 INFO Unknown symbol. error="no registered symbols" ref=[advanced-circuit]
+2025/10/03 14:03:45 INFO Unknown symbol. error="symbol not found" ref=[advanced-circuit]
+2025/10/03 14:03:45 WARN Error counting error="symbol not found"

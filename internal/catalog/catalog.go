@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"reflect"
 
 	"github.com/tychonis/cyanotype/internal/serializer"
 	"github.com/tychonis/cyanotype/model/v2"
@@ -48,12 +50,14 @@ type Catalog interface {
 type LocalCatalog struct {
 	index        map[Qualifier]Digest
 	processIndex map[model.ItemID]*ProcessIndexEntry
+	typeIndex    map[Digest]string
 }
 
 func NewLocalCatalog() *LocalCatalog {
 	cat := &LocalCatalog{
 		index:        make(map[Qualifier]Digest),
 		processIndex: make(map[Qualifier]*ProcessIndexEntry),
+		typeIndex:    make(map[Digest]string),
 	}
 	cat.loadIndex()
 	return cat
@@ -105,20 +109,23 @@ func digestToPath(digest string) string {
 }
 
 func (c *LocalCatalog) linkProcessToItem(item model.ItemID, process model.ProcessID) {
-	if c.processIndex[item] == nil {
+	_, ok := c.processIndex[item]
+	if !ok {
 		c.processIndex[item] = NewProcessIndexEntry()
 	}
 	c.processIndex[item].Processes = append(c.processIndex[item].Processes, process)
 }
 
 func (c *LocalCatalog) linkCoProcessToItem(item model.ItemID, coProcess model.ProcessID) {
-	if c.processIndex[item] == nil {
+	_, ok := c.processIndex[item]
+	if !ok {
 		c.processIndex[item] = NewProcessIndexEntry()
 	}
-	c.processIndex[item].Processes = append(c.processIndex[item].CoProcesses, coProcess)
+	c.processIndex[item].CoProcesses = append(c.processIndex[item].CoProcesses, coProcess)
 }
 
 func (c *LocalCatalog) indexProcess(sym model.ConcreteSymbol) error {
+	slog.Debug("index process", "sym", sym.GetDigest(), "qual", sym.GetQualifier())
 	switch resolved := sym.(type) {
 	case *model.Process:
 		for _, bomLine := range resolved.Input {
@@ -138,6 +145,21 @@ func (c *LocalCatalog) indexProcess(sym model.ConcreteSymbol) error {
 	return nil
 }
 
+// TODO: fix this hack.
+func (c *LocalCatalog) indexType(sym model.ConcreteSymbol) error {
+	switch sym.(type) {
+	case *model.Process:
+		c.typeIndex[sym.GetDigest()] = "process"
+	case *model.CoProcess:
+		c.typeIndex[sym.GetDigest()] = "coprocess"
+	case *model.Item:
+		c.typeIndex[sym.GetDigest()] = "item"
+	case *model.CoItem:
+		c.typeIndex[sym.GetDigest()] = "coitem"
+	}
+	return nil
+}
+
 func (c *LocalCatalog) Add(sym model.ConcreteSymbol) error {
 	body, err := serializer.Serialize(sym)
 	if err != nil {
@@ -146,6 +168,7 @@ func (c *LocalCatalog) Add(sym model.ConcreteSymbol) error {
 	c.index[sym.GetQualifier()] = sym.GetDigest()
 	c.appendIndexItem(sym.GetQualifier(), sym.GetDigest())
 	c.indexProcess(sym)
+	c.indexType(sym)
 	return atomicWrite(digestToPath(sym.GetDigest()), body, 0o644)
 }
 
@@ -155,12 +178,42 @@ func (c *LocalCatalog) Get(digest Digest) (model.ConcreteSymbol, error) {
 	if err != nil {
 		return nil, err
 	}
-	ret, err := serializer.Deserialize[*model.Item](body)
-	if err != nil {
-		return ret, err
+	t, ok := c.typeIndex[digest]
+	if !ok {
+		return nil, errors.New("error deciding type")
 	}
-	ret.Digest = digest
-	return ret, nil
+	switch t {
+	case "item":
+		ret, err := serializer.Deserialize[*model.Item](body)
+		if err != nil {
+			return ret, err
+		}
+		ret.Digest = digest
+		return ret, nil
+	case "coitem":
+		ret, err := serializer.Deserialize[*model.CoItem](body)
+		if err != nil {
+			return ret, err
+		}
+		ret.Digest = digest
+		return ret, nil
+	case "process":
+		ret, err := serializer.Deserialize[*model.Process](body)
+		if err != nil {
+			return ret, err
+		}
+		ret.Digest = digest
+		return ret, nil
+	case "coprocess":
+		ret, err := serializer.Deserialize[*model.CoProcess](body)
+		if err != nil {
+			return ret, err
+		}
+		ret.Digest = digest
+		return ret, nil
+	default:
+		return nil, errors.New("unknown type")
+	}
 }
 
 func (c *LocalCatalog) Find(qualifier Qualifier) (model.ConcreteSymbol, error) {
@@ -180,6 +233,7 @@ func getSymbols[T model.ConcreteSymbol](c Catalog, ids []Digest) ([]T, error) {
 		}
 		s, ok := sym.(T)
 		if !ok {
+			slog.Debug("incorrect", "pid", pid, "type", reflect.TypeOf(sym))
 			return nil, errors.New("incorrect symbol type")
 		}
 		ret = append(ret, s)
@@ -198,18 +252,22 @@ func (c *LocalCatalog) GetItemProcesses(item Digest) ([]*model.Process, error) {
 func (c *LocalCatalog) GetItemCoProcesses(item Digest) ([]*model.CoProcess, error) {
 	index, ok := c.processIndex[item]
 	if !ok {
+		slog.Debug("nocoprocess found", "item", item)
 		return nil, nil
 	}
+	slog.Debug("found coprocess", "item", item)
 	return getSymbols[*model.CoProcess](c, index.CoProcesses)
 }
 
 func (c *LocalCatalog) GetCoItems(item Digest) ([]*ItemProcess, error) {
+	slog.Debug("get coitems", "item", item)
 	cps, err := c.GetItemCoProcesses(item)
 	if err != nil {
 		return nil, err
 	}
 	ret := make([]*ItemProcess, 0, len(cps))
 	for _, cp := range cps {
+		slog.Debug("coprocess", "item", item, "coprocess", cp.Digest)
 		if len(cp.Output) != 1 {
 			return nil, errors.New("multiple output not implemented yet")
 		}

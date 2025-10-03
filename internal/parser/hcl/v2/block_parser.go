@@ -33,7 +33,9 @@ func (c *Core) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, err 
 	default:
 		return nil, errors.New("unknown block type")
 	}
-	s.qualifier = sym.GetQualifier()
+	if err == nil {
+		s.qualifier = sym.GetQualifier()
+	}
 	return
 }
 
@@ -47,14 +49,45 @@ func refToQualifier(ctx *ParserContext, ref []string) string {
 
 func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from []*UnresolvedBOMLine) error {
 	slog.Debug("build companions", "module", ctx.CurrentModule(), "item", item.Qualifier)
+
 	var err error
+	co := &model.CoItem{
+		Qualifier: getImplicitCoItemQualifier(item),
+	}
+	co.Digest, err = digest.SHA256FromSymbol(co)
+	if err != nil {
+		return err
+	}
+	c.Catalog.Add(co)
+
+	cp := &model.CoProcess{
+		Qualifier: getImplicitCoProcessQualifier(item),
+		Input: []*model.BOMLine{
+			{
+				Item: item.Digest,
+				Qty:  1,
+			},
+		},
+		Output: []*model.BOMLine{
+			{
+				Item: co.Digest,
+				Qty:  1,
+			},
+		},
+	}
+	cp.Digest, err = digest.SHA256FromSymbol(cp)
+	if err != nil {
+		return err
+	}
+	c.Catalog.Add(cp)
+
 	if len(from) <= 0 {
 		return nil
 	}
 	input := make([]*model.BOMLine, 0, len(from))
 	for _, comp := range from {
 		qualifier := refToQualifier(ctx, comp.Ref)
-		item, err := c.Catalog.Find(qualifier)
+		compItemSym, err := c.Catalog.Find(qualifier)
 		if err != nil {
 			if err != catalog.ErrNotFound {
 				return err
@@ -67,49 +100,29 @@ func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from 
 				if !ok {
 					return errors.New("wrong symbol type")
 				}
-				item, err = c.ParseSymbol(unprocessed)
+				compItemSym, err = c.ParseSymbol(unprocessed)
 				if err != nil {
 					return err
 				}
 			}
 		}
 
-		compItem, ok := item.(*model.Item)
+		compItem, ok := compItemSym.(*model.Item)
 		if !ok {
 			return errors.New("incorrect ref")
 		}
-
-		co := &model.CoItem{
-			Qualifier: getImplicitCoItemQualifier(compItem),
-		}
-		co.Digest, err = digest.SHA256FromSymbol(co)
+		compCoItems, err := c.Catalog.GetCoItems(compItem.Digest)
 		if err != nil {
 			return err
+		}
+		if len(compCoItems) != 1 {
+			slog.Debug("error", "item", compItem.Qualifier, "length", len(compCoItems), "digest", compItem.Digest)
+			return errors.New("not implemented yet")
 		}
 		input = append(input, &model.BOMLine{
-			Item: co.Digest,
+			Item: compCoItems[0].Item,
 			Qty:  comp.Qty,
 		})
-
-		cp := &model.CoProcess{
-			Qualifier: getImplicitCoProcessQualifier(compItem),
-			Input: []*model.BOMLine{
-				{
-					Item: compItem.Digest,
-					Qty:  1,
-				},
-			},
-			Output: []*model.BOMLine{
-				{
-					Item: co.Digest,
-					Qty:  1,
-				},
-			},
-		}
-		cp.Digest, err = digest.SHA256FromSymbol(cp)
-		if err != nil {
-			return err
-		}
 	}
 	p := &model.Process{
 		Qualifier: getImplicitProcessQualifier(item),
@@ -123,7 +136,11 @@ func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from 
 		Input: input,
 	}
 	p.Digest, err = digest.SHA256FromSymbol(p)
-	return err
+	if err != nil {
+		return err
+	}
+	c.Catalog.Add(p)
+	return nil
 }
 
 func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
@@ -150,6 +167,14 @@ func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.I
 		return item, err
 	}
 	err = c.buildCompanionForItem(ctx, item, from)
+	if err != nil {
+		return nil, err
+	}
+	err = c.Catalog.Add(item)
+	if err != nil {
+		return nil, err
+	}
+	slog.Debug("added item", "qualifier", item.Qualifier, "digest", item.Digest)
 	return item, err
 }
 
@@ -158,7 +183,7 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (model
 	if err != nil {
 		return item, err
 	}
-	return item, c.Catalog.Add(item)
+	return item, nil
 }
 
 func (c *Core) createProcessContract(process *model.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {

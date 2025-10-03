@@ -38,6 +38,9 @@ func run(cmd *cobra.Command, args []string) {
 
 	rootPath := strings.Split(rootPart, ".")
 
-	counter, _ := core.Count(rootPath)
+	counter, err := core.Count(rootPath)
+	if err != nil {
+		slog.Warn("Error counting", "error", err)
+	}
 	core.CounterToCSV(counter)
 }

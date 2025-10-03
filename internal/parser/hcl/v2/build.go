@@ -9,15 +9,15 @@ import (
 )
 
 func getImplicitProcessQualifier(item *model.Item) string {
-	return IMPLICIT + item.Qualifier + ".process"
+	return item.Qualifier + ".__process__"
 }
 
 func getImplicitCoProcessQualifier(item *model.Item) string {
-	return IMPLICIT + item.Qualifier + ".coprocess"
+	return item.Qualifier + ".__coprocess__"
 }
 
 func getImplicitCoItemQualifier(item *model.Item) string {
-	return IMPLICIT + item.Qualifier + ".coitem"
+	return item.Qualifier + ".__coitem__"
 }
 
 // func (c *Core) findImplicitProcess(item *model.Item) (*model.Process, error) {
@@ -58,6 +58,8 @@ func (c *Core) build(coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 		slog.Warn("Multiple coprocesses can produce coitem", "qualifier", coitem.GetQualifier())
 	}
 	coProcess := cp[0]
+	node.CoProcess = coProcess
+
 	itemID := coProcess.Input[0].Item
 	itemSym, err := c.Catalog.Get(itemID)
 	if err != nil {
@@ -67,12 +69,15 @@ func (c *Core) build(coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 	if !ok {
 		return nil, errors.New("invalid input")
 	}
+	node.Item = item
+
 	p, err := c.findProcesses(item)
 	if err != nil {
 		return nil, err
 	}
 	if len(p) <= 0 {
 		slog.Info("No process producing item", "qualifier", item.GetQualifier())
+		return node, nil
 	}
 	if len(p) > 1 {
 		slog.Warn("Multiple processes can produce item", "qualifier", item.GetQualifier())
@@ -93,6 +98,7 @@ func (c *Core) build(coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 		if err != nil {
 			return nil, err
 		}
+		childNode.Parent = node
 		node.Children = append(node.Children, childNode)
 	}
 	return node, nil
