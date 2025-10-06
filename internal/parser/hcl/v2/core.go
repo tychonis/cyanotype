@@ -56,10 +56,10 @@ func (ctx *ParserContext) NameToQualifier(name string) string {
 	return prefix + "." + name
 }
 
-func NewCore() *Core {
+func NewCore(catalogType string) *Core {
 	return &Core{
 		Symbols: symbols.NewSymbolTable(),
-		Catalog: catalog.NewLocalCatalog(),
+		Catalog: catalog.NewCatalog(catalogType),
 	}
 }
 

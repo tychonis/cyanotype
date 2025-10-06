@@ -29,7 +29,7 @@ func run(cmd *cobra.Command, args []string) {
 		slog.Warn("Format not supported.", "format", outputFmt)
 	}
 
-	core := hcl.NewCore()
+	core := hcl.NewCore("memory")
 	err := core.Process(bomPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)

@@ -50,6 +50,18 @@ type LocalCatalog struct {
 	index        map[Qualifier]model.ItemID
 	processIndex map[model.ItemID]*ProcessIndexEntry
 	typeIndex    map[model.ItemID]string
+
+	memoryOnly bool
+	memStore   map[string][]byte
+}
+
+func NewCatalog(catalogType string) Catalog {
+	switch catalogType {
+	case "memory":
+		return NewMemoryCatalog()
+	default:
+		return NewLocalCatalog()
+	}
 }
 
 func NewLocalCatalog() *LocalCatalog {
@@ -57,6 +69,7 @@ func NewLocalCatalog() *LocalCatalog {
 		index:        make(map[Qualifier]model.Digest),
 		processIndex: make(map[Qualifier]*ProcessIndexEntry),
 		typeIndex:    make(map[model.Digest]string),
+		memoryOnly:   false,
 	}
 	cat.loadMainIndex()
 	cat.loadProcessIndex()
@@ -64,7 +77,22 @@ func NewLocalCatalog() *LocalCatalog {
 	return cat
 }
 
+func NewMemoryCatalog() *LocalCatalog {
+	cat := &LocalCatalog{
+		index:        make(map[Qualifier]model.Digest),
+		processIndex: make(map[Qualifier]*ProcessIndexEntry),
+		typeIndex:    make(map[model.Digest]string),
+		memoryOnly:   true,
+		memStore:     make(map[string][]byte),
+	}
+	return cat
+}
+
 func (c *LocalCatalog) loadMainIndex() error {
+	if c.memoryOnly {
+		return nil
+	}
+
 	indexPath := filepath.Join(".bpc", "index")
 	data, err := os.ReadFile(indexPath)
 	if err != nil {
@@ -98,6 +126,10 @@ func (c *LocalCatalog) addToMainIndex(key string, val string) error {
 	}
 	c.index[key] = val
 
+	if c.memoryOnly {
+		return nil
+	}
+
 	indexPath := filepath.Join(".bpc", "index")
 	f, err := os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
@@ -113,6 +145,10 @@ func (c *LocalCatalog) addToMainIndex(key string, val string) error {
 }
 
 func (c *LocalCatalog) loadTypeIndex() error {
+	if c.memoryOnly {
+		return nil
+	}
+
 	indexPath := filepath.Join(".bpc", "types")
 	data, err := os.ReadFile(indexPath)
 	if err != nil {
@@ -146,6 +182,10 @@ func (c *LocalCatalog) addToTypeIndex(key string, val string) error {
 	}
 	c.typeIndex[key] = val
 
+	if c.memoryOnly {
+		return nil
+	}
+
 	indexPath := filepath.Join(".bpc", "types")
 	f, err := os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
@@ -161,6 +201,10 @@ func (c *LocalCatalog) addToTypeIndex(key string, val string) error {
 }
 
 func (c *LocalCatalog) loadProcessIndex() error {
+	if c.memoryOnly {
+		return nil
+	}
+
 	indexPath := filepath.Join(".bpc", "process")
 	data, err := os.ReadFile(indexPath)
 	if err != nil {
@@ -234,6 +278,10 @@ func (c *LocalCatalog) addToProcessIndex(pType string, key string, val string) e
 		return errors.New("illegal process type")
 	}
 
+	if c.memoryOnly {
+		return nil
+	}
+
 	indexPath := filepath.Join(".bpc", "process")
 	f, err := os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
@@ -288,6 +336,14 @@ func (c *LocalCatalog) indexType(sym model.ConcreteSymbol) error {
 	return nil
 }
 
+func (c *LocalCatalog) write(path string, body []byte) error {
+	if c.memoryOnly {
+		c.memStore[path] = body
+		return nil
+	}
+	return atomicWrite(path, body, 0o644)
+}
+
 func (c *LocalCatalog) Add(sym model.ConcreteSymbol) error {
 	body, err := serializer.Serialize(sym)
 	if err != nil {
@@ -296,12 +352,23 @@ func (c *LocalCatalog) Add(sym model.ConcreteSymbol) error {
 	c.addToMainIndex(sym.GetQualifier(), sym.GetDigest())
 	c.indexProcess(sym)
 	c.indexType(sym)
-	return atomicWrite(digestToPath(sym.GetDigest()), body, 0o644)
+	return c.write(digestToPath(sym.GetDigest()), body)
+}
+
+func (c *LocalCatalog) read(path string) ([]byte, error) {
+	if c.memoryOnly {
+		body, ok := c.memStore[path]
+		if !ok {
+			return nil, errors.New("key not found")
+		}
+		return body, nil
+	}
+	return os.ReadFile(path)
 }
 
 func (c *LocalCatalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 	path := digestToPath(digest)
-	body, err := os.ReadFile(path)
+	body, err := c.read(path)
 	if err != nil {
 		return nil, err
 	}
