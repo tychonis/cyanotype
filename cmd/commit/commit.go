@@ -23,14 +23,9 @@ func run(cmd *cobra.Command, args []string) {
 	bpoPath := "."
 
 	core := hcl.NewCore("local")
-	err := core.Parse(bpoPath)
+	err := core.Process(bpoPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
 		return
-	}
-
-	err = core.Parse(bpoPath)
-	if err != nil {
-		slog.Warn("Failed to build bom graph.", "error", err)
 	}
 }
