@@ -1,132 +1,236 @@
 package hcl
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
+	"log/slog"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
-	"github.com/tychonis/cyanotype/internal/symbols"
-	"github.com/tychonis/cyanotype/model"
+	"github.com/tychonis/cyanotype/internal/catalog"
+	"github.com/tychonis/cyanotype/internal/digest"
+	"github.com/tychonis/cyanotype/model/v2"
 )
 
-func (c *Core) parseBlock(ctx *ParserContext, block *hclsyntax.Block) error {
-	switch block.Type {
-	case "import":
-		return c.parseImportBlock(ctx, block)
-	case "state":
-		return c.parseStateBlock(ctx, block)
+func (c *Core) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, err error) {
+	// Already parsed before.
+	if s.qualifier != "" {
+		return c.Catalog.Find(s.qualifier)
+	}
+
+	// New symbol.
+	if s.Block == nil || s.Context == nil {
+		return nil, errors.New("illegal nil symbol")
+	}
+	switch s.Block.Type {
 	case "item":
-		return c.parseItemBlock(ctx, block)
+		sym, err = c.parseItemBlock(s.Context, s.Block)
 	case "process":
-		return c.parseProcessBlock(ctx, block)
+		sym, err = c.parseProcessBlock(s.Context, s.Block)
 	case "contract":
-		return c.parseContractBlock(ctx, block)
+		sym, err = c.parseContractBlock(s.Context, s.Block)
+	default:
+		return nil, errors.New("unknown block type")
 	}
+	if err == nil {
+		s.qualifier = sym.GetQualifier()
+	}
+	return
+}
+
+func refToQualifier(ctx *ParserContext, ref []string) string {
+	if ctx.CurrentModule() == "." {
+		return "." + strings.Join(ref, ".")
+	} else {
+		return strings.Join(append([]string{ctx.CurrentModule()}, ref...), ".")
+	}
+}
+
+func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from []*UnresolvedBOMLine) error {
+	slog.Debug("build companions", "module", ctx.CurrentModule(), "item", item.Qualifier)
+
+	var err error
+	co := &model.CoItem{
+		Qualifier: getImplicitCoItemQualifier(item),
+	}
+	co.Digest, err = digest.SHA256FromSymbol(co)
+	if err != nil {
+		return err
+	}
+	c.Catalog.Add(co)
+
+	cp := &model.CoProcess{
+		Qualifier: getImplicitCoProcessQualifier(item),
+		Input: []*model.BOMLine{
+			{
+				Item: item.Digest,
+				Qty:  1,
+			},
+		},
+		Output: []*model.BOMLine{
+			{
+				Item: co.Digest,
+				Qty:  1,
+			},
+		},
+	}
+	cp.Digest, err = digest.SHA256FromSymbol(cp)
+	if err != nil {
+		return err
+	}
+	c.Catalog.Add(cp)
+
+	if len(from) <= 0 {
+		return nil
+	}
+	input := make([]*model.BOMLine, 0, len(from))
+	for _, comp := range from {
+		qualifier := refToQualifier(ctx, comp.Ref)
+		compItemSym, err := c.Catalog.Find(qualifier)
+		if err != nil {
+			if err != catalog.ErrNotFound {
+				return err
+			} else {
+				sym, err := c.Resolve(ctx, comp.Ref)
+				if err != nil {
+					return err
+				}
+				unprocessed, ok := sym.(*UnprocessedSymbol)
+				if !ok {
+					return errors.New("wrong symbol type")
+				}
+				compItemSym, err = c.ParseSymbol(unprocessed)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		compItem, ok := compItemSym.(*model.Item)
+		if !ok {
+			return errors.New("incorrect ref")
+		}
+		compCoItems, err := c.Catalog.GetCoItems(compItem.Digest)
+		if err != nil {
+			return err
+		}
+		if len(compCoItems) != 1 {
+			slog.Debug("error", "item", compItem.Qualifier, "length", len(compCoItems), "digest", compItem.Digest)
+			return errors.New("not implemented yet")
+		}
+		input = append(input, &model.BOMLine{
+			Item: compCoItems[0].Item,
+			Qty:  comp.Qty,
+		})
+	}
+	p := &model.Process{
+		Qualifier: getImplicitProcessQualifier(item),
+		Output: []*model.BOMLine{
+			{
+				Item: item.Digest,
+				Qty:  1,
+				Role: DEFAULT,
+			},
+		},
+		Input: input,
+	}
+	p.Digest, err = digest.SHA256FromSymbol(p)
+	if err != nil {
+		return err
+	}
+	c.Catalog.Add(p)
 	return nil
 }
 
-func (c *Core) parseImportBlock(ctx *ParserContext, block *hclsyntax.Block) error {
-	path := block.Labels[0]
-	moduleName := pathToModuleName(path)
-	currentModule := ctx.CurrentModule()
-	err := c.Symbols.AddSymbol(currentModule, moduleName,
-		&symbols.Import{Symbols: c.Symbols, Identifier: path})
-	if err != nil {
-		return fmt.Errorf("error parse block %s: %w", path, err)
-	}
-	newCtx, err := ctx.Import(path)
-	if err != nil {
-		return fmt.Errorf("error parse block %s: %w", path, err)
-	}
-	return c.parseFolder(newCtx, path)
-}
-
-func (c *Core) parseStateBlock(_ *ParserContext, block *hclsyntax.Block) error {
-	stateName := block.Labels[0]
-	attrs, diags := block.Body.JustAttributes()
-	if diags.HasErrors() {
-		return diags
-	}
-	path, err := getString(attrs, "file")
-	if err != nil {
-		return err
-	}
-	file, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	decoder := json.NewDecoder(file)
-	b := BOMGraph{}
-	err = decoder.Decode(&b)
-	if err != nil {
-		return err
-	}
-	c.States[stateName] = &b
-	return nil
-}
-
-func pathToModuleName(path string) string {
-	components := strings.Split(path, "/")
-	return components[len(components)-1]
-}
-
-func blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
+func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
 	name := block.Labels[0]
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
 		return nil, diags
 	}
 	pn, _ := getString(attrs, "part_number")
+	// ref, _ := getString(attrs, "ref")
 	src, _ := getString(attrs, "source")
 	from := readComponents(ctx, attrs["from"])
-	ref := readReferences(ctx, attrs["ref"])
-	return &model.Item{
-		Name:       name,
-		Qualifier:  ctx.NameToQualifier(name),
-		PartNumber: pn,
-		Reference:  ref,
-		Source:     src,
-		From:       from,
-	}, nil
-}
-
-func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) error {
-	m := ctx.CurrentModule()
-	name := block.Labels[0]
-	item, err := blockToItem(ctx, block)
-	if err != nil {
-		return fmt.Errorf("error parse block %s: %w", name, err)
+	item := &model.Item{
+		Qualifier: ctx.NameToQualifier(name),
+		Content: &model.ItemContent{
+			Name:       name,
+			Source:     src,
+			PartNumber: pn,
+		},
 	}
-	return c.Symbols.AddSymbol(m, name, item)
+	var err error
+	item.Digest, err = digest.SHA256FromSymbol(item)
+	if err != nil {
+		return item, err
+	}
+	err = c.buildCompanionForItem(ctx, item, from)
+	if err != nil {
+		return nil, err
+	}
+	err = c.Catalog.Add(item)
+	if err != nil {
+		return nil, err
+	}
+	slog.Debug("added item", "qualifier", item.Qualifier, "digest", item.Digest)
+	return item, err
 }
 
-func blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*model.Process, error) {
+func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (model.ConcreteSymbol, error) {
+	item, err := c.blockToItem(ctx, block)
+	if err != nil {
+		return item, err
+	}
+	return item, nil
+}
+
+func (c *Core) createProcessContract(process *model.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {
+	ret := &model.Contract{
+		Qualifier: fmt.Sprintf("%s.%s.%s", process.Qualifier, mode, line.Role),
+	}
+	return ret, nil
+}
+
+func (c *Core) blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*model.Process, error) {
 	name := block.Labels[0]
+	ret := &model.Process{
+		Qualifier: ctx.NameToQualifier(name),
+	}
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
 		return nil, diags
 	}
+	cycle, _ := getNumber(attrs, "cycle")
+	ret.CycleTime = cycle
 	input := readComponents(ctx, attrs["input"])
+	ret.Input = make([]*model.BOMLine, 0, len(input))
+	for _, line := range input {
+		resolved, err := c.ResolveBOMLine(ctx, line)
+		if err != nil {
+			return nil, err
+		}
+		ret.Input = append(ret.Input, resolved)
+	}
 	output := readComponents(ctx, attrs["output"])
-	return &model.Process{
-		Name:      name,
-		Qualifier: ctx.NameToQualifier(name),
-		Input:     input,
-		Output:    output,
-	}, nil
+	ret.Output = make([]*model.BOMLine, 0, len(output))
+	for _, line := range output {
+		resolved, err := c.ResolveBOMLine(ctx, line)
+		if err != nil {
+			return nil, err
+		}
+		ret.Output = append(ret.Output, resolved)
+	}
+	return ret, nil
 }
 
-func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) error {
-	m := ctx.CurrentModule()
-	name := block.Labels[0]
-	process, err := blockToProcess(ctx, block)
+func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (model.ConcreteSymbol, error) {
+	process, err := c.blockToProcess(ctx, block)
 	if err != nil {
-		return err
+		return process, err
 	}
-	return c.Symbols.AddSymbol(m, name, process)
+	return process, c.Catalog.Add(process)
 }
 
 func blockToContract(ctx *ParserContext, block *hclsyntax.Block) (*model.Contract, error) {
@@ -148,12 +252,10 @@ func blockToContract(ctx *ParserContext, block *hclsyntax.Block) (*model.Contrac
 	}, nil
 }
 
-func (c *Core) parseContractBlock(ctx *ParserContext, block *hclsyntax.Block) error {
-	m := ctx.CurrentModule()
-	name := block.Labels[0]
+func (c *Core) parseContractBlock(ctx *ParserContext, block *hclsyntax.Block) (model.ConcreteSymbol, error) {
 	contract, err := blockToContract(ctx, block)
 	if err != nil {
-		return err
+		return contract, err
 	}
-	return c.Symbols.AddSymbol(m, name, contract)
+	return contract, c.Catalog.Add(contract)
 }

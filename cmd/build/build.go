@@ -1,9 +1,7 @@
 package build
 
 import (
-	"encoding/json"
 	"log/slog"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -25,7 +23,6 @@ func init() {
 
 func run(cmd *cobra.Command, args []string) {
 	bpoPath := args[0]
-	rootPart := args[1]
 
 	bpcPath := cmd.Flag("output").Value.String()
 	if bpcPath == "" {
@@ -35,25 +32,10 @@ func run(cmd *cobra.Command, args []string) {
 			bpcPath = "ouptput.bpc"
 		}
 	}
-	core := hcl.NewCore()
-	err := core.Parse(bpoPath)
+	core := hcl.NewCore("local")
+	err := core.Process(bpoPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
 		return
 	}
-
-	rootPath := strings.Split(rootPart, ".")
-	bomGraph, err := core.Build(bpoPath, rootPath)
-	if err != nil {
-		slog.Warn("Failed to build bom graph.", "error", err)
-	}
-
-	for _, state := range core.States {
-		bomGraph = bomGraph.Reference(state)
-	}
-
-	output, _ := os.Create(bpcPath)
-	encoder := json.NewEncoder(output)
-	encoder.SetIndent("", "  ")
-	encoder.Encode(bomGraph)
 }

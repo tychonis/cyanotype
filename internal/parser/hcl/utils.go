@@ -6,8 +6,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
-
-	"github.com/tychonis/cyanotype/model"
 )
 
 type ErrorWithRange struct {
@@ -73,16 +71,16 @@ func getTraverserName(t hcl.Traverser) string {
 	}
 }
 
-func readComponent(ctx *ParserContext, obj *hclsyntax.ObjectConsExpr) *model.Component {
-	ret := &model.Component{
+func readComponent(ctx *ParserContext, obj *hclsyntax.ObjectConsExpr) *UnresolvedBOMLine {
+	ret := &UnresolvedBOMLine{
 		Qty: 1,
 	}
 	for _, item := range obj.Items {
 		key := getObjectKey(item.KeyExpr)
 		switch key {
-		case "name":
+		case "role":
 			val, _ := item.ValueExpr.Value(nil)
-			ret.Name = val.AsString()
+			ret.Role = val.AsString()
 		case "ref":
 			se, ok := item.ValueExpr.(*hclsyntax.ScopeTraversalExpr)
 			if !ok {
@@ -104,7 +102,7 @@ func readComponent(ctx *ParserContext, obj *hclsyntax.ObjectConsExpr) *model.Com
 	return ret
 }
 
-func readComponents(ctx *ParserContext, attr *hcl.Attribute) []*model.Component {
+func readComponents(ctx *ParserContext, attr *hcl.Attribute) []*UnresolvedBOMLine {
 	if attr == nil {
 		return nil
 	}
@@ -114,7 +112,7 @@ func readComponents(ctx *ParserContext, attr *hcl.Attribute) []*model.Component 
 		return nil
 	}
 
-	comps := make([]*model.Component, 0)
+	comps := make([]*UnresolvedBOMLine, 0)
 	for _, elem := range expr.Exprs {
 		obj, ok := elem.(*hclsyntax.ObjectConsExpr)
 		if !ok {
@@ -124,42 +122,4 @@ func readComponents(ctx *ParserContext, attr *hcl.Attribute) []*model.Component 
 		comps = append(comps, comp)
 	}
 	return comps
-}
-
-func readReference(_ *ParserContext, obj *hclsyntax.ObjectConsExpr) *model.Reference {
-	ret := &model.Reference{}
-	for _, item := range obj.Items {
-		key := getObjectKey(item.KeyExpr)
-		switch key {
-		case "tag":
-			val, _ := item.ValueExpr.Value(nil)
-			ret.Tag = val.AsString()
-		case "uri":
-			val, _ := item.ValueExpr.Value(nil)
-			ret.URI = val.AsString()
-		}
-	}
-	return ret
-}
-
-func readReferences(ctx *ParserContext, attr *hcl.Attribute) []*model.Reference {
-	if attr == nil {
-		return nil
-	}
-
-	expr, ok := attr.Expr.(*hclsyntax.TupleConsExpr)
-	if !ok {
-		return nil
-	}
-
-	refs := make([]*model.Reference, 0)
-	for _, elem := range expr.Exprs {
-		obj, ok := elem.(*hclsyntax.ObjectConsExpr)
-		if !ok {
-			continue
-		}
-		ref := readReference(ctx, obj)
-		refs = append(refs, ref)
-	}
-	return refs
 }

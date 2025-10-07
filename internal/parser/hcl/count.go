@@ -2,45 +2,38 @@ package hcl
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 
-	"github.com/tychonis/cyanotype/model"
+	"github.com/tychonis/cyanotype/model/v2"
 )
 
-func (c *Core) countParts(ref []string, multiplier float64, counter map[string]float64) {
-	slog.Debug("Counting...", "name", ref, "multiplier", multiplier)
-	sym, err := c.Symbols.Resolve(ref)
+type Component struct {
+	Name string
+	Ref  []string
+	Qty  float64
+}
+
+func (c Core) Count(root []string) (map[string]float64, error) {
+	sym, err := c.Catalog.Find("." + root[0])
 	if err != nil {
-		slog.Info("Unknown symbol.", "error", err, "ref", ref)
-		return
+		slog.Info("Unknown symbol.", "error", err, "ref", root)
+		return nil, err
 	}
 
 	item, ok := sym.(*model.Item)
 	if !ok {
-		slog.Info("Unknown item.", "ref", ref)
-		return
+		return nil, errors.New("unknown item")
 	}
 
-	if len(item.GetComponents()) == 0 {
-		counter[item.Qualifier] += multiplier
-		return
+	tree, err := c.Build(item)
+	if err != nil {
+		return nil, err
 	}
 
-	// also count assembly?
-	counter[item.Qualifier] += multiplier
-
-	for _, comp := range item.GetComponents() {
-		c.countParts(comp.Ref, comp.Qty*multiplier, counter)
-	}
-}
-
-func (c Core) Count(root []string) map[string]float64 {
-	counter := make(map[string]float64)
-	c.countParts(root, 1, counter)
-
-	return counter
+	return tree.Count(), nil
 }
 
 func getHeader() []string {

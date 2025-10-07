@@ -5,26 +5,32 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/google/uuid"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
-	"github.com/tychonis/cyanotype/internal/manager"
-	"github.com/tychonis/cyanotype/internal/symbols"
-	"github.com/tychonis/cyanotype/model"
+	"github.com/tychonis/cyanotype/internal/catalog"
+	"github.com/tychonis/cyanotype/internal/symbols/v2"
+	"github.com/tychonis/cyanotype/model/v2"
 )
 
+const EXTENSION string = ".bpo"
 const IMPLICIT string = "implicit."
+const DEFAULT string = "default"
 
 type Core struct {
 	Symbols *symbols.SymbolTable
-	States  map[string]*BOMGraph
+	Catalog catalog.Catalog
 }
 
 type ParserContext struct {
 	ImportStack []string
+}
+
+func NewParserContext() *ParserContext {
+	return &ParserContext{
+		ImportStack: []string{"."},
+	}
 }
 
 func (ctx *ParserContext) Import(path string) (*ParserContext, error) {
@@ -47,19 +53,23 @@ func (ctx *ParserContext) NameToQualifier(name string) string {
 	if prefix == "." {
 		prefix = ""
 	}
-
-	rawName, implicit := strings.CutPrefix(name, IMPLICIT)
-	if implicit {
-		return IMPLICIT + prefix + "." + rawName
-	}
 	return prefix + "." + name
 }
 
-func NewCore() *Core {
+func NewCore(catalogType string) *Core {
 	return &Core{
 		Symbols: symbols.NewSymbolTable(),
-		States:  make(map[string]*BOMGraph),
+		Catalog: catalog.NewCatalog(catalogType),
 	}
+}
+
+func (c *Core) Resolve(ctx *ParserContext, ref []string) (model.Symbol, error) {
+	slog.Debug("Resolving ref", "module", ctx.CurrentModule(), "ref", ref)
+	mod, ok := c.Symbols.Modules[ctx.CurrentModule()]
+	if !ok {
+		return nil, errors.New("no registered symbols")
+	}
+	return mod.Resolve(ref)
 }
 
 func (c *Core) parseFolder(ctx *ParserContext, dir string) error {
@@ -79,10 +89,8 @@ func (c *Core) parseFolder(ctx *ParserContext, dir string) error {
 }
 
 func (c *Core) ParseFolder(dir string) error {
-	ctx := ParserContext{
-		ImportStack: []string{"."},
-	}
-	return c.parseFolder(&ctx, dir)
+	ctx := NewParserContext()
+	return c.parseFolder(ctx, dir)
 }
 
 func (c *Core) parseFile(ctx *ParserContext, filename string) error {
@@ -100,7 +108,7 @@ func (c *Core) parseFile(ctx *ParserContext, filename string) error {
 	}
 
 	for _, block := range content.Blocks {
-		err := c.parseBlock(ctx, block)
+		err := c.registerBlock(ctx, block)
 		if err != nil {
 			slog.Warn("Error parsing block.", "error", err)
 		}
@@ -109,10 +117,8 @@ func (c *Core) parseFile(ctx *ParserContext, filename string) error {
 }
 
 func (c *Core) ParseFile(filename string) error {
-	ctx := ParserContext{
-		ImportStack: []string{"."},
-	}
-	return c.parseFile(&ctx, filename)
+	ctx := NewParserContext()
+	return c.parseFile(ctx, filename)
 }
 
 func (c *Core) Parse(path string) error {
@@ -126,77 +132,53 @@ func (c *Core) Parse(path string) error {
 	return c.ParseFile(path)
 }
 
-func (c *Core) Build(path string, root []string) (*BOMGraph, error) {
-	// TODO: check parsed.
-	bomGraph := NewBOMGraph()
-	c.AddItemsTo(bomGraph)
-	rootSymbol, err := c.Symbols.Resolve(root)
+func (c *Core) Process(path string) error {
+	err := c.Parse(path)
 	if err != nil {
-		return bomGraph, nil
+		return err
 	}
-	rootItem, ok := rootSymbol.(*model.Item)
-	if !ok {
-		return bomGraph, errors.New("unrecognized root")
-	}
-	rootNode := &model.ItemNode{
-		ID:       uuid.New(),
-		ItemID:   rootItem.ID,
-		Path:     "/" + "root",
-		Children: make([]NodeID, 0),
-		Qty:      1,
-	}
-	bomGraph.Roots = []NodeID{rootNode.ID}
-	bomGraph.AddNode(rootNode)
-	for _, comp := range rootItem.GetComponents() {
-		c.buildBom(bomGraph, comp.Name, comp.Ref, rootNode, comp.Qty)
-	}
-	bomGraph.BuildIndex()
-
-	return bomGraph, nil
+	return c.processModules(c.Catalog)
 }
 
-func (c *Core) buildBom(bom *BOMGraph, name string, ref []string, parent *model.ItemNode, qty float64) {
-	symbol, err := c.Symbols.Resolve(ref)
-	if err != nil {
-		return
+func (c *Core) processModules(cat catalog.Catalog) error {
+	for _, module := range c.Symbols.Modules {
+		err := c.processModuleScope(module, cat)
+		if err != nil {
+			return err
+		}
 	}
-	item, ok := symbol.(*model.Item)
-	if !ok {
-		return
-	}
-	node := &model.ItemNode{
-		ID:       uuid.New(),
-		ItemID:   item.ID,
-		Path:     parent.Path + "/" + name,
-		ParentID: parent.ID,
-		Children: make([]NodeID, 0),
-		Qty:      qty,
-	}
-	bom.AddNode(node)
-	parent.Children = append(parent.Children, node.ID)
-	for _, comp := range item.GetComponents() {
-		c.buildBom(bom, comp.Name, comp.Ref, node, comp.Qty)
-	}
+	return nil
 }
 
-func addModuleItemsToGraph(m *symbols.ModuleScope, bom *BOMGraph) {
+func (c *Core) processModuleScope(m *symbols.ModuleScope, cat catalog.Catalog) error {
 	for _, symbol := range m.Symbols {
 		switch s := symbol.(type) {
 		case *symbols.ModuleScope:
-			addModuleItemsToGraph(s, bom)
-		case *model.Item:
-			err := manager.TrackItem(s)
+			c.processModuleScope(s, cat)
+		case *UnprocessedSymbol:
+			slog.Debug("Process item", "item", s)
+			_, err := c.ParseSymbol(s)
 			if err != nil {
-				slog.Error("Error track item.", "error", err)
+				slog.Warn("Error adding item.", "error", err, "item", s)
 			}
-			bom.AddItem(s)
 		default:
 		}
 	}
+	return nil
 }
 
-func (c *Core) AddItemsTo(bom *BOMGraph) {
-	for _, module := range c.Symbols.Modules {
-		addModuleItemsToGraph(module, bom)
+func (c *Core) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*model.BOMLine, error) {
+	s, err := c.Resolve(ctx, line.Ref)
+	if err != nil {
+		return nil, err
 	}
+	item, ok := s.(*model.Item)
+	if !ok {
+		return nil, errors.New("ref is not an item")
+	}
+	return &model.BOMLine{
+		Role: line.Role,
+		Item: item.Digest,
+		Qty:  line.Qty,
+	}, nil
 }
