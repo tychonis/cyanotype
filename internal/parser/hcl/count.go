@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/tychonis/cyanotype/model/v2"
+	"github.com/tychonis/cyanotype/model"
 )
 
 type Component struct {

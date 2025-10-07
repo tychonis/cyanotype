@@ -1,7 +1,7 @@
 package bomtree
 
 import (
-	"github.com/tychonis/cyanotype/model/v2"
+	"github.com/tychonis/cyanotype/model"
 )
 
 type Node struct {

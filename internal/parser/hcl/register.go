@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
-	"github.com/tychonis/cyanotype/internal/symbols/v2"
+	"github.com/tychonis/cyanotype/internal/symbols"
 )
 
 func (c *Core) registerBlock(ctx *ParserContext, block *hclsyntax.Block) error {

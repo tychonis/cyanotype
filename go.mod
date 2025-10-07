@@ -6,7 +6,6 @@ toolchain go1.24.3
 
 require (
 	github.com/go-git/go-git/v5 v5.16.2
-	github.com/google/uuid v1.6.0
 	github.com/hashicorp/hcl/v2 v2.23.0
 	github.com/spf13/cobra v1.9.1
 	github.com/zclconf/go-cty v1.13.0

@@ -3,59 +3,57 @@ package model
 import (
 	"errors"
 
-	"github.com/google/uuid"
+	"github.com/tychonis/cyanotype/internal/stable"
 )
 
-type ItemID = uuid.UUID
-type NodeID = uuid.UUID
+type ItemID = Digest
+type LinkType string
 
+const (
+	DERIVE_SUPERSESSEION   LinkType = "supersession"
+	DERIVE_INTERCHANGEABLE LinkType = "interchangeable"
+	DERIVE_VARIANT         LinkType = "variant"
+	DERIVE_CHANGE          LinkType = "change"
+)
+
+// Item corresponds to a single immutable snapshot of a part or assembly.
+// Any change to spec, composition, process or metadata produces a new Item.
+// Items are linked through Predecessor for traceability supersession or interchangeability.
 type Item struct {
-	ID         ItemID       `json:"id" yaml:"id"`
-	Qualifier  string       `json:"qualifier" yaml:"qualifier"`
+	Qualifier string       `json:"qualifier" yaml:"qualifier"`
+	Implement []ContractID `json:"implement" yaml:"implement"`
+
+	Content *ItemContent `json:"content" yaml:"content"`
+	Digest  ItemID       `json:"-" yaml:"-"`
+}
+
+// CoItem defines requirements.
+type CoItem struct {
+	Qualifier string       `json:"qualifier" yaml:"qualifier"`
+	Require   []ContractID `json:"require" yaml:"require"`
+
+	Content *ItemContent `json:"content" yaml:"content"`
+	Digest  ItemID       `json:"-" yaml:"-"`
+}
+
+type ItemContent struct {
 	Name       string       `json:"name" yaml:"name"`
 	Source     string       `json:"source,omitempty" yaml:"source,omitempty"`
 	PartNumber string       `json:"part_number" yaml:"part_number"`
-	Reference  []*Reference `json:"ref,omitempty" yaml:"ref,omitempty"`
-	From       []*Component `json:"-" yaml:"-"`
+	References []*Reference `json:"ref,omitempty" yaml:"ref,omitempty"`
+	Details    stable.Map   `json:"details" yaml:"details"`
 }
 
-type ItemNode struct {
-	ID       NodeID   `json:"id" yaml:"id"`
-	Path     string   `json:"path" yaml:"path"`
-	ItemID   ItemID   `json:"item_id" yaml:"item_id"`
-	ParentID NodeID   `json:"parent_id" yaml:"parent_id"`
-	Children []NodeID `json:"children" yaml:"children"`
-	Qty      float64  `json:"qty" yaml:"qty"`
+type Reference struct {
+	Reference string `json:"ref" yaml:"ref"`
+	Tag       string `json:"tag" yaml:"tag"`
+	Path      string `json:"path" yaml:"path"`
+	Digest    string `json:"digest" yaml:"digest"`
 }
 
-type Component struct {
-	Name string   `json:"name" yaml:"name"`
-	Ref  []string `json:"ref" yaml:"ref"`
-	Qty  float64  `json:"qty" yaml:"qty"`
-}
-
-func (i *Item) GetID() ItemID {
-	return i.ID
-}
-
-func (i *Item) SetID(id ItemID) error {
-	if i.ID != uuid.Nil && i.ID != id {
-		return errors.New("id conflict")
-	}
-	i.ID = id
-	return nil
-}
-
-func (i *Item) GetName() string {
-	return i.Name
-}
-
-func (i *Item) GetPartNumber() string {
-	return i.PartNumber
-}
-
-func (i *Item) GetComponents() []*Component {
-	return i.From
+type Derivation struct {
+	DerivedFrom ItemID
+	Type        LinkType
 }
 
 // TODO: implement attrs?
@@ -64,4 +62,28 @@ func (i *Item) Resolve(path []string) (Symbol, error) {
 		return nil, errors.New("attr not implemented")
 	}
 	return i, nil
+}
+
+func (i *Item) GetQualifier() string {
+	return i.Qualifier
+}
+
+func (i *Item) GetDigest() string {
+	return i.Digest
+}
+
+// TODO: implement attrs?
+func (ci *CoItem) Resolve(path []string) (Symbol, error) {
+	if len(path) > 0 {
+		return nil, errors.New("attr not implemented")
+	}
+	return ci, nil
+}
+
+func (ci *CoItem) GetQualifier() string {
+	return ci.Qualifier
+}
+
+func (ci *CoItem) GetDigest() string {
+	return ci.Digest
 }

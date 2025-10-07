@@ -5,7 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/tychonis/cyanotype/internal/bomtree"
-	"github.com/tychonis/cyanotype/model/v2"
+	"github.com/tychonis/cyanotype/model"
 )
 
 func getImplicitProcessQualifier(item *model.Item) string {

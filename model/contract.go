@@ -1,11 +1,19 @@
 package model
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/tychonis/cyanotype/internal/stable"
+)
+
+type ContractID = Digest
 
 type Contract struct {
-	Qualifier string `json:"qualifier" yaml:"qualifier"`
-	Name      string `json:"name" yaml:"name"`
-	Params    map[string]any
+	Qualifier string     `json:"qualifier" yaml:"qualifier"`
+	Name      string     `json:"name" yaml:"name"`
+	Params    stable.Map `json:"params" yaml:"params"`
+
+	Digest ContractID `json:"-" yaml:"-"`
 }
 
 // TODO: implement attrs?
@@ -14,4 +22,16 @@ func (c *Contract) Resolve(path []string) (Symbol, error) {
 		return nil, errors.New("attr not implemented")
 	}
 	return c, nil
+}
+
+func (c *Contract) Fulfill(c2 *Contract) bool {
+	return false
+}
+
+func (c *Contract) GetQualifier() string {
+	return c.Qualifier
+}
+
+func (c *Contract) GetDigest() string {
+	return c.Digest
 }

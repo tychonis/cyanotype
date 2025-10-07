@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/tychonis/cyanotype/internal/serializer"
-	"github.com/tychonis/cyanotype/model/v2"
+	"github.com/tychonis/cyanotype/model"
 )
 
 func SHA256FromReader(r io.Reader) (string, error) {

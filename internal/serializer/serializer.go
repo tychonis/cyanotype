@@ -3,7 +3,7 @@ package serializer
 import (
 	"encoding/json"
 
-	"github.com/tychonis/cyanotype/model/v2"
+	"github.com/tychonis/cyanotype/model"
 )
 
 func SerializeItem(item *model.Item) ([]byte, error) {

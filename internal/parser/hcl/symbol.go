@@ -3,7 +3,7 @@ package hcl
 import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
-	"github.com/tychonis/cyanotype/model/v2"
+	"github.com/tychonis/cyanotype/model"
 )
 
 type UnprocessedSymbol struct {

@@ -2,25 +2,87 @@ package model
 
 import (
 	"errors"
-
-	"github.com/google/uuid"
 )
 
-type ProcessID = uuid.UUID
+type ProcessID = Digest
 
-type Process struct {
-	ID             ProcessID `json:"id" yaml:"id"`
-	Qualifier      string    `json:"qualifier" yaml:"qualifier"`
-	Name           string    `json:"name" yaml:"name"`
-	Input          []*Component
-	Output         []*Component
-	Transformation func([]*Contract) *[]Contract
+type BOMLine struct {
+	Item ItemID  `json:"item" yaml:"item"`
+	Qty  float64 `json:"qty" yaml:"qty"`
+	Role string  `json:"role" yaml:"role"`
 }
 
-// TODO: implement attrs?
+type Process struct {
+	Qualifier   string     `json:"qualifier" yaml:"qualifier"`
+	Predecessor ProcessID  `json:"predecessor" yaml:"predecessor"`
+	CycleTime   float64    `json:"cycle_time" yaml:"cycle_time"`
+	Input       []*BOMLine `json:"input" yaml:"input"`
+	Output      []*BOMLine `json:"output" yaml:"output"`
+
+	Digest ProcessID `json:"-" yaml:"-"`
+}
+
+type CoProcess struct {
+	Qualifier   string     `json:"qualifier" yaml:"qualifier"`
+	Predecessor ProcessID  `json:"predecessor" yaml:"predecessor"`
+	CycleTime   float64    `json:"cycle_time" yaml:"cycle_time"`
+	Input       []*BOMLine `json:"input" yaml:"input"`
+	Output      []*BOMLine `json:"output" yaml:"output"`
+
+	Digest ProcessID `json:"-" yaml:"-"`
+}
+
+type ProcessContent struct {
+	Name            string             `json:"name" yaml:"name"`
+	Transformations []TransformationID `json:"transformations" yaml:"transformations"`
+}
+
 func (p *Process) Resolve(path []string) (Symbol, error) {
-	if len(path) > 0 {
-		return nil, errors.New("attr not implemented")
+	if len(path) == 0 {
+		return p, nil
 	}
-	return p, nil
+	if len(path) < 2 {
+		return nil, errors.New("insufficient path length")
+	}
+	switch path[0] {
+	case "input":
+		return nil, nil
+	case "output":
+		return nil, nil
+	default:
+		return nil, errors.New("illformed token")
+	}
+}
+
+func (p *Process) GetQualifier() string {
+	return p.Qualifier
+}
+
+func (p *Process) GetDigest() string {
+	return p.Digest
+}
+
+func (cp *CoProcess) Resolve(path []string) (Symbol, error) {
+	if len(path) == 0 {
+		return cp, nil
+	}
+	if len(path) < 2 {
+		return nil, errors.New("insufficient path length")
+	}
+	switch path[0] {
+	case "input":
+		return nil, nil
+	case "output":
+		return nil, nil
+	default:
+		return nil, errors.New("illformed token")
+	}
+}
+
+func (cp *CoProcess) GetQualifier() string {
+	return cp.Qualifier
+}
+
+func (cp *CoProcess) GetDigest() string {
+	return cp.Digest
 }

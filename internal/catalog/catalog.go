@@ -10,7 +10,7 @@ import (
 	"reflect"
 
 	"github.com/tychonis/cyanotype/internal/serializer"
-	"github.com/tychonis/cyanotype/model/v2"
+	"github.com/tychonis/cyanotype/model"
 )
 
 type Qualifier = string

@@ -10,7 +10,7 @@ import (
 
 	"github.com/tychonis/cyanotype/internal/catalog"
 	"github.com/tychonis/cyanotype/internal/digest"
-	"github.com/tychonis/cyanotype/model/v2"
+	"github.com/tychonis/cyanotype/model"
 )
 
 func (c *Core) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, err error) {
