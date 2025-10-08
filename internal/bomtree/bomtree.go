@@ -1,8 +1,6 @@
 package bomtree
 
 import (
-	"log/slog"
-
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -47,7 +45,6 @@ func (node *Node) Export() []byte {
 }
 
 func export(node *Node, output *[]byte) {
-	slog.Info("Processing node.", "node", node.Item.Qualifier, "parent", node.Parent)
 	if node.Parent != nil {
 		line := node.Parent.Item.Digest + ":" + node.Item.Digest + "\n"
 		*output = append(*output, []byte(line)...)
