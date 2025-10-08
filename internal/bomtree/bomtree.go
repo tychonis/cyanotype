@@ -1,6 +1,8 @@
 package bomtree
 
 import (
+	"log/slog"
+
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -35,5 +37,23 @@ func count(node *Node, multiplier float64, counter map[string]float64) {
 
 	for _, child := range node.Children {
 		count(child, child.Qty*multiplier, counter)
+	}
+}
+
+func (node *Node) Export() []byte {
+	output := make([]byte, 0)
+	export(node, &output)
+	return output
+}
+
+func export(node *Node, output *[]byte) {
+	slog.Info("Processing node.", "node", node.Item.Qualifier, "parent", node.Parent)
+	if node.Parent != nil {
+		line := node.Parent.Item.Digest + ":" + node.Item.Digest + "\n"
+		*output = append(*output, []byte(line)...)
+	}
+
+	for _, child := range node.Children {
+		export(child, output)
 	}
 }
