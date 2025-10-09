@@ -20,19 +20,6 @@ func getImplicitCoItemQualifier(item *model.Item) string {
 	return item.Qualifier + ".__coitem__"
 }
 
-// func (c *Core) findImplicitProcess(item *model.Item) (*model.Process, error) {
-// 	q := getImplicitProcessQualifier(item)
-// 	sym, err := c.Catalog.Find(q)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	p, ok := sym.(*model.Process)
-// 	if !ok {
-// 		return nil, errors.New("incorrect type for implicit process")
-// 	}
-// 	return p, nil
-// }
-
 func (c *Core) findProcesses(item *model.Item) ([]*model.Process, error) {
 	return c.Catalog.GetItemProcesses(item.Digest)
 }
@@ -53,11 +40,12 @@ func (c *Core) build(coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 	}
 	if len(cp) <= 0 {
 		slog.Info("No coprocess producing coitem", "qualifier", coitem.GetQualifier())
+		return nil, errors.New("no coprocess producing coitem")
 	}
 	if len(cp) > 1 {
 		slog.Warn("Multiple coprocesses can produce coitem", "qualifier", coitem.GetQualifier())
 	}
-	coProcess := cp[0]
+	coProcess := c.Ranker.TopCoProcess(cp)
 	node.CoProcess = coProcess
 
 	itemID := coProcess.Input[0].Item
@@ -82,7 +70,7 @@ func (c *Core) build(coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 	if len(p) > 1 {
 		slog.Warn("Multiple processes can produce item", "qualifier", item.GetQualifier())
 	}
-	process := p[0]
+	process := c.Ranker.TopProcess(p)
 
 	node.Process = process
 	for _, input := range process.Input {

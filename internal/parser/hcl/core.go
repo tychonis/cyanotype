@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/tychonis/cyanotype/internal/catalog"
+	"github.com/tychonis/cyanotype/internal/ranker"
 	"github.com/tychonis/cyanotype/internal/symbols"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -21,6 +22,8 @@ const DEFAULT string = "default"
 type Core struct {
 	Symbols *symbols.SymbolTable
 	Catalog catalog.Catalog
+
+	Ranker ranker.Ranker
 }
 
 type ParserContext struct {
@@ -60,6 +63,8 @@ func NewCore(catalogType string) *Core {
 	return &Core{
 		Symbols: symbols.NewSymbolTable(),
 		Catalog: catalog.NewCatalog(catalogType),
+
+		Ranker: &ranker.NaiveRanker{},
 	}
 }
 
