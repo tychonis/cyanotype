@@ -143,9 +143,6 @@ func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from 
 		return err
 	}
 
-	if len(from) <= 0 {
-		return nil
-	}
 	input, err := c.processSyntaxSugar(ctx, from)
 	if err != nil {
 		return err
