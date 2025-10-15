@@ -130,6 +130,26 @@ func (c *Core) processSyntaxSugar(ctx *ParserContext, from []*UnresolvedBOMLine)
 	return ret, nil
 }
 
+func (c *Core) buildCompanionProcess(item *model.Item, input []*model.BOMLine) (*model.Process, error) {
+	var err error
+	p := &model.Process{
+		Qualifier: getImplicitProcessQualifier(item),
+		Output: []*model.BOMLine{
+			{
+				Item: item.Digest,
+				Qty:  1,
+				Role: DEFAULT,
+			},
+		},
+		Input: input,
+	}
+	p.Digest, err = digest.SHA256FromSymbol(p)
+	if err == nil {
+		c.Catalog.Add(p)
+	}
+	return p, err
+}
+
 func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from []*UnresolvedBOMLine) error {
 	slog.Debug("build companions", "module", ctx.CurrentModule(), "item", item.Qualifier)
 
@@ -148,23 +168,8 @@ func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from 
 		return err
 	}
 
-	p := &model.Process{
-		Qualifier: getImplicitProcessQualifier(item),
-		Output: []*model.BOMLine{
-			{
-				Item: item.Digest,
-				Qty:  1,
-				Role: DEFAULT,
-			},
-		},
-		Input: input,
-	}
-	p.Digest, err = digest.SHA256FromSymbol(p)
-	if err != nil {
-		return err
-	}
-	c.Catalog.Add(p)
-	return nil
+	_, err = c.buildCompanionProcess(item, input)
+	return err
 }
 
 func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
