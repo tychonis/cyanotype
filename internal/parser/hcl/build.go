@@ -2,7 +2,6 @@ package hcl
 
 import (
 	"errors"
-	"log/slog"
 
 	"github.com/tychonis/cyanotype/internal/bomtree"
 	"github.com/tychonis/cyanotype/model"
@@ -38,14 +37,10 @@ func (c *Core) build(coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(cp) <= 0 {
-		slog.Info("No coprocess producing coitem", "qualifier", coitem.GetQualifier())
-		return nil, errors.New("no coprocess producing coitem")
+	coProcess, err := c.Ranker.TopCoProcess(cp)
+	if err != nil {
+		return nil, err
 	}
-	if len(cp) > 1 {
-		slog.Warn("Multiple coprocesses can produce coitem", "qualifier", coitem.GetQualifier())
-	}
-	coProcess := c.Ranker.TopCoProcess(cp)
 	node.CoProcess = coProcess
 
 	itemID := coProcess.Input[0].Item
@@ -63,14 +58,10 @@ func (c *Core) build(coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(p) <= 0 {
-		slog.Info("No process producing item", "qualifier", item.GetQualifier())
-		return node, nil
+	process, err := c.Ranker.TopProcess(p)
+	if err != nil {
+		return nil, err
 	}
-	if len(p) > 1 {
-		slog.Warn("Multiple processes can produce item", "qualifier", item.GetQualifier())
-	}
-	process := c.Ranker.TopProcess(p)
 
 	node.Process = process
 	for _, input := range process.Input {
