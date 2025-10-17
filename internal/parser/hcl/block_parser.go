@@ -46,84 +46,6 @@ func refToQualifier(ctx *ParserContext, ref []string) string {
 	}
 }
 
-func (c *Core) buildCompanionCoItem(item *model.Item) (*model.CoItem, error) {
-	var err error
-	co := &model.CoItem{
-		Qualifier: getImplicitCoItemQualifier(item),
-	}
-	co.Digest, err = digest.SHA256FromSymbol(co)
-	if err != nil {
-		return co, err
-	}
-	return co, c.Catalog.Add(co)
-}
-
-func (c *Core) buildCompanionCoProcess(item *model.Item, coItem *model.CoItem) (*model.CoProcess, error) {
-	var err error
-	cp := &model.CoProcess{
-		Qualifier: getImplicitCoProcessQualifier(item),
-		Input: []*model.BOMLine{
-			{
-				Item: item.Digest,
-				Qty:  1,
-			},
-		},
-		Output: []*model.BOMLine{
-			{
-				Item: coItem.Digest,
-				Qty:  1,
-			},
-		},
-	}
-	cp.Digest, err = digest.SHA256FromSymbol(cp)
-	if err != nil {
-		return cp, err
-	}
-	return cp, c.Catalog.Add(cp)
-}
-
-func (c *Core) buildCompanionProcess(item *model.Item, input []*model.BOMLine) (*model.Process, error) {
-	var err error
-	p := &model.Process{
-		Qualifier: getImplicitProcessQualifier(item),
-		Output: []*model.BOMLine{
-			{
-				Item: item.Digest,
-				Qty:  1,
-				Role: DEFAULT,
-			},
-		},
-		Input: input,
-	}
-	p.Digest, err = digest.SHA256FromSymbol(p)
-	if err == nil {
-		c.Catalog.Add(p)
-	}
-	return p, err
-}
-
-func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, from []*UnresolvedBOMLine) error {
-	slog.Debug("build companions", "module", ctx.CurrentModule(), "item", item.Qualifier)
-
-	co, err := c.buildCompanionCoItem(item)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.buildCompanionCoProcess(item, co)
-	if err != nil {
-		return err
-	}
-
-	input, err := c.processKeywordFROM(ctx, from)
-	if err != nil {
-		return err
-	}
-
-	_, err = c.buildCompanionProcess(item, input)
-	return err
-}
-
 func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
 	name := block.Labels[0]
 	attrs, diags := block.Body.JustAttributes()
@@ -133,7 +55,19 @@ func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.I
 	pn, _ := getString(attrs, "part_number")
 	// ref, _ := getString(attrs, "ref")
 	src, _ := getString(attrs, "source")
-	from := readComponents(ctx, attrs["from"])
+
+	var input []*model.BOMLine
+	var err error
+	fromAttr, ok := attrs["from"]
+	if ok {
+		from := parseBOMLineAttr(ctx, fromAttr)
+		input, err = c.processKeywordFROM(ctx, from)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// implAttr, ok := attrs["impl"]
+
 	item := &model.Item{
 		Qualifier: ctx.NameToQualifier(name),
 		Content: &model.ItemContent{
@@ -142,12 +76,11 @@ func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.I
 			PartNumber: pn,
 		},
 	}
-	var err error
 	item.Digest, err = digest.SHA256FromSymbol(item)
 	if err != nil {
 		return item, err
 	}
-	err = c.buildCompanionForItem(ctx, item, from)
+	err = c.buildCompanionForItem(ctx, item, input)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +118,7 @@ func (c *Core) blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*mode
 	}
 	cycle, _ := getNumber(attrs, "cycle")
 	ret.CycleTime = cycle
-	input := readComponents(ctx, attrs["input"])
+	input := parseBOMLineAttr(ctx, attrs["input"])
 	ret.Input = make([]*model.BOMLine, 0, len(input))
 	for _, line := range input {
 		resolved, err := c.ResolveBOMLine(ctx, line)
@@ -194,7 +127,7 @@ func (c *Core) blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*mode
 		}
 		ret.Input = append(ret.Input, resolved)
 	}
-	output := readComponents(ctx, attrs["output"])
+	output := parseBOMLineAttr(ctx, attrs["output"])
 	ret.Output = make([]*model.BOMLine, 0, len(output))
 	for _, line := range output {
 		resolved, err := c.ResolveBOMLine(ctx, line)

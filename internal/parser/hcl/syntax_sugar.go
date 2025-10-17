@@ -4,14 +4,71 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/tychonis/cyanotype/internal/catalog"
 	"github.com/tychonis/cyanotype/model"
 )
 
+type Ref = []string
+
 type UnresolvedBOMLine struct {
-	Role string   `json:"role" yaml:"role"`
-	Ref  []string `json:"ref" yaml:"ref"`
-	Qty  float64  `json:"qty" yaml:"qty"`
+	Role string  `json:"role" yaml:"role"`
+	Ref  Ref     `json:"ref" yaml:"ref"`
+	Qty  float64 `json:"qty" yaml:"qty"`
+}
+
+func readComponent(ctx *ParserContext, obj *hclsyntax.ObjectConsExpr) *UnresolvedBOMLine {
+	ret := &UnresolvedBOMLine{
+		Qty: 1,
+	}
+	for _, item := range obj.Items {
+		key := getObjectKey(item.KeyExpr)
+		switch key {
+		case "role":
+			val, _ := item.ValueExpr.Value(nil)
+			ret.Role = val.AsString()
+		case "ref":
+			se, ok := item.ValueExpr.(*hclsyntax.ScopeTraversalExpr)
+			if !ok {
+				return nil
+			}
+			ref := make([]string, 0)
+			if ctx.CurrentModule() != "." {
+				ref = append(ref, ctx.CurrentModule())
+			}
+			for _, n := range se.Traversal {
+				ref = append(ref, getTraverserName(n))
+			}
+			ret.Ref = ref
+		case "qty":
+			val, _ := item.ValueExpr.Value(nil)
+			ret.Qty, _ = val.AsBigFloat().Float64()
+		}
+	}
+	return ret
+}
+
+func parseBOMLineAttr(ctx *ParserContext, attr *hcl.Attribute) []*UnresolvedBOMLine {
+	if attr == nil {
+		return nil
+	}
+
+	expr, ok := attr.Expr.(*hclsyntax.TupleConsExpr)
+	if !ok {
+		return nil
+	}
+
+	comps := make([]*UnresolvedBOMLine, 0)
+	for _, elem := range expr.Exprs {
+		obj, ok := elem.(*hclsyntax.ObjectConsExpr)
+		if !ok {
+			continue
+		}
+		comp := readComponent(ctx, obj)
+		comps = append(comps, comp)
+	}
+	return comps
 }
 
 func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine) ([]*model.BOMLine, error) {
@@ -59,4 +116,8 @@ func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine)
 		})
 	}
 	return ret, nil
+}
+
+func (c *Core) processKeywordIMPL(ctx *ParserContext, impl []Ref) ([]*model.Contract, error) {
+	return nil, nil
 }
