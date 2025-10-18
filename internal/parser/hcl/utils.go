@@ -70,3 +70,18 @@ func getTraverserName(t hcl.Traverser) string {
 		return ""
 	}
 }
+
+func exprToRef(ctx *ParserContext, expr hclsyntax.Expression) (Ref, error) {
+	se, ok := expr.(*hclsyntax.ScopeTraversalExpr)
+	if !ok {
+		return nil, errors.New("incorrect expr type")
+	}
+	ref := make(Ref, 0)
+	if ctx.CurrentModule() != "." {
+		ref = append(ref, ctx.CurrentModule())
+	}
+	for _, n := range se.Traversal {
+		ref = append(ref, getTraverserName(n))
+	}
+	return ref, nil
+}

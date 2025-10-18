@@ -18,7 +18,7 @@ type UnresolvedBOMLine struct {
 	Qty  float64 `json:"qty" yaml:"qty"`
 }
 
-func readComponent(ctx *ParserContext, obj *hclsyntax.ObjectConsExpr) *UnresolvedBOMLine {
+func readBOMLine(ctx *ParserContext, obj *hclsyntax.ObjectConsExpr) *UnresolvedBOMLine {
 	ret := &UnresolvedBOMLine{
 		Qty: 1,
 	}
@@ -29,17 +29,7 @@ func readComponent(ctx *ParserContext, obj *hclsyntax.ObjectConsExpr) *Unresolve
 			val, _ := item.ValueExpr.Value(nil)
 			ret.Role = val.AsString()
 		case "ref":
-			se, ok := item.ValueExpr.(*hclsyntax.ScopeTraversalExpr)
-			if !ok {
-				return nil
-			}
-			ref := make([]string, 0)
-			if ctx.CurrentModule() != "." {
-				ref = append(ref, ctx.CurrentModule())
-			}
-			for _, n := range se.Traversal {
-				ref = append(ref, getTraverserName(n))
-			}
+			ref, _ := exprToRef(ctx, item.ValueExpr)
 			ret.Ref = ref
 		case "qty":
 			val, _ := item.ValueExpr.Value(nil)
@@ -65,7 +55,7 @@ func parseBOMLineAttr(ctx *ParserContext, attr *hcl.Attribute) []*UnresolvedBOML
 		if !ok {
 			continue
 		}
-		comp := readComponent(ctx, obj)
+		comp := readBOMLine(ctx, obj)
 		comps = append(comps, comp)
 	}
 	return comps
