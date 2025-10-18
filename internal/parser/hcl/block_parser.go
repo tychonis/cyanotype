@@ -66,10 +66,23 @@ func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.I
 			return nil, err
 		}
 	}
-	// implAttr, ok := attrs["impl"]
+
+	var impls []model.ContractID
+	implAttr, ok := attrs["impl"]
+	if ok {
+		implRefs, err := c.readContractLine(ctx, implAttr.Expr)
+		if err != nil {
+			return nil, err
+		}
+		impls, err = c.processKeywordIMPL(ctx, implRefs)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	item := &model.Item{
 		Qualifier: ctx.NameToQualifier(name),
+		Implement: impls,
 		Content: &model.ItemContent{
 			Name:       name,
 			Source:     src,

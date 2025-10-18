@@ -18,11 +18,11 @@ type UnresolvedBOMLine struct {
 	Qty  float64 `json:"qty" yaml:"qty"`
 }
 
-func readBOMLine(ctx *ParserContext, obj *hclsyntax.ObjectConsExpr) *UnresolvedBOMLine {
+func readBOMLine(ctx *ParserContext, expr *hclsyntax.ObjectConsExpr) *UnresolvedBOMLine {
 	ret := &UnresolvedBOMLine{
 		Qty: 1,
 	}
-	for _, item := range obj.Items {
+	for _, item := range expr.Items {
 		key := getObjectKey(item.KeyExpr)
 		switch key {
 		case "role":
@@ -108,6 +108,39 @@ func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine)
 	return ret, nil
 }
 
-func (c *Core) processKeywordIMPL(ctx *ParserContext, impl []Ref) ([]*model.Contract, error) {
-	return nil, nil
+func (c *Core) readContractLine(ctx *ParserContext, expr hcl.Expression) ([]Ref, error) {
+	ret := make([]Ref, 0)
+	switch e := expr.(type) {
+	case *hclsyntax.TupleConsExpr:
+		for _, el := range e.Exprs {
+			ref, err := exprToRef(ctx, el)
+			if err != nil {
+				return nil, err
+			}
+			ret = append(ret, ref)
+		}
+	default:
+		ref, err := exprToRef(ctx, e)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, ref)
+	}
+	return ret, nil
+}
+
+func (c *Core) processKeywordIMPL(ctx *ParserContext, impl []Ref) ([]model.ContractID, error) {
+	ret := make([]model.ContractID, 0, len(impl))
+	for _, ref := range impl {
+		sym, err := c.Resolve(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		contract, ok := sym.(*model.Contract)
+		if !ok {
+			return nil, errors.New("implement non contract")
+		}
+		ret = append(ret, contract.Digest)
+	}
+	return ret, nil
 }

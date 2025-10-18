@@ -71,7 +71,7 @@ func getTraverserName(t hcl.Traverser) string {
 	}
 }
 
-func exprToRef(ctx *ParserContext, expr hclsyntax.Expression) (Ref, error) {
+func exprToRef(ctx *ParserContext, expr hcl.Expression) (Ref, error) {
 	se, ok := expr.(*hclsyntax.ScopeTraversalExpr)
 	if !ok {
 		return nil, errors.New("incorrect expr type")
