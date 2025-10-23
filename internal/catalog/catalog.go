@@ -52,7 +52,7 @@ type LocalCatalog struct {
 	typeIndex    map[model.ItemID]string
 
 	memoryOnly bool
-	memStore   map[string][]byte
+	storage    Storage
 }
 
 func NewCatalog(catalogType string) Catalog {
@@ -70,6 +70,7 @@ func NewLocalCatalog() *LocalCatalog {
 		processIndex: make(map[Qualifier]*ProcessIndexEntry),
 		typeIndex:    make(map[model.Digest]string),
 		memoryOnly:   false,
+		storage:      &LocalFile{},
 	}
 	cat.loadMainIndex()
 	cat.loadProcessIndex()
@@ -83,7 +84,7 @@ func NewMemoryCatalog() *LocalCatalog {
 		processIndex: make(map[Qualifier]*ProcessIndexEntry),
 		typeIndex:    make(map[model.Digest]string),
 		memoryOnly:   true,
-		memStore:     make(map[string][]byte),
+		storage:      NewMemoryStore(),
 	}
 	return cat
 }
@@ -296,11 +297,6 @@ func (c *LocalCatalog) addToProcessIndex(pType string, key string, val string) e
 	return f.Sync()
 }
 
-func digestToPath(digest string) string {
-	folder := digest[:2]
-	return filepath.Join(".bpc", "objects", folder, digest)
-}
-
 func (c *LocalCatalog) indexProcess(sym model.ConcreteSymbol) error {
 	switch resolved := sym.(type) {
 	case *model.Process:
@@ -336,12 +332,16 @@ func (c *LocalCatalog) indexType(sym model.ConcreteSymbol) error {
 	return nil
 }
 
-func (c *LocalCatalog) write(path string, body []byte) error {
-	if c.memoryOnly {
-		c.memStore[path] = body
-		return nil
+func (c *LocalCatalog) indexSymbol(sym model.ConcreteSymbol) error {
+	err := c.addToMainIndex(sym.GetQualifier(), sym.GetDigest())
+	if err != nil {
+		return err
 	}
-	return atomicWrite(path, body, 0o644)
+	err = c.indexProcess(sym)
+	if err != nil {
+		return err
+	}
+	return c.indexType(sym)
 }
 
 func (c *LocalCatalog) Add(sym model.ConcreteSymbol) error {
@@ -349,26 +349,15 @@ func (c *LocalCatalog) Add(sym model.ConcreteSymbol) error {
 	if err != nil {
 		return err
 	}
-	c.addToMainIndex(sym.GetQualifier(), sym.GetDigest())
-	c.indexProcess(sym)
-	c.indexType(sym)
-	return c.write(digestToPath(sym.GetDigest()), body)
-}
-
-func (c *LocalCatalog) read(path string) ([]byte, error) {
-	if c.memoryOnly {
-		body, ok := c.memStore[path]
-		if !ok {
-			return nil, errors.New("key not found")
-		}
-		return body, nil
+	err = c.indexSymbol(sym)
+	if err != nil {
+		return err
 	}
-	return os.ReadFile(path)
+	return c.storage.Save(sym.GetDigest(), body)
 }
 
 func (c *LocalCatalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
-	path := digestToPath(digest)
-	body, err := c.read(path)
+	body, err := c.storage.Load(digest)
 	if err != nil {
 		return nil, err
 	}
