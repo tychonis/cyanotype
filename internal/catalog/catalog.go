@@ -16,24 +16,12 @@ type ItemProcess = struct {
 
 var ErrNotFound = errors.New("symbol not found")
 
-type Catalog interface {
-	Add(symbol model.ConcreteSymbol) error
-	Get(digest model.Digest) (model.ConcreteSymbol, error)
-	Find(qualifier Qualifier) (model.ConcreteSymbol, error)
-
-	GetItemProcesses(item model.ItemID) ([]*model.Process, error)
-	GetItemCoProcesses(item model.ItemID) ([]*model.CoProcess, error)
-
-	GetCoItems(item model.ItemID) ([]*ItemProcess, error)
-	GetItems(coItem model.ItemID) ([]*ItemProcess, error)
-}
-
-type LocalCatalog struct {
+type Catalog struct {
 	storage Storage
 	index   Index
 }
 
-func NewCatalog(catalogType string) Catalog {
+func NewCatalog(catalogType string) *Catalog {
 	switch catalogType {
 	case "memory":
 		return NewMemoryCatalog()
@@ -42,22 +30,22 @@ func NewCatalog(catalogType string) Catalog {
 	}
 }
 
-func NewLocalCatalog() *LocalCatalog {
-	return &LocalCatalog{
+func NewLocalCatalog() *Catalog {
+	return &Catalog{
 		storage: &LocalStorage{},
 		index:   NewLocalIndex(),
 	}
 }
 
-func NewMemoryCatalog() *LocalCatalog {
-	cat := &LocalCatalog{
+func NewMemoryCatalog() *Catalog {
+	cat := &Catalog{
 		storage: NewMemoryStore(),
 		index:   NewLocalIndex(),
 	}
 	return cat
 }
 
-func (c *LocalCatalog) Add(sym model.ConcreteSymbol) error {
+func (c *Catalog) Add(sym model.ConcreteSymbol) error {
 	body, err := serializer.Serialize(sym)
 	if err != nil {
 		return err
@@ -69,7 +57,7 @@ func (c *LocalCatalog) Add(sym model.ConcreteSymbol) error {
 	return c.storage.Save(sym.GetDigest(), body)
 }
 
-func (c *LocalCatalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
+func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 	body, err := c.storage.Load(digest)
 	if err != nil {
 		return nil, err
@@ -112,7 +100,7 @@ func (c *LocalCatalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 	}
 }
 
-func (c *LocalCatalog) Find(qualifier Qualifier) (model.ConcreteSymbol, error) {
+func (c *Catalog) Find(qualifier Qualifier) (model.ConcreteSymbol, error) {
 	digest, err := c.index.Find(qualifier)
 	if err != nil {
 		return nil, err
@@ -120,7 +108,7 @@ func (c *LocalCatalog) Find(qualifier Qualifier) (model.ConcreteSymbol, error) {
 	return c.Get(digest)
 }
 
-func getSymbols[T model.ConcreteSymbol](c Catalog, ids []model.Digest) ([]T, error) {
+func getSymbols[T model.ConcreteSymbol](c *Catalog, ids []model.Digest) ([]T, error) {
 	ret := make([]T, 0, len(ids))
 	for _, pid := range ids {
 		sym, err := c.Get(pid)
@@ -137,7 +125,7 @@ func getSymbols[T model.ConcreteSymbol](c Catalog, ids []model.Digest) ([]T, err
 	return ret, nil
 }
 
-func (c *LocalCatalog) GetItemProcesses(item model.ItemID) ([]*model.Process, error) {
+func (c *Catalog) GetItemProcesses(item model.ItemID) ([]*model.Process, error) {
 	processes, err := c.index.GetItemProcesses(item)
 	if err != nil {
 		return nil, err
@@ -145,7 +133,7 @@ func (c *LocalCatalog) GetItemProcesses(item model.ItemID) ([]*model.Process, er
 	return getSymbols[*model.Process](c, processes)
 }
 
-func (c *LocalCatalog) GetItemCoProcesses(item model.ItemID) ([]*model.CoProcess, error) {
+func (c *Catalog) GetItemCoProcesses(item model.ItemID) ([]*model.CoProcess, error) {
 	coProcesses, err := c.index.GetItemProcesses(item)
 	if err != nil {
 		slog.Debug("nocoprocess found", "item", item)
@@ -155,7 +143,7 @@ func (c *LocalCatalog) GetItemCoProcesses(item model.ItemID) ([]*model.CoProcess
 	return getSymbols[*model.CoProcess](c, coProcesses)
 }
 
-func (c *LocalCatalog) GetCoItems(item model.ItemID) ([]*ItemProcess, error) {
+func (c *Catalog) GetCoItems(item model.ItemID) ([]*ItemProcess, error) {
 	slog.Debug("get coitems", "item", item)
 	cps, err := c.GetItemCoProcesses(item)
 	if err != nil {
@@ -175,7 +163,7 @@ func (c *LocalCatalog) GetCoItems(item model.ItemID) ([]*ItemProcess, error) {
 	return ret, nil
 }
 
-func (c *LocalCatalog) GetItems(coItem model.ItemID) ([]*ItemProcess, error) {
+func (c *Catalog) GetItems(coItem model.ItemID) ([]*ItemProcess, error) {
 	cps, err := c.GetItemCoProcesses(coItem)
 	if err != nil {
 		return nil, err

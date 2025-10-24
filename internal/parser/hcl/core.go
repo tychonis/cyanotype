@@ -21,7 +21,7 @@ const DEFAULT string = "default"
 
 type Core struct {
 	Symbols *symbols.SymbolTable
-	Catalog catalog.Catalog
+	Catalog *catalog.Catalog
 
 	Ranker ranker.Ranker
 }
@@ -145,7 +145,7 @@ func (c *Core) Process(path string) error {
 	return c.processModules(c.Catalog)
 }
 
-func (c *Core) processModules(cat catalog.Catalog) error {
+func (c *Core) processModules(cat *catalog.Catalog) error {
 	for _, module := range c.Symbols.Modules {
 		err := c.processModuleScope(module, cat)
 		if err != nil {
@@ -155,7 +155,7 @@ func (c *Core) processModules(cat catalog.Catalog) error {
 	return nil
 }
 
-func (c *Core) processModuleScope(m *symbols.ModuleScope, cat catalog.Catalog) error {
+func (c *Core) processModuleScope(m *symbols.ModuleScope, cat *catalog.Catalog) error {
 	for _, symbol := range m.Symbols {
 		switch s := symbol.(type) {
 		case *symbols.ModuleScope:
