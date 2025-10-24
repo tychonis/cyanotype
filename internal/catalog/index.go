@@ -41,13 +41,13 @@ type LocalIndex struct {
 	persistent bool
 }
 
-func NewLocalIndex() *LocalIndex {
+func NewLocalIndex(persistent bool) *LocalIndex {
 	idx := &LocalIndex{
 		qualifierIndex: make(map[Qualifier]model.Digest),
 		processIndex:   make(map[Qualifier]*ProcessIndexEntry),
 		typeIndex:      make(map[model.Digest]string),
 
-		persistent: true,
+		persistent: persistent,
 	}
 	idx.load()
 	return idx

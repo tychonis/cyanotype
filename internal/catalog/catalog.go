@@ -33,14 +33,14 @@ func NewCatalog(catalogType string) *Catalog {
 func NewLocalCatalog() *Catalog {
 	return &Catalog{
 		storage: &LocalStorage{},
-		index:   NewLocalIndex(),
+		index:   NewLocalIndex(true),
 	}
 }
 
 func NewMemoryCatalog() *Catalog {
 	cat := &Catalog{
 		storage: NewMemoryStore(),
-		index:   NewLocalIndex(),
+		index:   NewLocalIndex(false),
 	}
 	return cat
 }
