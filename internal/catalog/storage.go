@@ -17,19 +17,19 @@ type Storage interface {
 	Load(digest model.Digest) ([]byte, error)
 }
 
-type LocalFile struct{}
+type LocalStorage struct{}
 
 func digestToPath(digest string) string {
 	folder := digest[:2]
 	return filepath.Join(".bpc", "objects", folder, digest)
 }
 
-func (f *LocalFile) Save(digest model.Digest, data []byte) error {
+func (ls *LocalStorage) Save(digest model.Digest, data []byte) error {
 	path := digestToPath(digest)
 	return atomicWrite(path, data, 0o644)
 }
 
-func (f *LocalFile) Load(digest model.Digest) ([]byte, error) {
+func (ls *LocalStorage) Load(digest model.Digest) ([]byte, error) {
 	path := digestToPath(digest)
 	return os.ReadFile(path)
 }

@@ -1,31 +1,13 @@
 package catalog
 
 import (
-	"bytes"
 	"errors"
-	"fmt"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"reflect"
 
 	"github.com/tychonis/cyanotype/internal/serializer"
 	"github.com/tychonis/cyanotype/model"
 )
-
-type Qualifier = string
-
-type ProcessIndexEntry struct {
-	Processes   []model.ProcessID
-	CoProcesses []model.ProcessID
-}
-
-func NewProcessIndexEntry() *ProcessIndexEntry {
-	return &ProcessIndexEntry{
-		Processes:   make([]Qualifier, 0),
-		CoProcesses: make([]Qualifier, 0),
-	}
-}
 
 type ItemProcess = struct {
 	Item    model.ItemID
@@ -47,12 +29,8 @@ type Catalog interface {
 }
 
 type LocalCatalog struct {
-	index        map[Qualifier]model.ItemID
-	processIndex map[model.ItemID]*ProcessIndexEntry
-	typeIndex    map[model.ItemID]string
-
-	memoryOnly bool
-	storage    Storage
+	storage Storage
+	index   Index
 }
 
 func NewCatalog(catalogType string) Catalog {
@@ -65,283 +43,18 @@ func NewCatalog(catalogType string) Catalog {
 }
 
 func NewLocalCatalog() *LocalCatalog {
-	cat := &LocalCatalog{
-		index:        make(map[Qualifier]model.Digest),
-		processIndex: make(map[Qualifier]*ProcessIndexEntry),
-		typeIndex:    make(map[model.Digest]string),
-		memoryOnly:   false,
-		storage:      &LocalFile{},
+	return &LocalCatalog{
+		storage: &LocalStorage{},
+		index:   NewLocalIndex(),
 	}
-	cat.loadMainIndex()
-	cat.loadProcessIndex()
-	cat.loadTypeIndex()
-	return cat
 }
 
 func NewMemoryCatalog() *LocalCatalog {
 	cat := &LocalCatalog{
-		index:        make(map[Qualifier]model.Digest),
-		processIndex: make(map[Qualifier]*ProcessIndexEntry),
-		typeIndex:    make(map[model.Digest]string),
-		memoryOnly:   true,
-		storage:      NewMemoryStore(),
+		storage: NewMemoryStore(),
+		index:   NewLocalIndex(),
 	}
 	return cat
-}
-
-func (c *LocalCatalog) loadMainIndex() error {
-	if c.memoryOnly {
-		return nil
-	}
-
-	indexPath := filepath.Join(".bpc", "index")
-	data, err := os.ReadFile(indexPath)
-	if err != nil {
-		return fmt.Errorf("open index: %w", err)
-	}
-	lines := bytes.Split(data, []byte("\n"))
-	for _, line := range lines {
-		if len(line) == 0 {
-			continue
-		}
-
-		parts := bytes.SplitN(line, []byte(":"), 2)
-		if len(parts) != 2 {
-			return fmt.Errorf("malformed part")
-		}
-
-		qualifier := string(parts[0])
-		dhex := string(parts[1])
-
-		c.index[qualifier] = dhex
-	}
-	return nil
-}
-
-func (c *LocalCatalog) addToMainIndex(key string, val string) error {
-	oldVal, ok := c.index[key]
-	if ok {
-		if oldVal == val {
-			return nil
-		}
-	}
-	c.index[key] = val
-
-	if c.memoryOnly {
-		return nil
-	}
-
-	indexPath := filepath.Join(".bpc", "index")
-	f, err := os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		return fmt.Errorf("open index: %w", err)
-	}
-	defer f.Close()
-	rec := key + ":" + val + "\n"
-	_, err = f.Write([]byte(rec))
-	if err != nil {
-		return fmt.Errorf("write index: %w", err)
-	}
-	return f.Sync()
-}
-
-func (c *LocalCatalog) loadTypeIndex() error {
-	if c.memoryOnly {
-		return nil
-	}
-
-	indexPath := filepath.Join(".bpc", "types")
-	data, err := os.ReadFile(indexPath)
-	if err != nil {
-		return fmt.Errorf("open index: %w", err)
-	}
-	lines := bytes.Split(data, []byte("\n"))
-	for _, line := range lines {
-		if len(line) == 0 {
-			continue
-		}
-
-		parts := bytes.SplitN(line, []byte(":"), 2)
-		if len(parts) != 2 {
-			return fmt.Errorf("malformed part")
-		}
-
-		key := string(parts[0])
-		val := string(parts[1])
-
-		c.typeIndex[key] = val
-	}
-	return nil
-}
-
-func (c *LocalCatalog) addToTypeIndex(key string, val string) error {
-	oldVal, ok := c.typeIndex[key]
-	if ok {
-		if oldVal == val {
-			return nil
-		}
-	}
-	c.typeIndex[key] = val
-
-	if c.memoryOnly {
-		return nil
-	}
-
-	indexPath := filepath.Join(".bpc", "types")
-	f, err := os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		return fmt.Errorf("open index: %w", err)
-	}
-	defer f.Close()
-	rec := key + ":" + val + "\n"
-	_, err = f.Write([]byte(rec))
-	if err != nil {
-		return fmt.Errorf("write index: %w", err)
-	}
-	return f.Sync()
-}
-
-func (c *LocalCatalog) loadProcessIndex() error {
-	if c.memoryOnly {
-		return nil
-	}
-
-	indexPath := filepath.Join(".bpc", "process")
-	data, err := os.ReadFile(indexPath)
-	if err != nil {
-		return fmt.Errorf("open index: %w", err)
-	}
-	lines := bytes.Split(data, []byte("\n"))
-	for _, line := range lines {
-		if len(line) == 0 {
-			continue
-		}
-
-		parts := bytes.SplitN(line, []byte(":"), 3)
-		if len(parts) != 3 {
-			return fmt.Errorf("malformed part")
-		}
-
-		pType := string(parts[0])
-		key := string(parts[1])
-		val := string(parts[2])
-
-		entry, ok := c.processIndex[key]
-		if !ok || entry == nil {
-			entry = NewProcessIndexEntry()
-			c.processIndex[key] = entry
-		}
-		switch pType {
-		case "process":
-			for _, p := range entry.Processes {
-				if p == val {
-					return nil
-				}
-			}
-			entry.Processes = append(entry.Processes, val)
-		case "coprocess":
-			for _, p := range entry.CoProcesses {
-				if p == val {
-					return nil
-				}
-			}
-			entry.CoProcesses = append(entry.CoProcesses, val)
-		default:
-			return errors.New("illegal process type")
-		}
-	}
-	return nil
-}
-
-func (c *LocalCatalog) addToProcessIndex(pType string, key string, val string) error {
-	entry, ok := c.processIndex[key]
-	if !ok || entry == nil {
-		entry = NewProcessIndexEntry()
-		c.processIndex[key] = entry
-	}
-
-	switch pType {
-	case "process":
-		for _, p := range entry.Processes {
-			if p == val {
-				return nil
-			}
-		}
-		entry.Processes = append(entry.Processes, val)
-	case "coprocess":
-		for _, p := range entry.CoProcesses {
-			if p == val {
-				return nil
-			}
-		}
-		entry.CoProcesses = append(entry.CoProcesses, val)
-	default:
-		return errors.New("illegal process type")
-	}
-
-	if c.memoryOnly {
-		return nil
-	}
-
-	indexPath := filepath.Join(".bpc", "process")
-	f, err := os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		return fmt.Errorf("open index: %w", err)
-	}
-	defer f.Close()
-	rec := pType + ":" + key + ":" + val + "\n"
-	_, err = f.Write([]byte(rec))
-	if err != nil {
-		return fmt.Errorf("write index: %w", err)
-	}
-	return f.Sync()
-}
-
-func (c *LocalCatalog) indexProcess(sym model.ConcreteSymbol) error {
-	switch resolved := sym.(type) {
-	case *model.Process:
-		for _, bomLine := range resolved.Input {
-			c.addToProcessIndex("process", bomLine.Item, resolved.Digest)
-		}
-		for _, bomLine := range resolved.Output {
-			c.addToProcessIndex("process", bomLine.Item, resolved.Digest)
-		}
-	case *model.CoProcess:
-		for _, bomLine := range resolved.Input {
-			c.addToProcessIndex("coprocess", bomLine.Item, resolved.Digest)
-		}
-		for _, bomLine := range resolved.Output {
-			c.addToProcessIndex("coprocess", bomLine.Item, resolved.Digest)
-		}
-	}
-	return nil
-}
-
-// TODO: fix this hack.
-func (c *LocalCatalog) indexType(sym model.ConcreteSymbol) error {
-	switch sym.(type) {
-	case *model.Process:
-		c.addToTypeIndex(sym.GetDigest(), "process")
-	case *model.CoProcess:
-		c.addToTypeIndex(sym.GetDigest(), "coprocess")
-	case *model.Item:
-		c.addToTypeIndex(sym.GetDigest(), "item")
-	case *model.CoItem:
-		c.addToTypeIndex(sym.GetDigest(), "coitem")
-	}
-	return nil
-}
-
-func (c *LocalCatalog) indexSymbol(sym model.ConcreteSymbol) error {
-	err := c.addToMainIndex(sym.GetQualifier(), sym.GetDigest())
-	if err != nil {
-		return err
-	}
-	err = c.indexProcess(sym)
-	if err != nil {
-		return err
-	}
-	return c.indexType(sym)
 }
 
 func (c *LocalCatalog) Add(sym model.ConcreteSymbol) error {
@@ -349,7 +62,7 @@ func (c *LocalCatalog) Add(sym model.ConcreteSymbol) error {
 	if err != nil {
 		return err
 	}
-	err = c.indexSymbol(sym)
+	err = c.index.Index(sym)
 	if err != nil {
 		return err
 	}
@@ -361,9 +74,9 @@ func (c *LocalCatalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 	if err != nil {
 		return nil, err
 	}
-	t, ok := c.typeIndex[digest]
-	if !ok {
-		return nil, errors.New("error deciding type")
+	t, err := c.index.GetType(digest)
+	if err != nil {
+		return nil, err
 	}
 	switch t {
 	case "item":
@@ -400,9 +113,9 @@ func (c *LocalCatalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 }
 
 func (c *LocalCatalog) Find(qualifier Qualifier) (model.ConcreteSymbol, error) {
-	digest, ok := c.index[qualifier]
-	if !ok {
-		return nil, ErrNotFound
+	digest, err := c.index.Find(qualifier)
+	if err != nil {
+		return nil, err
 	}
 	return c.Get(digest)
 }
@@ -425,21 +138,21 @@ func getSymbols[T model.ConcreteSymbol](c Catalog, ids []model.Digest) ([]T, err
 }
 
 func (c *LocalCatalog) GetItemProcesses(item model.ItemID) ([]*model.Process, error) {
-	index, ok := c.processIndex[item]
-	if !ok {
-		return nil, nil
+	processes, err := c.index.GetItemProcesses(item)
+	if err != nil {
+		return nil, err
 	}
-	return getSymbols[*model.Process](c, index.Processes)
+	return getSymbols[*model.Process](c, processes)
 }
 
 func (c *LocalCatalog) GetItemCoProcesses(item model.ItemID) ([]*model.CoProcess, error) {
-	index, ok := c.processIndex[item]
-	if !ok {
+	coProcesses, err := c.index.GetItemProcesses(item)
+	if err != nil {
 		slog.Debug("nocoprocess found", "item", item)
-		return nil, nil
+		return nil, err
 	}
 	slog.Debug("found coprocess", "item", item)
-	return getSymbols[*model.CoProcess](c, index.CoProcesses)
+	return getSymbols[*model.CoProcess](c, coProcesses)
 }
 
 func (c *LocalCatalog) GetCoItems(item model.ItemID) ([]*ItemProcess, error) {
