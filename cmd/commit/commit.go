@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/tychonis/cyanotype/internal/parser/hcl"
+	"github.com/tychonis/cyanotype/core/parser/hcl"
 )
 
 var Cmd = &cobra.Command{

@@ -3,7 +3,7 @@ package hcl
 import (
 	"errors"
 
-	"github.com/tychonis/cyanotype/internal/bomtree"
+	"github.com/tychonis/cyanotype/core/bomtree"
 	"github.com/tychonis/cyanotype/model"
 )
 
