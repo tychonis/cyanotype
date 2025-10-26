@@ -83,7 +83,7 @@ func (c *Core) build(coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 	return node, nil
 }
 
-func (c *Core) Build(item *model.Item) (*bomtree.Node, error) {
+func (c *Core) BuildTree(item *model.Item) (*bomtree.Node, error) {
 	coItems, err := c.Catalog.GetCoItems(item.Digest)
 	if err != nil {
 		return nil, err

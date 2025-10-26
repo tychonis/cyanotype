@@ -36,7 +36,7 @@ func run(cmd *cobra.Command, args []string) {
 		}
 	}
 	core := hcl.NewCore("local")
-	err := core.Process(bpoPath)
+	err := core.Build(bpoPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
 		return
@@ -54,7 +54,7 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	rootNode, err := core.Build(rootItem)
+	rootNode, err := core.BuildTree(rootItem)
 	if err != nil {
 		slog.Error("Failed to build.", "error", err)
 		return

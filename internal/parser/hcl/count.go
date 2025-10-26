@@ -28,7 +28,7 @@ func (c Core) Count(root []string) (map[string]float64, error) {
 		return nil, errors.New("unknown item")
 	}
 
-	tree, err := c.Build(item)
+	tree, err := c.BuildTree(item)
 	if err != nil {
 		return nil, err
 	}

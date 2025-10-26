@@ -137,7 +137,7 @@ func (c *Core) Parse(path string) error {
 	return c.ParseFile(path)
 }
 
-func (c *Core) Process(path string) error {
+func (c *Core) Build(path string) error {
 	err := c.Parse(path)
 	if err != nil {
 		return err
