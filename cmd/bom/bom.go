@@ -30,7 +30,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	core := hcl.NewCore("memory")
-	err := core.Process(bomPath)
+	err := core.Build(bomPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
 		return
