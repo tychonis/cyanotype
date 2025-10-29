@@ -8,6 +8,7 @@ import (
 	"github.com/tychonis/cyanotype/cmd/build"
 	"github.com/tychonis/cyanotype/cmd/commit"
 	"github.com/tychonis/cyanotype/cmd/initialize"
+	"github.com/tychonis/cyanotype/cmd/tree"
 )
 
 var debug bool
@@ -32,6 +33,7 @@ func Run() {
 		bom.Cmd,
 		build.Cmd,
 		commit.Cmd,
+		tree.Cmd,
 	)
 
 	rootCmd.Execute()
