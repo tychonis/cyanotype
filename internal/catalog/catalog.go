@@ -117,7 +117,11 @@ func getSymbols[T model.ConcreteSymbol](c *Catalog, ids []model.Digest) ([]T, er
 		}
 		s, ok := sym.(T)
 		if !ok {
-			slog.Debug("incorrect", "pid", pid, "type", reflect.TypeOf(sym))
+			slog.Warn("Unexpected symbol type",
+				"expected", reflect.TypeOf(ret),
+				"pid", pid,
+				"type", reflect.TypeOf(sym),
+			)
 			return nil, errors.New("incorrect symbol type")
 		}
 		ret = append(ret, s)
@@ -134,7 +138,7 @@ func (c *Catalog) GetItemProcesses(item model.ItemID) ([]*model.Process, error) 
 }
 
 func (c *Catalog) GetItemCoProcesses(item model.ItemID) ([]*model.CoProcess, error) {
-	coProcesses, err := c.index.GetItemProcesses(item)
+	coProcesses, err := c.index.GetItemCoProcesses(item)
 	if err != nil {
 		slog.Debug("nocoprocess found", "item", item)
 		return nil, err
