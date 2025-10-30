@@ -2,6 +2,7 @@ package digest
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
@@ -37,4 +38,14 @@ func SHA256FromFile(path string) (string, error) {
 	defer f.Close()
 
 	return SHA256FromReader(f)
+}
+
+func RandomSHA256() (string, error) {
+	randomBytes := make([]byte, 32)
+	if _, err := rand.Read(randomBytes); err != nil {
+		return "", err
+	}
+
+	sum := sha256.Sum256(randomBytes)
+	return hex.EncodeToString(sum[:]), nil
 }

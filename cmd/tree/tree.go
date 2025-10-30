@@ -60,6 +60,6 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	output := rootNode.Export()
+	output, _ := rootNode.Export()
 	os.WriteFile(bpcPath, output, 0o644)
 }

@@ -1,10 +1,14 @@
 package bomtree
 
 import (
+	"encoding/json"
+
 	"github.com/tychonis/cyanotype/model"
 )
 
 type Node struct {
+	ID model.Digest
+
 	CoItem    *model.CoItem
 	CoProcess *model.CoProcess
 	Item      *model.Item
@@ -38,19 +42,39 @@ func count(node *Node, multiplier float64, counter map[string]float64) {
 	}
 }
 
-func (node *Node) Export() []byte {
-	output := make([]byte, 0)
-	export(node, &output)
-	return output
+type NodeInfo struct {
+	Item     model.Digest   `json:"item"`
+	Children []model.Digest `json:"children"`
+	Qty      float64        `json:"qty"`
 }
 
-func export(node *Node, output *[]byte) {
+type TreeDocument struct {
+	Root  model.Digest               `json:"root"`
+	Nodes map[model.Digest]*NodeInfo `json:"nodes"`
+}
+
+func (node *Node) Export() ([]byte, error) {
+	doc := &TreeDocument{
+		Root:  node.ID,
+		Nodes: make(map[model.Digest]*NodeInfo),
+	}
+	export(node, doc)
+	return json.Marshal(doc)
+}
+
+func export(node *Node, doc *TreeDocument) {
 	if node.Parent != nil {
-		line := node.Parent.Item.Digest + ":" + node.Item.Digest + "\n"
-		*output = append(*output, []byte(line)...)
+		doc.Nodes[node.Parent.ID].Children = append(doc.Nodes[node.Parent.ID].Children, node.ID)
 	}
 
+	info := &NodeInfo{
+		Item:     node.Item.Digest,
+		Children: make([]model.Digest, 0, len(node.Children)),
+		Qty:      node.Qty,
+	}
+	doc.Nodes[node.ID] = info
+
 	for _, child := range node.Children {
-		export(child, output)
+		export(child, doc)
 	}
 }

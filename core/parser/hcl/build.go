@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/tychonis/cyanotype/core/bomtree"
+	"github.com/tychonis/cyanotype/internal/digest"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -79,6 +80,10 @@ func (c *Core) build(coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 		}
 		childNode.Parent = node
 		node.Children = append(node.Children, childNode)
+	}
+	node.ID, err = digest.RandomSHA256()
+	if err != nil {
+		return nil, err
 	}
 	return node, nil
 }
