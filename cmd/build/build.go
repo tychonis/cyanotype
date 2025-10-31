@@ -2,7 +2,6 @@ package build
 
 import (
 	"log/slog"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -15,25 +14,12 @@ var Cmd = &cobra.Command{
 	Run:   run,
 }
 
-func init() {
-	// TODO: distinguish from output format
-	Cmd.Flags().StringP("output", "o", "", "set output path")
-}
-
 func run(cmd *cobra.Command, args []string) {
 	bpoPath := args[0]
 	if bpoPath == "" {
 		bpoPath = "."
 	}
 
-	bpcPath := cmd.Flag("output").Value.String()
-	if bpcPath == "" {
-		bpcPath = strings.ReplaceAll(bpoPath, ".bpo", ".bpc")
-		// Folder
-		if !strings.Contains(bpcPath, ".bpc") {
-			bpcPath = "ouptput.bpc"
-		}
-	}
 	core := hcl.NewCore("local")
 	err := core.Build(bpoPath)
 	if err != nil {

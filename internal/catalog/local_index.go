@@ -31,12 +31,14 @@ type Index interface {
 	GetType(digest model.Digest) (string, error)
 	GetItemProcesses(item model.ItemID) ([]model.ProcessID, error)
 	GetItemCoProcesses(item model.ItemID) ([]model.ProcessID, error)
+
+	ListSymbols() (map[model.Digest]string, error)
 }
 
 type LocalIndex struct {
 	qualifierIndex map[Qualifier]model.ItemID
 	processIndex   map[model.ItemID]*ProcessIndexEntry
-	typeIndex      map[model.ItemID]string
+	typeIndex      map[model.Digest]string
 
 	persistent bool
 }
@@ -350,4 +352,8 @@ func (idx *LocalIndex) GetItemCoProcesses(item model.ItemID) ([]model.ProcessID,
 		return nil, ErrNotFound
 	}
 	return entry.CoProcesses, nil
+}
+
+func (idx *LocalIndex) ListSymbols() (map[model.Digest]string, error) {
+	return idx.typeIndex, nil
 }

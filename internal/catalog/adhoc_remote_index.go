@@ -190,3 +190,7 @@ func (idx *RemoteIndex) GetItemCoProcesses(item model.ItemID) ([]model.ProcessID
 	}
 	return entry.CoProcesses, nil
 }
+
+func (idx *RemoteIndex) ListSymbols() (map[model.Digest]string, error) {
+	return idx.TypeIndex, nil
+}

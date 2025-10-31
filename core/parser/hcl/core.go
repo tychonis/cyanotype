@@ -187,3 +187,7 @@ func (c *Core) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*mod
 		Qty:  line.Qty,
 	}, nil
 }
+
+func (c *Core) ExportCatalog() ([]byte, error) {
+	return c.Catalog.Export()
+}
