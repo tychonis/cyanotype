@@ -35,7 +35,7 @@ func run(cmd *cobra.Command, args []string) {
 			bpcPath = root + ".bpc"
 		}
 	}
-	core := hcl.NewCore("local")
+	core := hcl.NewCore("memory")
 	err := core.Build(bpoPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)

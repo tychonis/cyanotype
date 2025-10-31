@@ -49,14 +49,16 @@ type NodeInfo struct {
 }
 
 type TreeDocument struct {
-	Root  model.Digest               `json:"root"`
-	Nodes map[model.Digest]*NodeInfo `json:"nodes"`
+	Root  model.Digest                    `json:"root"`
+	Nodes map[model.Digest]*NodeInfo      `json:"nodes"`
+	Reuse map[model.Digest][]model.Digest `json:"reuse"`
 }
 
 func (node *Node) Export() ([]byte, error) {
 	doc := &TreeDocument{
 		Root:  node.ID,
 		Nodes: make(map[model.Digest]*NodeInfo),
+		Reuse: make(map[model.Digest][]model.Digest),
 	}
 	export(node, doc)
 	return json.Marshal(doc)
@@ -73,6 +75,12 @@ func export(node *Node, doc *TreeDocument) {
 		Qty:      node.Qty,
 	}
 	doc.Nodes[node.ID] = info
+
+	reuse, ok := doc.Reuse[node.Item.Digest]
+	if !ok {
+		reuse = make([]model.Digest, 0)
+	}
+	doc.Reuse[node.Item.Digest] = append(reuse, node.ID)
 
 	for _, child := range node.Children {
 		export(child, doc)
