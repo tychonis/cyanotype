@@ -7,6 +7,7 @@ import (
 	"github.com/tychonis/cyanotype/cmd/bom"
 	"github.com/tychonis/cyanotype/cmd/build"
 	"github.com/tychonis/cyanotype/cmd/commit"
+	"github.com/tychonis/cyanotype/cmd/export"
 	"github.com/tychonis/cyanotype/cmd/initialize"
 	"github.com/tychonis/cyanotype/cmd/tree"
 )
@@ -33,6 +34,7 @@ func Run() {
 		bom.Cmd,
 		build.Cmd,
 		commit.Cmd,
+		export.Cmd,
 		tree.Cmd,
 	)
 

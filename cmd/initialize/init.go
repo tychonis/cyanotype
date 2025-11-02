@@ -1,3 +1,5 @@
+// initialize a folder for cyanotype
+// init is a golang keyword therefore the long name here.
 package initialize
 
 import (
