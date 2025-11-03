@@ -45,6 +45,15 @@ func NewMemoryCatalog() *Catalog {
 	return cat
 }
 
+// Adhoc hardcoded remote catalog.
+func NewRemoteCatalog(endpoint string) *Catalog {
+	cat := &Catalog{
+		storage: NewAPIStore(endpoint + "/obj"),
+		index:   NewRemoteIndex(endpoint + "/bom_index/2"),
+	}
+	return cat
+}
+
 func (c *Catalog) Add(sym model.ConcreteSymbol) error {
 	body, err := serializer.Serialize(sym)
 	if err != nil {

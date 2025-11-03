@@ -9,6 +9,7 @@ import (
 	"github.com/tychonis/cyanotype/cmd/commit"
 	"github.com/tychonis/cyanotype/cmd/export"
 	"github.com/tychonis/cyanotype/cmd/initialize"
+	"github.com/tychonis/cyanotype/cmd/push"
 	"github.com/tychonis/cyanotype/cmd/tree"
 )
 
@@ -36,6 +37,7 @@ func Run() {
 		commit.Cmd,
 		export.Cmd,
 		tree.Cmd,
+		push.Cmd,
 	)
 
 	rootCmd.Execute()

@@ -19,6 +19,14 @@ type RemoteIndex struct {
 	Endpoint string `json:"-"`
 }
 
+func RemoteIndexFromLocal(l *LocalIndex) *RemoteIndex {
+	return &RemoteIndex{
+		QualifierIndex: l.qualifierIndex,
+		ProcessIndex:   l.processIndex,
+		TypeIndex:      l.typeIndex,
+	}
+}
+
 func NewRemoteIndex(endpoint string) *RemoteIndex {
 	resp, err := http.Get(endpoint)
 	if err != nil {
