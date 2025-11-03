@@ -43,6 +43,7 @@ func count(node *Node, multiplier float64, counter map[string]float64) {
 }
 
 type NodeInfo struct {
+	ID       model.Digest   `json:"id"`
 	Item     model.Digest   `json:"item"`
 	Parent   model.Digest   `json:"parent"`
 	Children []model.Digest `json:"children"`
@@ -73,6 +74,7 @@ func export(node *Node, doc *TreeDocument) {
 	}
 
 	info := &NodeInfo{
+		ID:       node.ID,
 		Item:     node.Item.Digest,
 		Parent:   parentID,
 		Children: make([]model.Digest, 0, len(node.Children)),
