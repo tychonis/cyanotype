@@ -6,16 +6,16 @@ import (
 	"github.com/tychonis/cyanotype/internal/symbols"
 )
 
-func NewCoreFromAPI(endpoint string) *Core {
+func NewCoreFromAPI(endpoint string, tag string) *Core {
 	return &Core{
 		Symbols: symbols.NewSymbolTable(),
-		Catalog: catalog.NewRemoteCatalog(endpoint),
+		Catalog: catalog.NewRemoteCatalog(endpoint, tag),
 
 		Ranker: &ranker.NaiveRanker{},
 	}
 }
 
 // Adhoc function supporting bomhub.
-func (c *Core) SaveCatalog(endpoint string) error {
-	return c.Catalog.Save(endpoint)
+func (c *Core) SaveCatalog(endpoint string, tag string) error {
+	return c.Catalog.Save(endpoint, tag)
 }

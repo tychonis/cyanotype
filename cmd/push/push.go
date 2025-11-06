@@ -20,6 +20,9 @@ func run(cmd *cobra.Command, args []string) {
 		bpoPath = "."
 	}
 
+	server := args[1]
+	tag := args[2]
+
 	core := hcl.NewCore("memory")
 	err := core.Build(bpoPath)
 	if err != nil {
@@ -27,7 +30,7 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	err = core.SaveCatalog("http://localhost:5001")
+	err = core.SaveCatalog(server, tag)
 	if err != nil {
 		slog.Warn("Failed to save catalog.", "error", err)
 		return

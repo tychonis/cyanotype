@@ -6,13 +6,13 @@ import (
 	"github.com/tychonis/cyanotype/internal/serializer"
 )
 
-func (c *Catalog) Save(endpoint string) error {
+func (c *Catalog) Save(endpoint string, tag string) error {
 	localIndex, ok := c.index.(*LocalIndex)
 	if !ok {
 		return errors.New("can only save local index now")
 	}
 	remote := RemoteIndexFromLocal(localIndex)
-	remote.Endpoint = endpoint + "/bom_index/2"
+	remote.Endpoint = endpoint + "/bom_index/" + tag
 	err := remote.Save()
 	if err != nil {
 		return err

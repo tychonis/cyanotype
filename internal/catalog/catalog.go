@@ -46,10 +46,10 @@ func NewMemoryCatalog() *Catalog {
 }
 
 // Adhoc hardcoded remote catalog.
-func NewRemoteCatalog(endpoint string) *Catalog {
+func NewRemoteCatalog(endpoint string, tag string) *Catalog {
 	cat := &Catalog{
 		storage: NewAPIStore(endpoint + "/obj"),
-		index:   NewRemoteIndex(endpoint + "/bom_index/2"),
+		index:   NewRemoteIndex(endpoint + "/bom_index/" + tag),
 	}
 	return cat
 }
