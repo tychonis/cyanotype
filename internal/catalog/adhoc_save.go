@@ -11,7 +11,7 @@ import (
 )
 
 type CatalogMetadata struct {
-	Name        string `json:"string"`
+	Name        string `json:"name"`
 	UniqueParts int    `json:"unique_parts"`
 }
 
