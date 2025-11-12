@@ -35,6 +35,8 @@ func (c *Core) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, err 
 	}
 	if err == nil {
 		s.qualifier = sym.GetQualifier()
+	} else {
+		err = cerror.ErrorWithRange(err.Error(), s.Block.Range())
 	}
 	return
 }
