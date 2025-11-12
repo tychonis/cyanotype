@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
+	"github.com/tychonis/cyanotype/internal/cerror"
 	"github.com/tychonis/cyanotype/internal/digest"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -30,7 +31,7 @@ func (c *Core) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, err 
 	case "contract":
 		sym, err = c.parseContractBlock(s.Context, s.Block)
 	default:
-		return nil, errors.New("unknown block type")
+		return nil, cerror.ErrorWithRange("unknown block type", s.Block.Range())
 	}
 	if err == nil {
 		s.qualifier = sym.GetQualifier()
