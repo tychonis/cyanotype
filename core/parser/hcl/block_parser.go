@@ -152,6 +152,11 @@ func (c *Core) blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*mode
 		}
 		ret.Output = append(ret.Output, resolved)
 	}
+	digest, err := digest.SHA256FromSymbol(ret)
+	if err != nil {
+		return ret, err
+	}
+	ret.Digest = digest
 	return ret, nil
 }
 
@@ -175,11 +180,17 @@ func blockToContract(ctx *ParserContext, block *hclsyntax.Block) (*model.Contrac
 		param, _ := getString(attrs, attr)
 		params[attr] = param
 	}
-	return &model.Contract{
+	contract := &model.Contract{
 		Name:      name,
 		Qualifier: ctx.NameToQualifier(name),
 		Params:    params,
-	}, nil
+	}
+	digest, err := digest.SHA256FromSymbol(contract)
+	if err != nil {
+		return contract, err
+	}
+	contract.Digest = digest
+	return contract, nil
 }
 
 func (c *Core) parseContractBlock(ctx *ParserContext, block *hclsyntax.Block) (model.ConcreteSymbol, error) {
