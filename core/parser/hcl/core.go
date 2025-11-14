@@ -70,7 +70,11 @@ func NewCore(catalogType string) *Core {
 
 func (c *Core) Resolve(ctx *ParserContext, ref []string) (model.Symbol, error) {
 	slog.Debug("Resolving ref", "module", ctx.CurrentModule(), "ref", ref)
-	mod, ok := c.Symbols.Modules[ctx.CurrentModule()]
+	mod, ok := c.Symbols.Modules[ref[0]]
+	if ok {
+		return mod.Resolve(ref[1:])
+	}
+	mod, ok = c.Symbols.Modules[ctx.CurrentModule()]
 	if !ok {
 		return nil, errors.New("no registered symbols")
 	}
