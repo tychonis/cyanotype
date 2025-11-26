@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/tychonis/cyanotype/internal/catalog"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -67,41 +66,20 @@ func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine)
 	}
 	ret := make([]*model.BOMLine, 0, len(from))
 	for _, comp := range from {
-		qualifier := refToQualifier(ctx, comp.Ref)
-		compItemSym, err := c.Catalog.Find(qualifier)
-		if err != nil {
-			if err != catalog.ErrNotFound {
-				return nil, err
-			} else {
-				sym, err := c.Resolve(ctx, comp.Ref)
-				if err != nil {
-					return nil, err
-				}
-				unprocessed, ok := sym.(*UnprocessedSymbol)
-				if !ok {
-					return nil, errors.New("wrong symbol type")
-				}
-				compItemSym, err = c.ParseSymbol(unprocessed)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-
-		compItem, ok := compItemSym.(*model.Item)
-		if !ok {
-			return nil, errors.New("incorrect ref")
-		}
-		compCoItems, err := c.Catalog.GetCoItems(compItem.Digest)
+		item, err := c.resolveBOMLineRef(ctx, comp.Ref)
 		if err != nil {
 			return nil, err
 		}
-		if len(compCoItems) != 1 {
-			slog.Debug("error", "item", compItem.Qualifier, "length", len(compCoItems), "digest", compItem.Digest)
+		coItems, err := c.Catalog.GetCoItems(item.Digest)
+		if err != nil {
+			return nil, err
+		}
+		if len(coItems) != 1 {
+			slog.Debug("error", "item", item.Qualifier, "length", len(coItems), "digest", item.Digest)
 			return nil, errors.New("not implemented yet")
 		}
 		ret = append(ret, &model.BOMLine{
-			Item: compCoItems[0].Item,
+			Item: coItems[0].Item,
 			Qty:  comp.Qty,
 		})
 	}

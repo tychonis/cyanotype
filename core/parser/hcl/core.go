@@ -176,23 +176,39 @@ func (c *Core) processModuleScope(m *symbols.ModuleScope, cat *catalog.Catalog) 
 	return nil
 }
 
-func (c *Core) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*model.BOMLine, error) {
-	s, err := c.Resolve(ctx, line.Ref)
+func (c *Core) resolveBOMLineRef(ctx *ParserContext, ref Ref) (*model.Item, error) {
+	qualifier := refToQualifier(ctx, ref)
+	compItemSym, err := c.Catalog.Find(qualifier)
 	if err != nil {
-		return nil, err
+		if err != catalog.ErrNotFound {
+			return nil, err
+		} else {
+			sym, err := c.Resolve(ctx, ref)
+			if err != nil {
+				return nil, err
+			}
+			unprocessed, ok := sym.(*UnprocessedSymbol)
+			if !ok {
+				return nil, errors.New("wrong symbol type")
+			}
+			compItemSym, err = c.ParseSymbol(unprocessed)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
-	unprocessed, ok := s.(*UnprocessedSymbol)
+	compItem, ok := compItemSym.(*model.Item)
 	if !ok {
-		return nil, errors.New("wrong symbol type")
+		return nil, errors.New("incorrect ref")
 	}
-	compItemSym, err := c.ParseSymbol(unprocessed)
+	return compItem, nil
+}
+
+func (c *Core) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*model.BOMLine, error) {
+	item, err := c.resolveBOMLineRef(ctx, line.Ref)
 	if err != nil {
 		return nil, err
-	}
-	item, ok := compItemSym.(*model.Item)
-	if !ok {
-		return nil, errors.New("ref is not an item")
 	}
 	return &model.BOMLine{
 		Role: line.Role,
