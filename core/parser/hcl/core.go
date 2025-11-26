@@ -181,7 +181,16 @@ func (c *Core) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*mod
 	if err != nil {
 		return nil, err
 	}
-	item, ok := s.(*model.Item)
+
+	unprocessed, ok := s.(*UnprocessedSymbol)
+	if !ok {
+		return nil, errors.New("wrong symbol type")
+	}
+	compItemSym, err := c.ParseSymbol(unprocessed)
+	if err != nil {
+		return nil, err
+	}
+	item, ok := compItemSym.(*model.Item)
 	if !ok {
 		return nil, errors.New("ref is not an item")
 	}
