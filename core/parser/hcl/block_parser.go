@@ -35,6 +35,9 @@ func (c *Core) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, err 
 	}
 	if err == nil {
 		s.qualifier = sym.GetQualifier()
+		slog.Debug("adding symbol",
+			"qualifier", sym.GetQualifier(), "digest", sym.GetDigest())
+		err = c.Catalog.Add(sym)
 	} else {
 		err = cerror.ErrorWithRange(err.Error(), s.Block.Range())
 	}
@@ -49,7 +52,7 @@ func refToQualifier(ctx *ParserContext, ref []string) string {
 	}
 }
 
-func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
+func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
 	name := block.Labels[0]
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
@@ -103,15 +106,6 @@ func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.I
 	return item, err
 }
 
-func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (model.ConcreteSymbol, error) {
-	item, err := c.blockToItem(ctx, block)
-	if err != nil {
-		return item, err
-	}
-	slog.Debug("adding item", "qualifier", item.Qualifier, "digest", item.Digest)
-	return item, c.Catalog.Add(item)
-}
-
 func (c *Core) createProcessContract(process *model.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {
 	ret := &model.Contract{
 		Qualifier: fmt.Sprintf("%s.%s.%s", process.Qualifier, mode, line.Role),
@@ -119,7 +113,7 @@ func (c *Core) createProcessContract(process *model.Process, mode string, line *
 	return ret, nil
 }
 
-func (c *Core) blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*model.Process, error) {
+func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.Process, error) {
 	name := block.Labels[0]
 	ret := &model.Process{
 		Qualifier: ctx.NameToQualifier(name),
@@ -156,15 +150,7 @@ func (c *Core) blockToProcess(ctx *ParserContext, block *hclsyntax.Block) (*mode
 	return ret, nil
 }
 
-func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (model.ConcreteSymbol, error) {
-	process, err := c.blockToProcess(ctx, block)
-	if err != nil {
-		return process, err
-	}
-	return process, c.Catalog.Add(process)
-}
-
-func blockToContract(ctx *ParserContext, block *hclsyntax.Block) (*model.Contract, error) {
+func (c *Core) parseContractBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.Contract, error) {
 	name := block.Labels[0]
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
@@ -187,12 +173,4 @@ func blockToContract(ctx *ParserContext, block *hclsyntax.Block) (*model.Contrac
 	}
 	contract.Digest = digest
 	return contract, nil
-}
-
-func (c *Core) parseContractBlock(ctx *ParserContext, block *hclsyntax.Block) (model.ConcreteSymbol, error) {
-	contract, err := blockToContract(ctx, block)
-	if err != nil {
-		return contract, err
-	}
-	return contract, c.Catalog.Add(contract)
 }
