@@ -178,7 +178,7 @@ func (c *Core) processModuleScope(m *symbols.ModuleScope, cat *catalog.Catalog) 
 
 func (c *Core) resolveBOMLineRef(ctx *ParserContext, ref Ref) (*model.Item, error) {
 	qualifier := refToQualifier(ctx, ref)
-	compItemSym, err := c.Catalog.Find(qualifier)
+	itemSym, err := c.Catalog.Find(qualifier)
 	if err != nil {
 		if err != catalog.ErrNotFound {
 			return nil, err
@@ -191,18 +191,18 @@ func (c *Core) resolveBOMLineRef(ctx *ParserContext, ref Ref) (*model.Item, erro
 			if !ok {
 				return nil, errors.New("wrong symbol type")
 			}
-			compItemSym, err = c.ParseSymbol(unprocessed)
+			itemSym, err = c.ParseSymbol(unprocessed)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	compItem, ok := compItemSym.(*model.Item)
+	item, ok := itemSym.(*model.Item)
 	if !ok {
 		return nil, errors.New("incorrect ref")
 	}
-	return compItem, nil
+	return item, nil
 }
 
 func (c *Core) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*model.BOMLine, error) {

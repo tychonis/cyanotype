@@ -100,11 +100,6 @@ func (c *Core) blockToItem(ctx *ParserContext, block *hclsyntax.Block) (*model.I
 	if err != nil {
 		return nil, err
 	}
-	err = c.Catalog.Add(item)
-	if err != nil {
-		return nil, err
-	}
-	slog.Debug("added item", "qualifier", item.Qualifier, "digest", item.Digest)
 	return item, err
 }
 
@@ -113,7 +108,8 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (model
 	if err != nil {
 		return item, err
 	}
-	return item, nil
+	slog.Debug("adding item", "qualifier", item.Qualifier, "digest", item.Digest)
+	return item, c.Catalog.Add(item)
 }
 
 func (c *Core) createProcessContract(process *model.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {
