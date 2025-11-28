@@ -27,6 +27,8 @@ func (c *Core) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, err 
 	switch s.Block.Type {
 	case "item":
 		sym, err = c.parseItemBlock(s.Context, s.Block)
+	case "coitem":
+		sym, err = c.parseCoItemBlock(s.Context, s.Block)
 	case "process":
 		sym, err = c.parseProcessBlock(s.Context, s.Block)
 	case "coprocess":
@@ -108,6 +110,44 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mode
 		return nil, err
 	}
 	return item, err
+}
+
+func (c *Core) parseCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.CoItem, error) {
+	name := block.Labels[0]
+	attrs, diags := block.Body.JustAttributes()
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	pn, _ := getString(attrs, "part_number")
+	// ref, _ := getString(attrs, "ref")
+	src, _ := getString(attrs, "source")
+
+	var err error
+
+	var reqs []model.ContractID
+	reqAttr, ok := attrs["req"]
+	if ok {
+		implRefs, err := c.readContractLine(ctx, reqAttr.Expr)
+		if err != nil {
+			return nil, err
+		}
+		reqs, err = c.processKeywordIMPL(ctx, implRefs)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	coItem := &model.CoItem{
+		Qualifier: ctx.NameToQualifier(name),
+		Require:   reqs,
+		Content: &model.ItemContent{
+			Name:       name,
+			Source:     src,
+			PartNumber: pn,
+		},
+	}
+	coItem.Digest, err = digest.SHA256FromSymbol(coItem)
+	return coItem, err
 }
 
 func (c *Core) createProcessContract(process *model.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {
