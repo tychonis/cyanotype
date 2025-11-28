@@ -38,7 +38,7 @@ func readBOMLine(ctx *ParserContext, expr *hclsyntax.ObjectConsExpr) *Unresolved
 	return ret
 }
 
-func parseBOMLineAttr(ctx *ParserContext, attr *hcl.Attribute) []*UnresolvedBOMLine {
+func parseBOMLinesAttr(ctx *ParserContext, attr *hcl.Attribute) []*UnresolvedBOMLine {
 	if attr == nil {
 		return nil
 	}

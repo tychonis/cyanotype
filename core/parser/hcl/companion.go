@@ -66,12 +66,12 @@ func (c *Core) buildCompanionProcess(item *model.Item, input []*model.BOMLine) (
 func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, input []*model.BOMLine) error {
 	slog.Debug("build companions", "module", ctx.CurrentModule(), "item", item.Qualifier)
 
-	co, err := c.buildCompanionCoItem(item)
+	coItem, err := c.buildCompanionCoItem(item)
 	if err != nil {
 		return err
 	}
 
-	_, err = c.buildCompanionCoProcess(item, co)
+	_, err = c.buildCompanionCoProcess(item, coItem)
 	if err != nil {
 		return err
 	}

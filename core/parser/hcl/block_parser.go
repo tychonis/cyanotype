@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/tychonis/cyanotype/internal/cerror"
@@ -28,12 +29,15 @@ func (c *Core) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, err 
 		sym, err = c.parseItemBlock(s.Context, s.Block)
 	case "process":
 		sym, err = c.parseProcessBlock(s.Context, s.Block)
+	case "coprocess":
+		sym, err = c.parseCoProcessBlock(s.Context, s.Block)
 	case "contract":
 		sym, err = c.parseContractBlock(s.Context, s.Block)
 	default:
 		return nil, cerror.ErrorWithRange("unknown block type", s.Block.Range())
 	}
 	if err == nil {
+		// TODO: remove side effects here.
 		s.qualifier = sym.GetQualifier()
 		slog.Debug("adding symbol",
 			"qualifier", sym.GetQualifier(), "digest", sym.GetDigest())
@@ -66,7 +70,7 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mode
 	var err error
 	fromAttr, ok := attrs["from"]
 	if ok {
-		from := parseBOMLineAttr(ctx, fromAttr)
+		from := parseBOMLinesAttr(ctx, fromAttr)
 		input, err = c.processKeywordFROM(ctx, from)
 		if err != nil {
 			return nil, err
@@ -113,9 +117,22 @@ func (c *Core) createProcessContract(process *model.Process, mode string, line *
 	return ret, nil
 }
 
-func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.Process, error) {
+func (c *Core) resolveBOMLinesAttr(ctx *ParserContext, attr *hcl.Attribute) ([]*model.BOMLine, error) {
+	lines := parseBOMLinesAttr(ctx, attr)
+	ret := make([]*model.BOMLine, 0, len(lines))
+	for _, line := range lines {
+		resolved, err := c.ResolveBOMLine(ctx, line)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, resolved)
+	}
+	return ret, nil
+}
+
+func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *model.Process, err error) {
 	name := block.Labels[0]
-	ret := &model.Process{
+	ret = &model.Process{
 		Qualifier: ctx.NameToQualifier(name),
 	}
 	attrs, diags := block.Body.JustAttributes()
@@ -124,30 +141,39 @@ func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (*m
 	}
 	cycle, _ := getNumber(attrs, "cycle")
 	ret.CycleTime = cycle
-	input := parseBOMLineAttr(ctx, attrs["input"])
-	ret.Input = make([]*model.BOMLine, 0, len(input))
-	for _, line := range input {
-		resolved, err := c.ResolveBOMLine(ctx, line)
-		if err != nil {
-			return nil, err
-		}
-		ret.Input = append(ret.Input, resolved)
-	}
-	output := parseBOMLineAttr(ctx, attrs["output"])
-	ret.Output = make([]*model.BOMLine, 0, len(output))
-	for _, line := range output {
-		resolved, err := c.ResolveBOMLine(ctx, line)
-		if err != nil {
-			return nil, err
-		}
-		ret.Output = append(ret.Output, resolved)
-	}
-	digest, err := digest.SHA256FromSymbol(ret)
+	ret.Input, err = c.resolveBOMLinesAttr(ctx, attrs["input"])
 	if err != nil {
-		return ret, err
+		return
 	}
-	ret.Digest = digest
-	return ret, nil
+	ret.Output, err = c.resolveBOMLinesAttr(ctx, attrs["output"])
+	if err != nil {
+		return
+	}
+	ret.Digest, err = digest.SHA256FromSymbol(ret)
+	return
+}
+
+func (c *Core) parseCoProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *model.CoProcess, err error) {
+	name := block.Labels[0]
+	ret = &model.CoProcess{
+		Qualifier: ctx.NameToQualifier(name),
+	}
+	attrs, diags := block.Body.JustAttributes()
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	cycle, _ := getNumber(attrs, "cycle")
+	ret.CycleTime = cycle
+	ret.Input, err = c.resolveBOMLinesAttr(ctx, attrs["input"])
+	if err != nil {
+		return
+	}
+	ret.Output, err = c.resolveBOMLinesAttr(ctx, attrs["output"])
+	if err != nil {
+		return
+	}
+	ret.Digest, err = digest.SHA256FromSymbol(ret)
+	return
 }
 
 func (c *Core) parseContractBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.Contract, error) {
