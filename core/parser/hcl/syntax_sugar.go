@@ -107,9 +107,9 @@ func (c *Core) readContractLine(ctx *ParserContext, expr hcl.Expression) ([]Ref,
 	return ret, nil
 }
 
-func (c *Core) processKeywordIMPL(ctx *ParserContext, impl []Ref) ([]model.ContractID, error) {
-	ret := make([]model.ContractID, 0, len(impl))
-	for _, ref := range impl {
+func (c *Core) resolveContractsID(ctx *ParserContext, contracts []Ref) ([]model.ContractID, error) {
+	ret := make([]model.ContractID, 0, len(contracts))
+	for _, ref := range contracts {
 		sym, err := c.Resolve(ctx, ref)
 		if err != nil {
 			return nil, err

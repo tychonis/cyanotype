@@ -58,6 +58,14 @@ func refToQualifier(ctx *ParserContext, ref []string) string {
 	}
 }
 
+func (c *Core) resolveContractsLinesAttr(ctx *ParserContext, attr *hcl.Attribute) ([]model.ContractID, error) {
+	refs, err := c.readContractLine(ctx, attr.Expr)
+	if err != nil {
+		return nil, err
+	}
+	return c.resolveContractsID(ctx, refs)
+}
+
 func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
 	name := block.Labels[0]
 	attrs, diags := block.Body.JustAttributes()
@@ -79,32 +87,25 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mode
 		}
 	}
 
-	var impls []model.ContractID
-	implAttr, ok := attrs["impl"]
-	if ok {
-		implRefs, err := c.readContractLine(ctx, implAttr.Expr)
-		if err != nil {
-			return nil, err
-		}
-		impls, err = c.processKeywordIMPL(ctx, implRefs)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	item := &model.Item{
 		Qualifier: ctx.NameToQualifier(name),
-		Implement: impls,
 		Content: &model.ItemContent{
 			Name:       name,
 			Source:     src,
 			PartNumber: pn,
 		},
 	}
+
+	implAttr, ok := attrs["impl"]
+	if ok {
+		item.Implement, _ = c.resolveContractsLinesAttr(ctx, implAttr)
+	}
+
 	item.Digest, err = digest.SHA256FromSymbol(item)
 	if err != nil {
 		return item, err
 	}
+
 	err = c.buildCompanionForItem(ctx, item, input)
 	if err != nil {
 		return nil, err
@@ -124,28 +125,20 @@ func (c *Core) parseCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mo
 
 	var err error
 
-	var reqs []model.ContractID
-	reqAttr, ok := attrs["req"]
-	if ok {
-		implRefs, err := c.readContractLine(ctx, reqAttr.Expr)
-		if err != nil {
-			return nil, err
-		}
-		reqs, err = c.processKeywordIMPL(ctx, implRefs)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	coItem := &model.CoItem{
 		Qualifier: ctx.NameToQualifier(name),
-		Require:   reqs,
 		Content: &model.ItemContent{
 			Name:       name,
 			Source:     src,
 			PartNumber: pn,
 		},
 	}
+
+	reqAttr, ok := attrs["req"]
+	if ok {
+		coItem.Require, _ = c.resolveContractsLinesAttr(ctx, reqAttr)
+	}
+
 	coItem.Digest, err = digest.SHA256FromSymbol(coItem)
 	return coItem, err
 }
