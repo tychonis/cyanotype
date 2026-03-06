@@ -11,6 +11,7 @@ import (
 
 	"github.com/tychonis/cyanotype/internal/cerror"
 	"github.com/tychonis/cyanotype/internal/digest"
+	"github.com/tychonis/cyanotype/internal/stable"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -66,6 +67,33 @@ func (c *Core) resolveContractsLinesAttr(ctx *ParserContext, attr *hcl.Attribute
 	return c.resolveContractsID(ctx, refs)
 }
 
+var RESERVED = map[string]struct{}{
+	"part_number": struct{}{},
+	"source":      struct{}{},
+	"from":        struct{}{},
+	"impl":        struct{}{},
+}
+
+func (c *Core) getDetails(ctx *ParserContext, attrs hcl.Attributes) (stable.Map, error) {
+	keys := make([]string, 0)
+	for key := range attrs {
+		_, ok := RESERVED[key]
+		if !ok {
+			keys = append(keys, key)
+		}
+	}
+	ret := make(stable.Map)
+	for i := 0; i < len(keys); i++ {
+		key := keys[i]
+		val, err := getString(attrs, key)
+		if err != nil {
+			return ret, err
+		}
+		ret[key] = val
+	}
+	return ret, nil
+}
+
 func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
 	name := block.Labels[0]
 	attrs, diags := block.Body.JustAttributes()
@@ -110,6 +138,8 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mode
 	if err != nil {
 		return nil, err
 	}
+
+	item.Content.Details, err = c.getDetails(ctx, attrs)
 	return item, err
 }
 
