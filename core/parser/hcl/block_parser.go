@@ -68,10 +68,10 @@ func (c *Core) resolveContractsLinesAttr(ctx *ParserContext, attr *hcl.Attribute
 }
 
 var RESERVED = map[string]struct{}{
-	"part_number": struct{}{},
-	"source":      struct{}{},
-	"from":        struct{}{},
-	"impl":        struct{}{},
+	"part_number": {},
+	"source":      {},
+	"from":        {},
+	"impl":        {},
 }
 
 func (c *Core) getDetails(ctx *ParserContext, attrs hcl.Attributes) (stable.Map, error) {
