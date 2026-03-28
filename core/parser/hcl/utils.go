@@ -48,6 +48,27 @@ func getNumber(attrs hcl.Attributes, key string) (float64, error) {
 	return ret, nil
 }
 
+func getFloat64Array(attrs hcl.Attributes, key string) ([]float64, error) {
+	attr, ok := attrs[key]
+	if !ok {
+		return nil, errors.New("key not found")
+	}
+	val, diags := attr.Expr.Value(nil)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	if val.Type() != cty.List(cty.Number) {
+		return nil, errors.New("incorrect type")
+	}
+	slice := val.AsValueSlice()
+	ret := make([]float64, 0, len(slice))
+	for _, num := range slice {
+		f, _ := num.AsBigFloat().Float64()
+		ret = append(ret, f)
+	}
+	return ret, nil
+}
+
 func getObjectKey(expr hcl.Expression) string {
 	key, ok := expr.(*hclsyntax.ObjectConsKeyExpr)
 	if !ok {
