@@ -7,6 +7,7 @@ import (
 type ProcessID = Digest
 
 type BOMLine struct {
+	Name string  `json:"name" yaml:"name"`
 	Item ItemID  `json:"item" yaml:"item"`
 	Qty  float64 `json:"qty" yaml:"qty"`
 	Role string  `json:"role" yaml:"role"`

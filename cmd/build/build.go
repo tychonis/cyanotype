@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/tychonis/cyanotype/core/parser/hcl"
+	"github.com/tychonis/cyanotype/internal/catalog"
 )
 
 var Cmd = &cobra.Command{
@@ -19,6 +20,8 @@ func run(cmd *cobra.Command, args []string) {
 	if bpoPath == "" {
 		bpoPath = "."
 	}
+
+	catalog.Initialize()
 
 	core := hcl.NewCore("local")
 	err := core.Build(bpoPath)

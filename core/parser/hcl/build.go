@@ -28,8 +28,9 @@ func (c *Core) findCoProcesses(item *model.CoItem) ([]*model.CoProcess, error) {
 	return c.Catalog.GetItemCoProcesses(item.Digest)
 }
 
-func (c *Core) build(coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
+func (c *Core) build(name string, coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 	node := &bomtree.Node{
+		Name:     name,
 		CoItem:   coitem,
 		Children: make([]*bomtree.Node, 0),
 		Qty:      qty,
@@ -74,7 +75,7 @@ func (c *Core) build(coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 		if !ok {
 			return nil, errors.New("invalid input")
 		}
-		childNode, err := c.build(childCoItem, input.Qty)
+		childNode, err := c.build(input.Name, childCoItem, input.Qty)
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +89,7 @@ func (c *Core) build(coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 	return node, nil
 }
 
-func (c *Core) BuildTree(item *model.Item) (*bomtree.Node, error) {
+func (c *Core) BuildTree(name string, item *model.Item) (*bomtree.Node, error) {
 	coItems, err := c.Catalog.GetCoItems(item.Digest)
 	if err != nil {
 		return nil, err
@@ -104,5 +105,5 @@ func (c *Core) BuildTree(item *model.Item) (*bomtree.Node, error) {
 	if !ok {
 		return nil, errors.New("not a coitem")
 	}
-	return c.build(coItem, 1)
+	return c.build(name, coItem, 1)
 }

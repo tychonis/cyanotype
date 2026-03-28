@@ -75,7 +75,7 @@ func (idx *LocalIndex) loadMainIndex() error {
 	indexPath := filepath.Join(".bpc", "index")
 	data, err := os.ReadFile(indexPath)
 	if err != nil {
-		return fmt.Errorf("open index: %w", err)
+		return fmt.Errorf("loading index error, failed to open index: %w", err)
 	}
 	lines := bytes.Split(data, []byte("\n"))
 	for _, line := range lines {
@@ -112,7 +112,7 @@ func (idx *LocalIndex) addToMainIndex(key string, val string) error {
 	indexPath := filepath.Join(".bpc", "index")
 	f, err := os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
-		return fmt.Errorf("open index: %w", err)
+		return fmt.Errorf("failed to add to index, cannot open index: %w", err)
 	}
 	defer f.Close()
 	rec := key + ":" + val + "\n"

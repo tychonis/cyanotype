@@ -57,10 +57,10 @@ func (c *Core) buildCompanionProcess(item *model.Item, input []*model.BOMLine) (
 		Input: input,
 	}
 	p.Digest, err = digest.SHA256FromSymbol(p)
-	if err == nil {
-		c.Catalog.Add(p)
+	if err != nil {
+		return p, err
 	}
-	return p, err
+	return p, c.Catalog.Add(p)
 }
 
 func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, input []*model.BOMLine) error {

@@ -12,6 +12,7 @@ import (
 type Ref = []string
 
 type UnresolvedBOMLine struct {
+	Name string  `json:"name" yaml:"name"`
 	Role string  `json:"role" yaml:"role"`
 	Ref  Ref     `json:"ref" yaml:"ref"`
 	Qty  float64 `json:"qty" yaml:"qty"`
@@ -24,6 +25,9 @@ func readBOMLine(ctx *ParserContext, expr *hclsyntax.ObjectConsExpr) *Unresolved
 	for _, item := range expr.Items {
 		key := getObjectKey(item.KeyExpr)
 		switch key {
+		case "name":
+			val, _ := item.ValueExpr.Value(nil)
+			ret.Name = val.AsString()
 		case "role":
 			val, _ := item.ValueExpr.Value(nil)
 			ret.Role = val.AsString()
@@ -75,12 +79,14 @@ func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine)
 			return nil, err
 		}
 		if len(coItems) != 1 {
-			slog.Debug("error", "item", item.Qualifier, "length", len(coItems), "digest", item.Digest)
-			return nil, errors.New("not implemented yet")
+			slog.Debug("error getting coitems", "item", item.Qualifier, "length", len(coItems), "digest", item.Digest)
+			return nil, errors.New("multiple coitems not implemented yet")
 		}
 		ret = append(ret, &model.BOMLine{
+			Name: comp.Name,
 			Item: coItems[0].Item,
 			Qty:  comp.Qty,
+			Role: comp.Role,
 		})
 	}
 	return ret, nil

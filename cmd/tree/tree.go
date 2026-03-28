@@ -54,7 +54,7 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	rootNode, err := core.BuildTree(rootItem)
+	rootNode, err := core.BuildTree("root", rootItem)
 	if err != nil {
 		slog.Error("Failed to build.", "error", err)
 		return
