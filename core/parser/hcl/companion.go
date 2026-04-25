@@ -3,15 +3,15 @@ package hcl
 import (
 	"log/slog"
 
+	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/internal/digest"
 	"github.com/tychonis/cyanotype/model"
 )
 
 func (c *Core) buildCompanionCoItem(item *model.Item) (*model.CoItem, error) {
 	var err error
-	co := &model.CoItem{
-		Qualifier: getImplicitCoItemQualifier(item),
-	}
+	co := &model.CoItem{}
+	co.Qualifier = getImplicitCoItemQualifier(item)
 	co.Digest, err = digest.SHA256FromSymbol(co)
 	if err != nil {
 		return co, err
@@ -21,8 +21,7 @@ func (c *Core) buildCompanionCoItem(item *model.Item) (*model.CoItem, error) {
 
 func (c *Core) buildCompanionCoProcess(item *model.Item, coItem *model.CoItem) (*model.CoProcess, error) {
 	var err error
-	cp := &model.CoProcess{
-		Qualifier: getImplicitCoProcessQualifier(item),
+	content := &process.Abstract{
 		Input: []*model.BOMLine{
 			{
 				Item: item.Digest,
@@ -36,6 +35,10 @@ func (c *Core) buildCompanionCoProcess(item *model.Item, coItem *model.CoItem) (
 			},
 		},
 	}
+
+	cp := &model.CoProcess{}
+	cp.Qualifier = getImplicitCoProcessQualifier(item)
+	cp.Content = content
 	cp.Digest, err = digest.SHA256FromSymbol(cp)
 	if err != nil {
 		return cp, err
@@ -45,8 +48,7 @@ func (c *Core) buildCompanionCoProcess(item *model.Item, coItem *model.CoItem) (
 
 func (c *Core) buildCompanionProcess(item *model.Item, input []*model.BOMLine) (*model.Process, error) {
 	var err error
-	p := &model.Process{
-		Qualifier: getImplicitProcessQualifier(item),
+	content := &process.Abstract{
 		Output: []*model.BOMLine{
 			{
 				Item: item.Digest,
@@ -56,6 +58,10 @@ func (c *Core) buildCompanionProcess(item *model.Item, input []*model.BOMLine) (
 		},
 		Input: input,
 	}
+
+	p := &model.Process{}
+	p.Qualifier = getImplicitProcessQualifier(item)
+	p.Content = content
 	p.Digest, err = digest.SHA256FromSymbol(p)
 	if err != nil {
 		return p, err

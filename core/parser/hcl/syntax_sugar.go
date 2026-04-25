@@ -12,12 +12,10 @@ import (
 type Ref = []string
 
 type UnresolvedBOMLine struct {
-	Name string `json:"name" yaml:"name"`
-	Role string `json:"role" yaml:"role"`
-	Ref  Ref    `json:"ref" yaml:"ref"`
-	// TODO: Qty and placement probably should not appear together.
-	Qty       float64    `json:"qty" yaml:"qty"`
-	Placement [7]float64 `json:"placement" yaml:"placement"`
+	Name string  `json:"name" yaml:"name"`
+	Role string  `json:"role" yaml:"role"`
+	Ref  Ref     `json:"ref" yaml:"ref"`
+	Qty  float64 `json:"qty" yaml:"qty"`
 }
 
 func readBOMLine(ctx *ParserContext, expr *hclsyntax.ObjectConsExpr) *UnresolvedBOMLine {
@@ -39,16 +37,16 @@ func readBOMLine(ctx *ParserContext, expr *hclsyntax.ObjectConsExpr) *Unresolved
 		case "qty":
 			val, _ := item.ValueExpr.Value(nil)
 			ret.Qty, _ = val.AsBigFloat().Float64()
-		case "placement":
-			val, _ := item.ValueExpr.Value(nil)
-			slice := val.AsValueSlice()
-			if len(slice) != 7 {
-				slog.Warn("incorrect format for placement")
-				continue
-			}
-			for i, num := range slice {
-				ret.Placement[i], _ = num.AsBigFloat().Float64()
-			}
+			// case "placement":
+			// 	val, _ := item.ValueExpr.Value(nil)
+			// 	slice := val.AsValueSlice()
+			// 	if len(slice) != 7 {
+			// 		slog.Warn("incorrect format for placement")
+			// 		continue
+			// 	}
+			// 	for i, num := range slice {
+			// 		ret.Placement[i], _ = num.AsBigFloat().Float64()
+			// 	}
 		}
 	}
 	return ret
@@ -95,11 +93,11 @@ func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine)
 			return nil, errors.New("multiple coitems not implemented yet")
 		}
 		ret = append(ret, &model.BOMLine{
-			Name:      comp.Name,
-			Item:      coItems[0].Item,
-			Qty:       comp.Qty,
-			Role:      comp.Role,
-			Placement: comp.Placement,
+			Name: comp.Name,
+			Item: coItems[0].Item,
+			Qty:  comp.Qty,
+			Role: comp.Role,
+			// Placement: comp.Placement,
 		})
 	}
 	return ret, nil

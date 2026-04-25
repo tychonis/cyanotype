@@ -7,37 +7,40 @@ import (
 type ProcessID = Digest
 
 type BOMLine struct {
-	Name string `json:"name" yaml:"name"`
-	Item ItemID `json:"item" yaml:"item"`
-	Role string `json:"role" yaml:"role"`
-	// TODO: Qty and placement probably should not appear together.
-	Qty       float64    `json:"qty" yaml:"qty"`
-	Placement [7]float64 `json:"placement" yaml:"placement"`
+	Name string  `json:"name" yaml:"name"`
+	Item ItemID  `json:"item" yaml:"item"`
+	Role string  `json:"role" yaml:"role"`
+	Qty  float64 `json:"qty" yaml:"qty"`
+}
+
+type ProcessBase struct {
+	Qualifier string         `json:"qualifier" yaml:"qualifier"`
+	Content   ProcessContent `json:"content" yaml:"content"`
+
+	Digest ProcessID `json:"-" yaml:"-"`
 }
 
 type Process struct {
-	Qualifier   string     `json:"qualifier" yaml:"qualifier"`
-	Predecessor ProcessID  `json:"predecessor" yaml:"predecessor"`
-	CycleTime   float64    `json:"cycle_time" yaml:"cycle_time"`
-	Input       []*BOMLine `json:"input" yaml:"input"`
-	Output      []*BOMLine `json:"output" yaml:"output"`
-
-	Digest ProcessID `json:"-" yaml:"-"`
+	ProcessBase
 }
 
 type CoProcess struct {
-	Qualifier   string     `json:"qualifier" yaml:"qualifier"`
-	Predecessor ProcessID  `json:"predecessor" yaml:"predecessor"`
-	CycleTime   float64    `json:"cycle_time" yaml:"cycle_time"`
-	Input       []*BOMLine `json:"input" yaml:"input"`
-	Output      []*BOMLine `json:"output" yaml:"output"`
-
-	Digest ProcessID `json:"-" yaml:"-"`
+	ProcessBase
 }
 
-type ProcessContent struct {
-	Name            string             `json:"name" yaml:"name"`
-	Transformations []TransformationID `json:"transformations" yaml:"transformations"`
+type ProcessContent interface {
+	GetName() string
+	GetType() string
+	GetInput() []*BOMLine
+	GetOutput() []*BOMLine
+}
+
+func (p *Process) Input() []*BOMLine {
+	return p.Content.GetInput()
+}
+
+func (p *Process) Output() []*BOMLine {
+	return p.Content.GetOutput()
 }
 
 func (p *Process) Resolve(path []string) (Symbol, error) {
@@ -63,6 +66,14 @@ func (p *Process) GetQualifier() string {
 
 func (p *Process) GetDigest() string {
 	return p.Digest
+}
+
+func (cp *CoProcess) Input() []*BOMLine {
+	return cp.Content.GetInput()
+}
+
+func (cp *CoProcess) Output() []*BOMLine {
+	return cp.Content.GetOutput()
 }
 
 func (cp *CoProcess) Resolve(path []string) (Symbol, error) {

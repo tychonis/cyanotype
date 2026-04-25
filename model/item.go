@@ -16,24 +16,24 @@ const (
 	DERIVE_CHANGE          LinkType = "change"
 )
 
+type ItemBase struct {
+	Qualifier string       `json:"qualifier" yaml:"qualifier"`
+	Content   *ItemContent `json:"content" yaml:"content"`
+	Digest    ItemID       `json:"-" yaml:"-"`
+}
+
 // Item corresponds to a single immutable snapshot of a part or assembly.
 // Any change to spec, composition, process or metadata produces a new Item.
 // Items are linked through Predecessor for traceability supersession or interchangeability.
 type Item struct {
-	Qualifier string       `json:"qualifier" yaml:"qualifier"`
+	ItemBase
 	Implement []ContractID `json:"implement" yaml:"implement"`
-
-	Content *ItemContent `json:"content" yaml:"content"`
-	Digest  ItemID       `json:"-" yaml:"-"`
 }
 
 // CoItem defines requirements.
 type CoItem struct {
-	Qualifier string       `json:"qualifier" yaml:"qualifier"`
-	Require   []ContractID `json:"require" yaml:"require"`
-
-	Content *ItemContent `json:"content" yaml:"content"`
-	Digest  ItemID       `json:"-" yaml:"-"`
+	ItemBase
+	Require []ContractID `json:"require" yaml:"require"`
 }
 
 type ItemContent struct {

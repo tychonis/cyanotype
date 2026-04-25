@@ -165,11 +165,11 @@ func (c *Catalog) GetCoItems(item model.ItemID) ([]*ItemProcess, error) {
 	ret := make([]*ItemProcess, 0, len(cps))
 	for _, cp := range cps {
 		slog.Debug("coprocess", "item", item, "coprocess", cp.Digest)
-		if len(cp.Output) != 1 {
+		if len(cp.Output()) != 1 {
 			return nil, errors.New("multiple output not implemented yet")
 		}
 		ret = append(ret, &ItemProcess{
-			Item:    cp.Output[0].Item,
+			Item:    cp.Output()[0].Item,
 			Process: cp.Digest,
 		})
 	}
@@ -183,11 +183,11 @@ func (c *Catalog) GetItems(coItem model.ItemID) ([]*ItemProcess, error) {
 	}
 	ret := make([]*ItemProcess, 0, len(cps))
 	for _, cp := range cps {
-		if len(cp.Output) != 1 {
+		if len(cp.Output()) != 1 {
 			return nil, errors.New("multiple input not implemented yet")
 		}
 		ret = append(ret, &ItemProcess{
-			Item:    cp.Input[0].Item,
+			Item:    cp.Input()[0].Item,
 			Process: cp.Digest,
 		})
 	}

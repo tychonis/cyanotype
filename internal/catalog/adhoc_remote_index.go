@@ -123,17 +123,17 @@ func (idx *RemoteIndex) addToProcessIndex(pType string, key string, val string) 
 func (idx *RemoteIndex) indexProcess(sym model.ConcreteSymbol) error {
 	switch resolved := sym.(type) {
 	case *model.Process:
-		for _, bomLine := range resolved.Input {
+		for _, bomLine := range resolved.Input() {
 			idx.addToProcessIndex("process", bomLine.Item, resolved.Digest)
 		}
-		for _, bomLine := range resolved.Output {
+		for _, bomLine := range resolved.Output() {
 			idx.addToProcessIndex("process", bomLine.Item, resolved.Digest)
 		}
 	case *model.CoProcess:
-		for _, bomLine := range resolved.Input {
+		for _, bomLine := range resolved.Input() {
 			idx.addToProcessIndex("coprocess", bomLine.Item, resolved.Digest)
 		}
-		for _, bomLine := range resolved.Output {
+		for _, bomLine := range resolved.Output() {
 			idx.addToProcessIndex("coprocess", bomLine.Item, resolved.Digest)
 		}
 	}

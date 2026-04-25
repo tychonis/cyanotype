@@ -45,7 +45,7 @@ func (c *Core) build(name string, coitem *model.CoItem, qty float64) (*bomtree.N
 	}
 	node.CoProcess = coProcess
 
-	itemID := coProcess.Input[0].Item
+	itemID := coProcess.Input()[0].Item
 	itemSym, err := c.Catalog.Get(itemID)
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (c *Core) build(name string, coitem *model.CoItem, qty float64) (*bomtree.N
 	}
 
 	node.Process = process
-	for _, input := range process.Input {
+	for _, input := range process.Input() {
 		child, err := c.Catalog.Get(input.Item)
 		if err != nil {
 			return nil, err

@@ -115,13 +115,12 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mode
 		}
 	}
 
-	item := &model.Item{
-		Qualifier: ctx.NameToQualifier(name),
-		Content: &model.ItemContent{
-			Name:       name,
-			Source:     src,
-			PartNumber: pn,
-		},
+	item := &model.Item{}
+	item.Qualifier = ctx.NameToQualifier(name)
+	item.Content = &model.ItemContent{
+		Name:       name,
+		Source:     src,
+		PartNumber: pn,
 	}
 
 	implAttr, ok := attrs["impl"]
@@ -155,13 +154,12 @@ func (c *Core) parseCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mo
 
 	var err error
 
-	coItem := &model.CoItem{
-		Qualifier: ctx.NameToQualifier(name),
-		Content: &model.ItemContent{
-			Name:       name,
-			Source:     src,
-			PartNumber: pn,
-		},
+	coItem := &model.CoItem{}
+	coItem.Qualifier = ctx.NameToQualifier(name)
+	coItem.Content = &model.ItemContent{
+		Name:       name,
+		Source:     src,
+		PartNumber: pn,
 	}
 
 	reqAttr, ok := attrs["req"]
@@ -195,22 +193,11 @@ func (c *Core) resolveBOMLinesAttr(ctx *ParserContext, attr *hcl.Attribute) ([]*
 
 func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *model.Process, err error) {
 	name := block.Labels[0]
-	ret = &model.Process{
-		Qualifier: ctx.NameToQualifier(name),
-	}
-	attrs, diags := block.Body.JustAttributes()
+	ret = &model.Process{}
+	ret.Qualifier = ctx.NameToQualifier(name)
+	_, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
 		return nil, diags
-	}
-	cycle, _ := getNumber(attrs, "cycle")
-	ret.CycleTime = cycle
-	ret.Input, err = c.resolveBOMLinesAttr(ctx, attrs["input"])
-	if err != nil {
-		return
-	}
-	ret.Output, err = c.resolveBOMLinesAttr(ctx, attrs["output"])
-	if err != nil {
-		return
 	}
 	ret.Digest, err = digest.SHA256FromSymbol(ret)
 	return
@@ -218,22 +205,11 @@ func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (re
 
 func (c *Core) parseCoProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *model.CoProcess, err error) {
 	name := block.Labels[0]
-	ret = &model.CoProcess{
-		Qualifier: ctx.NameToQualifier(name),
-	}
-	attrs, diags := block.Body.JustAttributes()
+	ret = &model.CoProcess{}
+	ret.Qualifier = ctx.NameToQualifier(name)
+	_, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
 		return nil, diags
-	}
-	cycle, _ := getNumber(attrs, "cycle")
-	ret.CycleTime = cycle
-	ret.Input, err = c.resolveBOMLinesAttr(ctx, attrs["input"])
-	if err != nil {
-		return
-	}
-	ret.Output, err = c.resolveBOMLinesAttr(ctx, attrs["output"])
-	if err != nil {
-		return
 	}
 	ret.Digest, err = digest.SHA256FromSymbol(ret)
 	return
