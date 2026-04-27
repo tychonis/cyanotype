@@ -212,7 +212,6 @@ func (c *Core) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*mod
 	}
 	return &model.BOMLine{
 		Name: line.Name,
-		Role: line.Role,
 		Item: item.Digest,
 		Qty:  line.Qty,
 	}, nil

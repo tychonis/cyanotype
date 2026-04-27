@@ -13,7 +13,6 @@ type Ref = []string
 
 type UnresolvedBOMLine struct {
 	Name string  `json:"name" yaml:"name"`
-	Role string  `json:"role" yaml:"role"`
 	Ref  Ref     `json:"ref" yaml:"ref"`
 	Qty  float64 `json:"qty" yaml:"qty"`
 }
@@ -28,9 +27,6 @@ func readBOMLine(ctx *ParserContext, expr *hclsyntax.ObjectConsExpr) *Unresolved
 		case "name":
 			val, _ := item.ValueExpr.Value(nil)
 			ret.Name = val.AsString()
-		case "role":
-			val, _ := item.ValueExpr.Value(nil)
-			ret.Role = val.AsString()
 		case "ref":
 			ref, _ := exprToRef(ctx, item.ValueExpr)
 			ret.Ref = ref
@@ -96,8 +92,6 @@ func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine)
 			Name: comp.Name,
 			Item: coItems[0].Item,
 			Qty:  comp.Qty,
-			Role: comp.Role,
-			// Placement: comp.Placement,
 		})
 	}
 	return ret, nil

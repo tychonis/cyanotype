@@ -1,8 +1,7 @@
 package process
 
 import (
-	"encoding/json"
-
+	"github.com/tychonis/cyanotype/internal/serializer"
 	"github.com/tychonis/cyanotype/internal/stable"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -15,17 +14,8 @@ type Abstract struct {
 	Details stable.Map `json:"details" yaml:"details"`
 }
 
-func withType(t string, v any) ([]byte, error) {
-	m := map[string]any{
-		"type": t,
-	}
-	b, _ := json.Marshal(v)
-	json.Unmarshal(b, &m)
-	return json.Marshal(m)
-}
-
 func (a Abstract) MarshalJSON() ([]byte, error) {
-	return withType("abstract", a)
+	return serializer.JSONWithKey(a, "type", "abstract")
 }
 
 func (a *Abstract) GetName() string {

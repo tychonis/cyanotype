@@ -173,7 +173,7 @@ func (c *Core) parseCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mo
 
 func (c *Core) createProcessContract(process *model.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {
 	ret := &model.Contract{
-		Qualifier: fmt.Sprintf("%s.%s.%s", process.Qualifier, mode, line.Role),
+		Qualifier: fmt.Sprintf("%s.%s", process.Qualifier, mode),
 	}
 	return ret, nil
 }

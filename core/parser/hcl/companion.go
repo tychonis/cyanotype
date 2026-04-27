@@ -53,7 +53,6 @@ func (c *Core) buildCompanionProcess(item *model.Item, input []*model.BOMLine) (
 			{
 				Item: item.Digest,
 				Qty:  1,
-				Role: DEFAULT,
 			},
 		},
 		Input: input,
