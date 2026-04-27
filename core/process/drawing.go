@@ -7,10 +7,10 @@ import (
 )
 
 type Component struct {
-	Name        string
-	CoItem      model.ItemID
-	Rotation    [4]float64
-	Translation [3]float64
+	Name        string       `json:"name" yaml:"name"`
+	CoItem      model.ItemID `json:"coitem" yaml:"coitem"`
+	Rotation    [4]float64   `json:"rotation" yaml:"rotation"`
+	Translation [3]float64   `json:"translation" yaml:"translation"`
 }
 
 type Drawing struct {

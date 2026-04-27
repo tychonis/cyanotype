@@ -1,6 +1,7 @@
 package hcl
 
 import (
+	"errors"
 	"log/slog"
 
 	"github.com/tychonis/cyanotype/core/process"
@@ -46,21 +47,30 @@ func (c *Core) buildCompanionCoProcess(item *model.Item, coItem *model.CoItem) (
 	return cp, c.Catalog.Add(cp)
 }
 
-func (c *Core) buildCompanionProcess(item *model.Item, input []*model.BOMLine) (*model.Process, error) {
+func (c *Core) buildCompanionProcess(item *model.Item, pc model.ProcessContent) (*model.Process, error) {
 	var err error
-	content := &process.Abstract{
-		Output: []*model.BOMLine{
+	switch content := pc.(type) {
+	case *process.Abstract:
+		content.Output = []*model.BOMLine{
 			{
 				Item: item.Digest,
 				Qty:  1,
 			},
-		},
-		Input: input,
+		}
+	case *process.Drawing:
+		content.Output = []*model.BOMLine{
+			{
+				Item: item.Digest,
+				Qty:  1,
+			},
+		}
+	default:
+		return nil, errors.New("process content type not recognized")
 	}
 
 	p := &model.Process{}
 	p.Qualifier = getImplicitProcessQualifier(item)
-	p.Content = content
+	p.Content = pc
 	p.Digest, err = digest.SHA256FromSymbol(p)
 	if err != nil {
 		return p, err
@@ -68,7 +78,7 @@ func (c *Core) buildCompanionProcess(item *model.Item, input []*model.BOMLine) (
 	return p, c.Catalog.Add(p)
 }
 
-func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, input []*model.BOMLine) error {
+func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, pc model.ProcessContent) error {
 	slog.Debug("build companions", "module", ctx.CurrentModule(), "item", item.Qualifier)
 
 	coItem, err := c.buildCompanionCoItem(item)
@@ -81,6 +91,6 @@ func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, input
 		return err
 	}
 
-	_, err = c.buildCompanionProcess(item, input)
+	_, err = c.buildCompanionProcess(item, pc)
 	return err
 }

@@ -104,12 +104,12 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mode
 	// ref, _ := getString(attrs, "ref")
 	src, _ := getString(attrs, "source")
 
-	var input []*model.BOMLine
+	var pc model.ProcessContent
 	var err error
 	fromAttr, ok := attrs["from"]
 	if ok {
 		from := parseBOMLinesAttr(ctx, fromAttr)
-		input, err = c.processKeywordFROM(ctx, from)
+		pc, err = c.processKeywordFROM(ctx, from)
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +133,7 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mode
 		return item, err
 	}
 
-	err = c.buildCompanionForItem(ctx, item, input)
+	err = c.buildCompanionForItem(ctx, item, pc)
 	if err != nil {
 		return nil, err
 	}
