@@ -10,3 +10,7 @@ import (
 func TestDrawingImplementProcessContent(t *testing.T) {
 	var _ model.ProcessContent = (*process.Drawing)(nil)
 }
+
+func TestMarshallJSONForDrawing(t *testing.T) {
+	testMarshallJSON(t, &process.Drawing{})
+}

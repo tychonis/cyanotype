@@ -22,7 +22,8 @@ type Drawing struct {
 }
 
 func (d Drawing) MarshalJSON() ([]byte, error) {
-	return serializer.JSONWithKey(d, "type", "drawing")
+	type Alias Drawing
+	return serializer.JSONWithKey(Alias(d), "type", "drawing")
 }
 
 func (d *Drawing) GetName() string {

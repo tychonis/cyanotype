@@ -15,7 +15,8 @@ type Abstract struct {
 }
 
 func (a Abstract) MarshalJSON() ([]byte, error) {
-	return serializer.JSONWithKey(a, "type", "abstract")
+	type Alias Abstract
+	return serializer.JSONWithKey(Alias(a), "type", "abstract")
 }
 
 func (a *Abstract) GetName() string {

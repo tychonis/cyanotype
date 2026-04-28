@@ -10,3 +10,7 @@ import (
 func TestAbstractImplementProcessContent(t *testing.T) {
 	var _ model.ProcessContent = (*process.Abstract)(nil)
 }
+
+func TestMarshallJSONForAbstract(t *testing.T) {
+	testMarshallJSON(t, &process.Abstract{})
+}

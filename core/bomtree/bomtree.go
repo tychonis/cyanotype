@@ -44,12 +44,15 @@ func count(node *Node, multiplier float64, counter map[string]float64) {
 }
 
 type NodeInfo struct {
-	ID       model.Digest   `json:"id"`
-	Name     string         `json:"name"`
-	Item     model.Digest   `json:"item"`
-	Parent   model.Digest   `json:"parent"`
-	Children []model.Digest `json:"children"`
-	Qty      float64        `json:"qty"`
+	ID        model.Digest   `json:"id"`
+	Name      string         `json:"name"`
+	CoItem    model.Digest   `json:"coitem"`
+	CoProcess model.Digest   `json:"coprocess"`
+	Item      model.Digest   `json:"item"`
+	Process   model.Digest   `json:"process"`
+	Parent    model.Digest   `json:"parent"`
+	Children  []model.Digest `json:"children"`
+	Qty       float64        `json:"qty"`
 }
 
 type TreeDocument struct {
@@ -76,12 +79,15 @@ func export(node *Node, doc *TreeDocument) {
 	}
 
 	info := &NodeInfo{
-		ID:       node.ID,
-		Name:     node.Name,
-		Item:     node.Item.Digest,
-		Parent:   parentID,
-		Children: make([]model.Digest, 0, len(node.Children)),
-		Qty:      node.Qty,
+		ID:        node.ID,
+		Name:      node.Name,
+		CoItem:    node.CoItem.Digest,
+		CoProcess: node.CoProcess.Digest,
+		Item:      node.Item.Digest,
+		Process:   node.Process.Digest,
+		Parent:    parentID,
+		Children:  make([]model.Digest, 0, len(node.Children)),
+		Qty:       node.Qty,
 	}
 	doc.Nodes[node.ID] = info
 
