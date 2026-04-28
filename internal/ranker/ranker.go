@@ -3,36 +3,36 @@ package ranker
 import (
 	"errors"
 
-	"github.com/tychonis/cyanotype/model"
+	"github.com/tychonis/cyanotype/core/process"
 )
 
 var ErrNotFound = errors.New("not found")
 
 type Ranker interface {
-	RankCoProcess([]*model.CoProcess) ([]*model.CoProcess, error)
-	TopCoProcess([]*model.CoProcess) (*model.CoProcess, error)
-	RankProcess([]*model.Process) ([]*model.Process, error)
-	TopProcess([]*model.Process) (*model.Process, error)
+	RankCoProcess([]*process.CoProcess) ([]*process.CoProcess, error)
+	TopCoProcess([]*process.CoProcess) (*process.CoProcess, error)
+	RankProcess([]*process.Process) ([]*process.Process, error)
+	TopProcess([]*process.Process) (*process.Process, error)
 }
 
 type NaiveRanker struct{}
 
-func (r *NaiveRanker) RankCoProcess(cps []*model.CoProcess) ([]*model.CoProcess, error) {
+func (r *NaiveRanker) RankCoProcess(cps []*process.CoProcess) ([]*process.CoProcess, error) {
 	return cps, nil
 }
 
-func (r *NaiveRanker) TopCoProcess(cps []*model.CoProcess) (*model.CoProcess, error) {
+func (r *NaiveRanker) TopCoProcess(cps []*process.CoProcess) (*process.CoProcess, error) {
 	if len(cps) > 0 {
 		return cps[0], nil
 	}
 	return nil, ErrNotFound
 }
 
-func (r *NaiveRanker) RankProcess(ps []*model.Process) ([]*model.Process, error) {
+func (r *NaiveRanker) RankProcess(ps []*process.Process) ([]*process.Process, error) {
 	return ps, nil
 }
 
-func (r *NaiveRanker) TopProcess(ps []*model.Process) (*model.Process, error) {
+func (r *NaiveRanker) TopProcess(ps []*process.Process) (*process.Process, error) {
 	if len(ps) > 0 {
 		return ps[0], nil
 	}

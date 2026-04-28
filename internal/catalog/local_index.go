@@ -7,14 +7,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/model"
 )
 
 type Qualifier = string
 
 type ProcessIndexEntry struct {
-	Processes   []model.ProcessID
-	CoProcesses []model.ProcessID
+	Processes   []process.ProcessID
+	CoProcesses []process.ProcessID
 }
 
 func NewProcessIndexEntry() *ProcessIndexEntry {
@@ -29,8 +30,8 @@ type Index interface {
 
 	Find(q Qualifier) (model.Digest, error)
 	GetType(digest model.Digest) (string, error)
-	GetItemProcesses(item model.ItemID) ([]model.ProcessID, error)
-	GetItemCoProcesses(item model.ItemID) ([]model.ProcessID, error)
+	GetItemProcesses(item model.ItemID) ([]process.ProcessID, error)
+	GetItemCoProcesses(item model.ItemID) ([]process.ProcessID, error)
 
 	ListSymbols() (map[model.Digest]string, error)
 }
@@ -277,14 +278,14 @@ func (idx *LocalIndex) addToProcessIndex(pType string, key string, val string) e
 
 func (idx *LocalIndex) indexProcess(sym model.ConcreteSymbol) error {
 	switch resolved := sym.(type) {
-	case *model.Process:
+	case *process.Process:
 		for _, bomLine := range resolved.Input() {
 			idx.addToProcessIndex("process", bomLine.Item, resolved.Digest)
 		}
 		for _, bomLine := range resolved.Output() {
 			idx.addToProcessIndex("process", bomLine.Item, resolved.Digest)
 		}
-	case *model.CoProcess:
+	case *process.CoProcess:
 		for _, bomLine := range resolved.Input() {
 			idx.addToProcessIndex("coprocess", bomLine.Item, resolved.Digest)
 		}
@@ -298,9 +299,9 @@ func (idx *LocalIndex) indexProcess(sym model.ConcreteSymbol) error {
 // TODO: fix this hack.
 func (idx *LocalIndex) indexType(sym model.ConcreteSymbol) error {
 	switch sym.(type) {
-	case *model.Process:
+	case *process.Process:
 		idx.addToTypeIndex(sym.GetDigest(), "process")
-	case *model.CoProcess:
+	case *process.CoProcess:
 		idx.addToTypeIndex(sym.GetDigest(), "coprocess")
 	case *model.Item:
 		idx.addToTypeIndex(sym.GetDigest(), "item")
@@ -338,7 +339,7 @@ func (idx *LocalIndex) GetType(digest model.Digest) (string, error) {
 	return t, nil
 }
 
-func (idx *LocalIndex) GetItemProcesses(item model.ItemID) ([]model.ProcessID, error) {
+func (idx *LocalIndex) GetItemProcesses(item model.ItemID) ([]process.ProcessID, error) {
 	entry, ok := idx.processIndex[item]
 	if !ok {
 		return nil, ErrNotFound
@@ -346,7 +347,7 @@ func (idx *LocalIndex) GetItemProcesses(item model.ItemID) ([]model.ProcessID, e
 	return entry.Processes, nil
 }
 
-func (idx *LocalIndex) GetItemCoProcesses(item model.ItemID) ([]model.ProcessID, error) {
+func (idx *LocalIndex) GetItemCoProcesses(item model.ItemID) ([]process.ProcessID, error) {
 	entry, ok := idx.processIndex[item]
 	if !ok {
 		return nil, ErrNotFound

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/tychonis/cyanotype/model"
+	"github.com/tychonis/cyanotype/core/process"
 )
 
-func testMarshallJSON[T model.ProcessContent](t *testing.T, sample T) {
+func testMarshallJSON[T process.ProcessContent](t *testing.T, sample T) {
 	data, err := json.Marshal(&sample)
 	if err != nil {
 		t.Error("failed to marshal content.", "type", sample.GetType(), "error", err)

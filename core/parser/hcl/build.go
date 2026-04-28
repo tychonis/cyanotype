@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/tychonis/cyanotype/core/bomtree"
+	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/internal/digest"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -20,11 +21,11 @@ func getImplicitCoItemQualifier(item *model.Item) string {
 	return item.Qualifier + ".__coitem__"
 }
 
-func (c *Core) findProcesses(item *model.Item) ([]*model.Process, error) {
+func (c *Core) findProcesses(item *model.Item) ([]*process.Process, error) {
 	return c.Catalog.GetItemProcesses(item.Digest)
 }
 
-func (c *Core) findCoProcesses(item *model.CoItem) ([]*model.CoProcess, error) {
+func (c *Core) findCoProcesses(item *model.CoItem) ([]*process.CoProcess, error) {
 	return c.Catalog.GetItemCoProcesses(item.Digest)
 }
 

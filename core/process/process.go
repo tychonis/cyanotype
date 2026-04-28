@@ -1,22 +1,63 @@
-package model
+package process
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+
+	"github.com/tychonis/cyanotype/model"
 )
 
-type ProcessID = Digest
-
-type BOMLine struct {
-	Name string  `json:"name" yaml:"name"`
-	Item ItemID  `json:"item" yaml:"item"`
-	Qty  float64 `json:"qty" yaml:"qty"`
-}
+type ProcessID = model.Digest
 
 type ProcessBase struct {
 	Qualifier string         `json:"qualifier" yaml:"qualifier"`
 	Content   ProcessContent `json:"content" yaml:"content"`
 
 	Digest ProcessID `json:"-" yaml:"-"`
+}
+
+func (pb *ProcessBase) UnmarshalJSON(data []byte) error {
+	type Alias ProcessBase
+
+	var aux struct {
+		*Alias
+		Content json.RawMessage `json:"content"`
+	}
+
+	aux.Alias = (*Alias)(pb)
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	var probe struct {
+		Type string `json:"type"`
+	}
+
+	if err := json.Unmarshal(aux.Content, &probe); err != nil {
+		return err
+	}
+
+	switch probe.Type {
+	case "abstract":
+		var v Abstract
+		if err := json.Unmarshal(aux.Content, &v); err != nil {
+			return err
+		}
+		pb.Content = &v
+
+	case "drawing":
+		var v Drawing
+		if err := json.Unmarshal(aux.Content, &v); err != nil {
+			return err
+		}
+		pb.Content = &v
+	default:
+		return fmt.Errorf("unknown content type %q", probe.Type)
+	}
+
+	return nil
 }
 
 type Process struct {
@@ -30,19 +71,19 @@ type CoProcess struct {
 type ProcessContent interface {
 	GetName() string
 	GetType() string
-	GetInput() []*BOMLine
-	GetOutput() []*BOMLine
+	GetInput() []*model.BOMLine
+	GetOutput() []*model.BOMLine
 }
 
-func (p *Process) Input() []*BOMLine {
+func (p *Process) Input() []*model.BOMLine {
 	return p.Content.GetInput()
 }
 
-func (p *Process) Output() []*BOMLine {
+func (p *Process) Output() []*model.BOMLine {
 	return p.Content.GetOutput()
 }
 
-func (p *Process) Resolve(path []string) (Symbol, error) {
+func (p *Process) Resolve(path []string) (model.Symbol, error) {
 	if len(path) == 0 {
 		return p, nil
 	}
@@ -67,15 +108,15 @@ func (p *Process) GetDigest() string {
 	return p.Digest
 }
 
-func (cp *CoProcess) Input() []*BOMLine {
+func (cp *CoProcess) Input() []*model.BOMLine {
 	return cp.Content.GetInput()
 }
 
-func (cp *CoProcess) Output() []*BOMLine {
+func (cp *CoProcess) Output() []*model.BOMLine {
 	return cp.Content.GetOutput()
 }
 
-func (cp *CoProcess) Resolve(path []string) (Symbol, error) {
+func (cp *CoProcess) Resolve(path []string) (model.Symbol, error) {
 	if len(path) == 0 {
 		return cp, nil
 	}

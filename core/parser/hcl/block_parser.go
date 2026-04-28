@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
+	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/internal/cerror"
 	"github.com/tychonis/cyanotype/internal/digest"
 	"github.com/tychonis/cyanotype/internal/stable"
@@ -104,7 +105,7 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mode
 	// ref, _ := getString(attrs, "ref")
 	src, _ := getString(attrs, "source")
 
-	var pc model.ProcessContent
+	var pc process.ProcessContent
 	var err error
 	fromAttr, ok := attrs["from"]
 	if ok {
@@ -113,6 +114,8 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mode
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		pc = &process.Abstract{}
 	}
 
 	item := &model.Item{}
@@ -171,7 +174,7 @@ func (c *Core) parseCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mo
 	return coItem, err
 }
 
-func (c *Core) createProcessContract(process *model.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {
+func (c *Core) createProcessContract(process *process.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {
 	ret := &model.Contract{
 		Qualifier: fmt.Sprintf("%s.%s", process.Qualifier, mode),
 	}
@@ -191,9 +194,9 @@ func (c *Core) resolveBOMLinesAttr(ctx *ParserContext, attr *hcl.Attribute) ([]*
 	return ret, nil
 }
 
-func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *model.Process, err error) {
+func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *process.Process, err error) {
 	name := block.Labels[0]
-	ret = &model.Process{}
+	ret = &process.Process{}
 	ret.Qualifier = ctx.NameToQualifier(name)
 	_, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
@@ -203,9 +206,9 @@ func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (re
 	return
 }
 
-func (c *Core) parseCoProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *model.CoProcess, err error) {
+func (c *Core) parseCoProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *process.CoProcess, err error) {
 	name := block.Labels[0]
-	ret = &model.CoProcess{}
+	ret = &process.CoProcess{}
 	ret.Qualifier = ctx.NameToQualifier(name)
 	_, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {

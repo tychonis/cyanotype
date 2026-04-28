@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -122,14 +123,14 @@ func (idx *RemoteIndex) addToProcessIndex(pType string, key string, val string) 
 
 func (idx *RemoteIndex) indexProcess(sym model.ConcreteSymbol) error {
 	switch resolved := sym.(type) {
-	case *model.Process:
+	case *process.Process:
 		for _, bomLine := range resolved.Input() {
 			idx.addToProcessIndex("process", bomLine.Item, resolved.Digest)
 		}
 		for _, bomLine := range resolved.Output() {
 			idx.addToProcessIndex("process", bomLine.Item, resolved.Digest)
 		}
-	case *model.CoProcess:
+	case *process.CoProcess:
 		for _, bomLine := range resolved.Input() {
 			idx.addToProcessIndex("coprocess", bomLine.Item, resolved.Digest)
 		}
@@ -143,9 +144,9 @@ func (idx *RemoteIndex) indexProcess(sym model.ConcreteSymbol) error {
 // TODO: fix this hack.
 func (idx *RemoteIndex) indexType(sym model.ConcreteSymbol) error {
 	switch sym.(type) {
-	case *model.Process:
+	case *process.Process:
 		idx.addToTypeIndex(sym.GetDigest(), "process")
-	case *model.CoProcess:
+	case *process.CoProcess:
 		idx.addToTypeIndex(sym.GetDigest(), "coprocess")
 	case *model.Item:
 		idx.addToTypeIndex(sym.GetDigest(), "item")
@@ -183,7 +184,7 @@ func (idx *RemoteIndex) GetType(digest model.Digest) (string, error) {
 	return t, nil
 }
 
-func (idx *RemoteIndex) GetItemProcesses(item model.ItemID) ([]model.ProcessID, error) {
+func (idx *RemoteIndex) GetItemProcesses(item model.ItemID) ([]process.ProcessID, error) {
 	entry, ok := idx.ProcessIndex[item]
 	if !ok {
 		return nil, ErrNotFound
@@ -191,7 +192,7 @@ func (idx *RemoteIndex) GetItemProcesses(item model.ItemID) ([]model.ProcessID, 
 	return entry.Processes, nil
 }
 
-func (idx *RemoteIndex) GetItemCoProcesses(item model.ItemID) ([]model.ProcessID, error) {
+func (idx *RemoteIndex) GetItemCoProcesses(item model.ItemID) ([]process.ProcessID, error) {
 	entry, ok := idx.ProcessIndex[item]
 	if !ok {
 		return nil, ErrNotFound

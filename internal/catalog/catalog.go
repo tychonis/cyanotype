@@ -5,13 +5,14 @@ import (
 	"log/slog"
 	"reflect"
 
+	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/internal/serializer"
 	"github.com/tychonis/cyanotype/model"
 )
 
 type ItemProcess = struct {
 	Item    model.ItemID
-	Process model.ProcessID
+	Process process.ProcessID
 }
 
 var ErrNotFound = errors.New("symbol not found")
@@ -91,14 +92,14 @@ func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 		ret.Digest = digest
 		return ret, nil
 	case "process":
-		ret, err := serializer.Deserialize[*model.Process](body)
+		ret, err := serializer.Deserialize[*process.Process](body)
 		if err != nil {
 			return ret, err
 		}
 		ret.Digest = digest
 		return ret, nil
 	case "coprocess":
-		ret, err := serializer.Deserialize[*model.CoProcess](body)
+		ret, err := serializer.Deserialize[*process.CoProcess](body)
 		if err != nil {
 			return ret, err
 		}
@@ -138,22 +139,22 @@ func getSymbols[T model.ConcreteSymbol](c *Catalog, ids []model.Digest) ([]T, er
 	return ret, nil
 }
 
-func (c *Catalog) GetItemProcesses(item model.ItemID) ([]*model.Process, error) {
+func (c *Catalog) GetItemProcesses(item model.ItemID) ([]*process.Process, error) {
 	processes, err := c.index.GetItemProcesses(item)
 	if err != nil {
 		return nil, err
 	}
-	return getSymbols[*model.Process](c, processes)
+	return getSymbols[*process.Process](c, processes)
 }
 
-func (c *Catalog) GetItemCoProcesses(item model.ItemID) ([]*model.CoProcess, error) {
+func (c *Catalog) GetItemCoProcesses(item model.ItemID) ([]*process.CoProcess, error) {
 	coProcesses, err := c.index.GetItemCoProcesses(item)
 	if err != nil {
 		slog.Debug("nocoprocess found", "item", item)
 		return nil, err
 	}
 	slog.Debug("found coprocess", "item", item)
-	return getSymbols[*model.CoProcess](c, coProcesses)
+	return getSymbols[*process.CoProcess](c, coProcesses)
 }
 
 func (c *Catalog) GetCoItems(item model.ItemID) ([]*ItemProcess, error) {

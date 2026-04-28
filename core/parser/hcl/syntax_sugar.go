@@ -77,7 +77,7 @@ func parseBOMLinesAttr(ctx *ParserContext, attr *hcl.Attribute) []*UnresolvedBOM
 	return comps
 }
 
-func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine) (model.ProcessContent, error) {
+func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine) (process.ProcessContent, error) {
 	if len(from) <= 0 {
 		return nil, nil
 	}
@@ -124,7 +124,7 @@ func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine)
 			})
 		}
 	}
-	var ret model.ProcessContent
+	var ret process.ProcessContent
 	if drawing {
 		ret = &process.Drawing{
 			Components: components,

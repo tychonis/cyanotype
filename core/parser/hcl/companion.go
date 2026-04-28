@@ -20,7 +20,7 @@ func (c *Core) buildCompanionCoItem(item *model.Item) (*model.CoItem, error) {
 	return co, c.Catalog.Add(co)
 }
 
-func (c *Core) buildCompanionCoProcess(item *model.Item, coItem *model.CoItem) (*model.CoProcess, error) {
+func (c *Core) buildCompanionCoProcess(item *model.Item, coItem *model.CoItem) (*process.CoProcess, error) {
 	var err error
 	content := &process.Abstract{
 		Input: []*model.BOMLine{
@@ -37,7 +37,7 @@ func (c *Core) buildCompanionCoProcess(item *model.Item, coItem *model.CoItem) (
 		},
 	}
 
-	cp := &model.CoProcess{}
+	cp := &process.CoProcess{}
 	cp.Qualifier = getImplicitCoProcessQualifier(item)
 	cp.Content = content
 	cp.Digest, err = digest.SHA256FromSymbol(cp)
@@ -47,7 +47,7 @@ func (c *Core) buildCompanionCoProcess(item *model.Item, coItem *model.CoItem) (
 	return cp, c.Catalog.Add(cp)
 }
 
-func (c *Core) buildCompanionProcess(item *model.Item, pc model.ProcessContent) (*model.Process, error) {
+func (c *Core) buildCompanionProcess(item *model.Item, pc process.ProcessContent) (*process.Process, error) {
 	var err error
 	switch content := pc.(type) {
 	case *process.Abstract:
@@ -68,7 +68,7 @@ func (c *Core) buildCompanionProcess(item *model.Item, pc model.ProcessContent) 
 		return nil, errors.New("process content type not recognized")
 	}
 
-	p := &model.Process{}
+	p := &process.Process{}
 	p.Qualifier = getImplicitProcessQualifier(item)
 	p.Content = pc
 	p.Digest, err = digest.SHA256FromSymbol(p)
@@ -78,7 +78,7 @@ func (c *Core) buildCompanionProcess(item *model.Item, pc model.ProcessContent) 
 	return p, c.Catalog.Add(p)
 }
 
-func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, pc model.ProcessContent) error {
+func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, pc process.ProcessContent) error {
 	slog.Debug("build companions", "module", ctx.CurrentModule(), "item", item.Qualifier)
 
 	coItem, err := c.buildCompanionCoItem(item)
