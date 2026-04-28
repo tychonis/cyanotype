@@ -6,6 +6,10 @@ import (
 	"github.com/tychonis/cyanotype/model"
 )
 
+func init() {
+	processContentTypes["drawing"] = func() ProcessContent { return &Drawing{} }
+}
+
 type Component struct {
 	Name        string       `json:"name" yaml:"name"`
 	CoItem      model.ItemID `json:"coitem" yaml:"coitem"`

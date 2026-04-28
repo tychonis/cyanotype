@@ -8,6 +8,8 @@ import (
 	"github.com/tychonis/cyanotype/model"
 )
 
+var processContentTypes = make(map[string]func() ProcessContent)
+
 type ProcessID = model.Digest
 
 type ProcessBase struct {
@@ -39,24 +41,17 @@ func (pb *ProcessBase) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	switch probe.Type {
-	case "abstract":
-		var v Abstract
-		if err := json.Unmarshal(aux.Content, &v); err != nil {
-			return err
-		}
-		pb.Content = &v
-
-	case "drawing":
-		var v Drawing
-		if err := json.Unmarshal(aux.Content, &v); err != nil {
-			return err
-		}
-		pb.Content = &v
-	default:
+	ctor, ok := processContentTypes[probe.Type]
+	if !ok {
 		return fmt.Errorf("unknown content type %q", probe.Type)
 	}
 
+	v := ctor()
+	if err := json.Unmarshal(aux.Content, v); err != nil {
+		return err
+	}
+
+	pb.Content = v
 	return nil
 }
 

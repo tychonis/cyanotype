@@ -6,6 +6,10 @@ import (
 	"github.com/tychonis/cyanotype/model"
 )
 
+func init() {
+	processContentTypes["abstract"] = func() ProcessContent { return &Abstract{} }
+}
+
 type Abstract struct {
 	Name   string           `json:"name" yaml:"name"`
 	Input  []*model.BOMLine `json:"input" yaml:"input"`
