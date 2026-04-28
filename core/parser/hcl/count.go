@@ -16,8 +16,8 @@ type Component struct {
 	Qty  float64
 }
 
-func (c Core) Count(root []string) (map[string]float64, error) {
-	sym, err := c.Catalog.Find("." + root[0])
+func (c Core) Count(root string) (map[string]float64, error) {
+	sym, err := c.Catalog.Find(root)
 	if err != nil {
 		slog.Info("Unknown symbol.", "error", err, "ref", root)
 		return nil, err

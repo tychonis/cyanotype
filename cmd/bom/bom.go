@@ -2,7 +2,6 @@ package bom
 
 import (
 	"log/slog"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -36,9 +35,7 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	rootPath := strings.Split(rootPart, ".")
-
-	counter, err := core.Count(rootPath)
+	counter, err := core.Count(rootPart)
 	if err != nil {
 		slog.Warn("Error counting", "error", err)
 	}
