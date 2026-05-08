@@ -10,6 +10,8 @@ func init() {
 	processContentTypes["drawing"] = func() ProcessContent { return &Drawing{} }
 }
 
+const DRAWING = "drawing"
+
 type Component struct {
 	Name        string       `json:"name" yaml:"name"`
 	CoItem      model.ItemID `json:"coitem" yaml:"coitem"`
@@ -27,7 +29,7 @@ type Drawing struct {
 
 func (d Drawing) MarshalJSON() ([]byte, error) {
 	type Alias Drawing
-	return serializer.JSONWithKey(Alias(d), "type", "drawing")
+	return serializer.JSONWithKey(Alias(d), "type", DRAWING)
 }
 
 func (d *Drawing) GetName() string {
@@ -35,7 +37,7 @@ func (d *Drawing) GetName() string {
 }
 
 func (d *Drawing) GetType() string {
-	return "drawing"
+	return DRAWING
 }
 
 func (d *Drawing) GetInput() []*model.BOMLine {

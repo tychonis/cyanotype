@@ -10,6 +10,8 @@ func init() {
 	processContentTypes["abstract"] = func() ProcessContent { return &Abstract{} }
 }
 
+const ABSTRACT = "abstract"
+
 type Abstract struct {
 	Name   string           `json:"name" yaml:"name"`
 	Input  []*model.BOMLine `json:"input" yaml:"input"`
@@ -20,7 +22,7 @@ type Abstract struct {
 
 func (a Abstract) MarshalJSON() ([]byte, error) {
 	type Alias Abstract
-	return serializer.JSONWithKey(Alias(a), "type", "abstract")
+	return serializer.JSONWithKey(Alias(a), "type", ABSTRACT)
 }
 
 func (a *Abstract) GetName() string {
@@ -28,7 +30,7 @@ func (a *Abstract) GetName() string {
 }
 
 func (a *Abstract) GetType() string {
-	return "abstract"
+	return ABSTRACT
 }
 
 func (a *Abstract) GetInput() []*model.BOMLine {

@@ -1,8 +1,9 @@
 package hcl
 
 import (
+	"github.com/tychonis/cyanotype/core/ranker"
+
 	"github.com/tychonis/cyanotype/internal/catalog"
-	"github.com/tychonis/cyanotype/internal/ranker"
 	"github.com/tychonis/cyanotype/internal/symbols"
 )
 
