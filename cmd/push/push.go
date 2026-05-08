@@ -9,7 +9,7 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "push [filename]",
+	Use:   "push [filename] [server] [tag]",
 	Short: "Adhoc implementation saving catalog to remote",
 	Run:   run,
 }
