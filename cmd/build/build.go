@@ -10,7 +10,7 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "build [filename]",
+	Use:   "build <path>",
 	Short: "Build .bpc folder from bpo",
 	Run:   run,
 }

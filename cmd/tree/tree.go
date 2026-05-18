@@ -12,7 +12,7 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "tree [filename] [bom root]",
+	Use:   "tree <path> <root>",
 	Short: "Build bom tree from bpo",
 	Run:   run,
 	Args:  cobra.MinimumNArgs(2),

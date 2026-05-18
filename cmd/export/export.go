@@ -11,7 +11,7 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "export [filename] [bom root]",
+	Use:   "export <path> <root>",
 	Short: "Export catalog from bpo",
 	Run:   run,
 }
