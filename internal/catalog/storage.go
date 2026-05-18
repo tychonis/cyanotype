@@ -32,6 +32,13 @@ func (ls *LocalStorage) Save(digest model.Digest, data []byte) error {
 	if err != nil {
 		return err
 	}
+
+	if _, err := os.Stat(path); err == nil {
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
 	return atomicWrite(path, data, 0o644)
 }
 
