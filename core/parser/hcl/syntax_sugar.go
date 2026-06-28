@@ -17,10 +17,8 @@ type UnresolvedBOMLine struct {
 	Ref          Ref     `json:"ref" yaml:"ref"`
 	Qty          float64 `json:"qty" yaml:"qty"`
 	HasPlacement bool
-	Placement    [7]float64 `json:"placement" yaml:"placement"`
+	Placement    model.Placement `json:"placement" yaml:"placement"`
 }
-
-var IdentityPlacement = [7]float64{0, 0, 0, 1, 0, 0, 0}
 
 func readBOMLine(ctx *ParserContext, expr *hclsyntax.ObjectConsExpr) *UnresolvedBOMLine {
 	ret := &UnresolvedBOMLine{
@@ -47,8 +45,11 @@ func readBOMLine(ctx *ParserContext, expr *hclsyntax.ObjectConsExpr) *Unresolved
 				slog.Warn("incorrect format for placement")
 				continue
 			}
-			for i, num := range slice {
-				ret.Placement[i], _ = num.AsBigFloat().Float64()
+			for i, num := range slice[:4] {
+				ret.Placement.Rotation[i], _ = num.AsBigFloat().Float64()
+			}
+			for i, num := range slice[4:7] {
+				ret.Placement.Position[i], _ = num.AsBigFloat().Float64()
 			}
 		}
 	}
@@ -108,13 +109,13 @@ func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine)
 		if drawing {
 			if !comp.HasPlacement {
 				slog.Warn("component has no placement for drawing", "component", comp.Name, "ref", comp.Ref)
-				comp.Placement = IdentityPlacement
+				comp.Placement = model.IdentityPlacement
 			}
 			components = append(components, &process.Component{
 				Name:        comp.Name,
 				CoItem:      coItems[0].Item,
-				Rotation:    [4]float64(comp.Placement[:4]),
-				Translation: [3]float64(comp.Placement[4:]),
+				Rotation:    model.Quaternion(comp.Placement.Rotation),
+				Translation: model.Vec3(comp.Placement.Position),
 			})
 		} else {
 			input = append(input, &model.BOMLine{
