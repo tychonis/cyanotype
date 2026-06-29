@@ -57,7 +57,7 @@ func (c *Catalog) Save(endpoint string, tag string) error {
 		return err
 	}
 
-	storage := NewAPIStore(endpoint + "/obj")
+	storage := NewAPIStore(endpoint + "/definition")
 	symbols, err := c.index.ListSymbols()
 	if err != nil {
 		return err
