@@ -114,8 +114,8 @@ func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine)
 			components = append(components, &process.Component{
 				Name:        comp.Name,
 				CoItem:      coItems[0].Item,
-				Rotation:    model.Quaternion(comp.Placement.Rotation),
-				Translation: model.Vec3(comp.Placement.Position),
+				Rotation:    &comp.Placement.Rotation,
+				Translation: &comp.Placement.Position,
 			})
 		} else {
 			input = append(input, &model.BOMLine{

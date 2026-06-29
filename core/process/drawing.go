@@ -13,10 +13,10 @@ func init() {
 const DRAWING = "drawing"
 
 type Component struct {
-	Name        string           `json:"name" yaml:"name"`
-	CoItem      model.ItemID     `json:"coitem" yaml:"coitem"`
-	Rotation    model.Quaternion `json:"rotation" yaml:"rotation"`
-	Translation model.Vec3       `json:"translation" yaml:"translation"`
+	Name        string            `json:"name" yaml:"name"`
+	CoItem      model.ItemID      `json:"coitem" yaml:"coitem"`
+	Rotation    *model.Quaternion `json:"rotation" yaml:"rotation"`
+	Translation *model.Vec3       `json:"translation" yaml:"translation"`
 }
 
 type Drawing struct {
