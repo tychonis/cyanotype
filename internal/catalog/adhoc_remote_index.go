@@ -30,7 +30,12 @@ func RemoteIndexFromLocal(l *LocalIndex) *RemoteIndex {
 }
 
 func NewRemoteIndex(endpoint string, token string) *RemoteIndex {
-	resp, err := http.Get(endpoint)
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return initRemoteIndex(endpoint, token)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return initRemoteIndex(endpoint, token)
 	}
@@ -61,7 +66,15 @@ func (idx *RemoteIndex) Save() error {
 	if err != nil {
 		return err
 	}
-	resp, err := http.Post(idx.Endpoint, "application/json", bytes.NewReader(content))
+	req, err := http.NewRequest("POST", idx.Endpoint, bytes.NewReader(content))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if idx.token != "" {
+		req.Header.Set("Authorization", "Bearer "+idx.token)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
