@@ -39,7 +39,7 @@ func (c *Catalog) SaveMetadata(endpoint string, tag string) error {
 	return nil
 }
 
-func (c *Catalog) Save(endpoint string, tag string) error {
+func (c *Catalog) Save(endpoint string, token string, tag string) error {
 	localIndex, ok := c.index.(*LocalIndex)
 	if !ok {
 		return errors.New("can only save local index now")
@@ -57,7 +57,7 @@ func (c *Catalog) Save(endpoint string, tag string) error {
 		return err
 	}
 
-	storage := NewAPIStore(endpoint + "/definition")
+	storage := NewAPIStore(endpoint+"/definition", token)
 	symbols, err := c.index.ListSymbols()
 	if err != nil {
 		return err

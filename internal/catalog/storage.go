@@ -75,17 +75,28 @@ func (m *MemoryStore) Load(digest model.Digest) ([]byte, error) {
 
 type APIStore struct {
 	endpoint string
+	token    string
 }
 
-func NewAPIStore(endpoint string) *APIStore {
+func NewAPIStore(endpoint string, token string) *APIStore {
 	return &APIStore{
 		endpoint: endpoint,
+		token:    token,
 	}
 }
 
 func (a *APIStore) Save(digest model.Digest, data []byte) error {
 	url := fmt.Sprintf("%s/%s", a.endpoint, digest)
-	resp, err := http.Post(url, "application/json", bytes.NewReader(data))
+	req, err := http.NewRequest("POST", url, bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if a.token != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", a.token))
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -97,7 +108,14 @@ func (a *APIStore) Save(digest model.Digest, data []byte) error {
 
 func (a *APIStore) Load(digest model.Digest) ([]byte, error) {
 	url := fmt.Sprintf("%s/%s", a.endpoint, digest)
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	if a.token != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", a.token))
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

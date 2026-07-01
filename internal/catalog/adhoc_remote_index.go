@@ -18,6 +18,7 @@ type RemoteIndex struct {
 	TypeIndex      map[model.ItemID]string             `json:"type_index"`
 
 	Endpoint string `json:"-"`
+	token    string `json:"-"`
 }
 
 func RemoteIndexFromLocal(l *LocalIndex) *RemoteIndex {
@@ -28,10 +29,10 @@ func RemoteIndexFromLocal(l *LocalIndex) *RemoteIndex {
 	}
 }
 
-func NewRemoteIndex(endpoint string) *RemoteIndex {
+func NewRemoteIndex(endpoint string, token string) *RemoteIndex {
 	resp, err := http.Get(endpoint)
 	if err != nil {
-		return initRemoteIndex(endpoint)
+		return initRemoteIndex(endpoint, token)
 	}
 	defer resp.Body.Close()
 
@@ -39,18 +40,19 @@ func NewRemoteIndex(endpoint string) *RemoteIndex {
 	dec := json.NewDecoder(resp.Body)
 	err = dec.Decode(&idx)
 	if err != nil {
-		return initRemoteIndex(endpoint)
+		return initRemoteIndex(endpoint, token)
 	}
 	return &idx
 }
 
-func initRemoteIndex(endpoint string) *RemoteIndex {
+func initRemoteIndex(endpoint string, token string) *RemoteIndex {
 	return &RemoteIndex{
 		QualifierIndex: make(map[Qualifier]model.Digest),
 		ProcessIndex:   make(map[Qualifier]*ProcessIndexEntry),
 		TypeIndex:      make(map[model.Digest]string),
 
 		Endpoint: endpoint,
+		token:    token,
 	}
 }
 

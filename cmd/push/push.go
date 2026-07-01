@@ -2,6 +2,7 @@ package push
 
 import (
 	"log/slog"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -22,6 +23,7 @@ func run(cmd *cobra.Command, args []string) {
 
 	server := args[1]
 	tag := args[2]
+	token := os.Getenv("BOMHUB_TOKEN")
 
 	core := hcl.NewCore("memory")
 	err := core.Build(bpoPath)
@@ -30,7 +32,7 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	err = core.SaveCatalog(server, tag)
+	err = core.SaveCatalog(server, token, tag)
 	if err != nil {
 		slog.Warn("Failed to save catalog.", "error", err)
 		return
