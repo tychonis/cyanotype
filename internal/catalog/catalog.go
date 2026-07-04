@@ -55,7 +55,40 @@ func NewRemoteCatalog(endpoint string, token string, tag string) *Catalog {
 	return cat
 }
 
+func (c *Catalog) UpdateSymbol(old model.ConcreteSymbol, new model.ConcreteSymbol) error {
+	switch oldSym := old.(type) {
+	case *model.Item:
+		newSym, ok := new.(*model.Item)
+		if !ok {
+			return errors.New("type mismatch: expected Item")
+		}
+		coProcesses, err := c.GetItemCoProcesses(oldSym.Digest)
+		if err != nil {
+			return err
+		}
+		for _, cp := range coProcesses {
+			newCp := *cp
+			for _, bomLine := range newCp.Input() {
+				if bomLine.Item == oldSym.Digest {
+					bomLine.Item = newSym.Digest
+				}
+			}
+			err := c.Add(&newCp)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (c *Catalog) Add(sym model.ConcreteSymbol) error {
+	oldSym, err := c.Find(sym.GetQualifier())
+	if err == nil {
+		if oldSym.GetDigest() == sym.GetDigest() {
+			return nil
+		}
+	}
 	body, err := serializer.Serialize(sym)
 	if err != nil {
 		return err

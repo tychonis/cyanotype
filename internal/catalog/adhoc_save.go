@@ -15,7 +15,7 @@ type CatalogMetadata struct {
 	UniqueParts int    `json:"unique_parts"`
 }
 
-func (c *Catalog) SaveMetadata(endpoint string, tag string) error {
+func (c *Catalog) SaveCatalogMetadata(endpoint string, tag string) error {
 	metaDataEndpoint := fmt.Sprintf("%s/workspace/%s", endpoint, tag)
 	symbols, err := c.index.ListSymbols()
 	if err != nil {
@@ -45,7 +45,7 @@ func (c *Catalog) Save(endpoint string, token string, tag string) error {
 		return errors.New("can only save local index now")
 	}
 
-	err := c.SaveMetadata(endpoint, tag)
+	err := c.SaveCatalogMetadata(endpoint, tag)
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func (c *Catalog) Save(endpoint string, token string, tag string) error {
 		return err
 	}
 
-	storage := NewAPIStore(endpoint+"/definition", token)
+	storage := NewAPIStore(endpoint, token)
 	symbols, err := c.index.ListSymbols()
 	if err != nil {
 		return err
