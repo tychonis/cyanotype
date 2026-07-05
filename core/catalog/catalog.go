@@ -1,9 +1,11 @@
 package catalog
 
 import (
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"reflect"
+	"time"
 
 	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/internal/serializer"
@@ -20,6 +22,8 @@ var ErrNotFound = errors.New("symbol not found")
 type Catalog struct {
 	storage Storage
 	index   Index
+
+	sequence int
 }
 
 func NewCatalog(catalogType string) *Catalog {
@@ -82,6 +86,22 @@ func (c *Catalog) UpdateSymbol(old model.ConcreteSymbol, new model.ConcreteSymbo
 	return nil
 }
 
+func (c *Catalog) GetRank() *Rank {
+	defer func() {
+		c.sequence += 1
+	}()
+	return &Rank{
+		Sequence: c.sequence,
+		WallTime: time.Now().UnixNano(),
+	}
+}
+
+func (c *Catalog) GenerateMetadata(sym model.ConcreteSymbol) *Metadata {
+	return &Metadata{
+		Rank: c.GetRank(),
+	}
+}
+
 func (c *Catalog) Add(sym model.ConcreteSymbol) error {
 	oldSym, err := c.Find(sym.GetQualifier())
 	if err == nil {
@@ -89,11 +109,21 @@ func (c *Catalog) Add(sym model.ConcreteSymbol) error {
 			return nil
 		}
 	}
-	body, err := serializer.Serialize(sym)
+
+	err = c.index.Index(sym)
 	if err != nil {
 		return err
 	}
-	err = c.index.Index(sym)
+	metadata := c.GenerateMetadata(sym)
+	body, err := json.Marshal(metadata)
+	if err != nil {
+		return err
+	}
+	err = c.storage.SaveMetadata(sym.GetDigest(), body)
+	if err != nil {
+		return err
+	}
+	body, err = serializer.Serialize(sym)
 	if err != nil {
 		return err
 	}
@@ -226,4 +256,14 @@ func (c *Catalog) GetItems(coItem model.ItemID) ([]*ItemProcess, error) {
 		})
 	}
 	return ret, nil
+}
+
+func (c *Catalog) GetMetadata(digest model.Digest) (*Metadata, error) {
+	data, err := c.storage.LoadMetadata(digest)
+	if err != nil {
+		return nil, err
+	}
+	metadata := &Metadata{}
+	err = json.Unmarshal(data, metadata)
+	return metadata, err
 }

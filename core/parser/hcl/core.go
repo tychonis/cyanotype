@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
+	"github.com/tychonis/cyanotype/core/catalog"
 	"github.com/tychonis/cyanotype/core/ranker"
-	"github.com/tychonis/cyanotype/internal/catalog"
 	"github.com/tychonis/cyanotype/internal/symbols"
 	"github.com/tychonis/cyanotype/model"
 )

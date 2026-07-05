@@ -4,58 +4,44 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/tychonis/cyanotype/core/catalog"
 	"github.com/tychonis/cyanotype/core/process"
-	"github.com/tychonis/cyanotype/internal/catalog"
 )
 
 type CatalogRanker struct {
 	catalog *catalog.Catalog
 }
 
-type Rank struct {
-	Sequence int
-	WallTime int64
-}
-
-func ZeroRank() *Rank {
-	return &Rank{Sequence: 0, WallTime: 0}
-}
-
-func cmpRank(r1, r2 Rank) int {
-	if r1.Sequence != r2.Sequence {
-		return r1.Sequence - r2.Sequence
-	}
-	if r1.WallTime != r2.WallTime {
-		if r1.WallTime < r2.WallTime {
-			return -1
-		}
-		return 1
-	}
-	return 0
-}
-
-func (r *CatalogRanker) GetProcessRank(p *process.Process) (*Rank, error) {
+func (r *CatalogRanker) GetProcessRank(p *process.Process) (*catalog.Rank, error) {
 	sym, err := r.catalog.Get(p.Digest)
 	if err != nil {
-		return ZeroRank(), err
+		return catalog.ZeroRank(), err
 	}
 	p, ok := sym.(*process.Process)
 	if !ok {
-		return ZeroRank(), fmt.Errorf("symbol is not a process")
+		return catalog.ZeroRank(), fmt.Errorf("symbol is not a process")
 	}
-	return ZeroRank(), nil
+	metadata, err := r.catalog.GetMetadata(p.Digest)
+	if err != nil {
+		return catalog.ZeroRank(), err
+	}
+	return metadata.Rank, nil
 }
 
-func (r *CatalogRanker) GetCoProcessRank(cp *process.CoProcess) (*Rank, error) {
+func (r *CatalogRanker) GetCoProcessRank(cp *process.CoProcess) (*catalog.Rank, error) {
 	sym, err := r.catalog.Get(cp.Digest)
 	if err != nil {
-		return ZeroRank(), err
+		return catalog.ZeroRank(), err
 	}
 	cp, ok := sym.(*process.CoProcess)
 	if !ok {
-		return ZeroRank(), fmt.Errorf("symbol is not a coprocess")
+		return catalog.ZeroRank(), fmt.Errorf("symbol is not a coprocess")
 	}
-	return ZeroRank(), nil
+	metadata, err := r.catalog.GetMetadata(cp.Digest)
+	if err != nil {
+		return catalog.ZeroRank(), err
+	}
+	return metadata.Rank, nil
 }
 
 func (r *CatalogRanker) RankCoProcess(cps []*process.CoProcess) ([]*process.CoProcess, error) {
@@ -67,7 +53,7 @@ func (r *CatalogRanker) RankCoProcess(cps []*process.CoProcess) ([]*process.CoPr
 			return false
 		}
 
-		return cmpRank(*rankI, *rankJ) < 0
+		return catalog.CmpRank(*rankI, *rankJ) < 0
 	})
 	return cps, nil
 }
@@ -92,7 +78,7 @@ func (r *CatalogRanker) RankProcess(ps []*process.Process) ([]*process.Process, 
 			return false
 		}
 
-		return cmpRank(*rankI, *rankJ) < 0
+		return catalog.CmpRank(*rankI, *rankJ) < 0
 	})
 	return ps, nil
 }
