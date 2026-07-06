@@ -18,7 +18,8 @@ type RemoteIndex struct {
 	TypeIndex      map[model.ItemID]string             `json:"type_index"`
 
 	Endpoint string `json:"-"`
-	token    string `json:"-"`
+
+	client *http.Client `json:"-"`
 }
 
 func RemoteIndexFromLocal(l *LocalIndex) *RemoteIndex {
@@ -29,15 +30,14 @@ func RemoteIndexFromLocal(l *LocalIndex) *RemoteIndex {
 	}
 }
 
-func NewRemoteIndex(endpoint string, token string) *RemoteIndex {
+func NewRemoteIndex(endpoint string, client *http.Client) *RemoteIndex {
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
-		return initRemoteIndex(endpoint, token)
+		return initRemoteIndex(endpoint, client)
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
-		return initRemoteIndex(endpoint, token)
+		return initRemoteIndex(endpoint, client)
 	}
 	defer resp.Body.Close()
 
@@ -45,19 +45,20 @@ func NewRemoteIndex(endpoint string, token string) *RemoteIndex {
 	dec := json.NewDecoder(resp.Body)
 	err = dec.Decode(&idx)
 	if err != nil {
-		return initRemoteIndex(endpoint, token)
+		return initRemoteIndex(endpoint, client)
 	}
 	return &idx
 }
 
-func initRemoteIndex(endpoint string, token string) *RemoteIndex {
+func initRemoteIndex(endpoint string, client *http.Client) *RemoteIndex {
 	return &RemoteIndex{
 		QualifierIndex: make(map[Qualifier]model.Digest),
 		ProcessIndex:   make(map[Qualifier]*ProcessIndexEntry),
 		TypeIndex:      make(map[model.Digest]string),
 
 		Endpoint: endpoint,
-		token:    token,
+
+		client: client,
 	}
 }
 
@@ -71,10 +72,7 @@ func (idx *RemoteIndex) Save() error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if idx.token != "" {
-		req.Header.Set("Authorization", "Bearer "+idx.token)
-	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := idx.client.Do(req)
 	if err != nil {
 		return err
 	}

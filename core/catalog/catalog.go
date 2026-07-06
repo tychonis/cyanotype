@@ -52,9 +52,10 @@ func NewMemoryCatalog() *Catalog {
 
 // Adhoc hardcoded remote catalog.
 func NewRemoteCatalog(endpoint string, token string, tag string) *Catalog {
+	client := NewClient(token)
 	cat := &Catalog{
-		storage: NewAPIStore(endpoint+"/definition", token),
-		index:   NewRemoteIndex(endpoint+"/bom_index/"+tag, token),
+		storage: NewAPIStore(endpoint+"/definition", client),
+		index:   NewRemoteIndex(endpoint+"/bom_index/"+tag, client),
 	}
 	return cat
 }

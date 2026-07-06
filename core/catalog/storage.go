@@ -116,13 +116,14 @@ func (m *MemoryStore) LoadMetadata(digest model.Digest) ([]byte, error) {
 
 type APIStore struct {
 	endpoint string
-	token    string
+
+	client *http.Client
 }
 
-func NewAPIStore(endpoint string, token string) *APIStore {
+func NewAPIStore(endpoint string, client *http.Client) *APIStore {
 	return &APIStore{
 		endpoint: strings.TrimSuffix(endpoint, "/"),
-		token:    token,
+		client:   client,
 	}
 }
 
@@ -133,11 +134,8 @@ func (a *APIStore) Save(digest model.Digest, data []byte) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if a.token != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", a.token))
-	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := a.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -149,14 +147,7 @@ func (a *APIStore) Save(digest model.Digest, data []byte) error {
 
 func (a *APIStore) Load(digest model.Digest) ([]byte, error) {
 	url := fmt.Sprintf("%s/definition/%s", a.endpoint, digest)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	if a.token != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", a.token))
-	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := a.client.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -174,11 +165,8 @@ func (a *APIStore) SaveMetadata(digest model.Digest, metadata []byte) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if a.token != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", a.token))
-	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := a.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -190,14 +178,7 @@ func (a *APIStore) SaveMetadata(digest model.Digest, metadata []byte) error {
 
 func (a *APIStore) LoadMetadata(digest model.Digest) ([]byte, error) {
 	url := fmt.Sprintf("%s/metadata/%s", a.endpoint, digest)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	if a.token != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", a.token))
-	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := a.client.Get(url)
 	if err != nil {
 		return nil, err
 	}

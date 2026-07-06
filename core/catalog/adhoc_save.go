@@ -11,11 +11,36 @@ import (
 )
 
 type CatalogMetadata struct {
-	Name        string `json:"name"`
-	UniqueParts int    `json:"unique_parts"`
+	Name          string `json:"name"`
+	Version       string `json:"version"`
+	SourceVersion string `json:"source_version"`
+	SourceState   string `json:"source_state"`
+	Sequence      int    `json:"sequence"`
+	UniqueParts   int    `json:"unique_parts"`
 }
 
-func (c *Catalog) SaveCatalogMetadata(endpoint string, tag string) error {
+func GetCatalogMetadata(client *http.Client, endpoint string, tag string) (*CatalogMetadata, error) {
+	metaDataEndpoint := fmt.Sprintf("%s/workspace/%s", endpoint, tag)
+	resp, err := client.Get(metaDataEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("error response")
+	}
+
+	var metadata CatalogMetadata
+	err = json.NewDecoder(resp.Body).Decode(&metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	return &metadata, nil
+}
+
+func (c *Catalog) SaveCatalogMetadata(client *http.Client, endpoint string, tag string) error {
 	metaDataEndpoint := fmt.Sprintf("%s/workspace/%s", endpoint, tag)
 	symbols, err := c.index.ListSymbols()
 	if err != nil {
@@ -23,13 +48,14 @@ func (c *Catalog) SaveCatalogMetadata(endpoint string, tag string) error {
 	}
 	metadata := CatalogMetadata{
 		Name:        "placeholder",
-		UniqueParts: len(symbols),
+		UniqueParts: len(symbols) / 4,
+		Sequence:    c.sequence,
 	}
 	content, err := json.Marshal(metadata)
 	if err != nil {
 		return err
 	}
-	resp, err := http.Post(metaDataEndpoint, "application/json", bytes.NewReader(content))
+	resp, err := client.Post(metaDataEndpoint, "application/json", bytes.NewReader(content))
 	if err != nil {
 		return err
 	}
@@ -45,7 +71,8 @@ func (c *Catalog) Save(endpoint string, token string, tag string) error {
 		return errors.New("can only save local index now")
 	}
 
-	err := c.SaveCatalogMetadata(endpoint, tag)
+	client := NewClient(token)
+	err := c.SaveCatalogMetadata(client, endpoint, tag)
 	if err != nil {
 		return err
 	}
@@ -57,7 +84,7 @@ func (c *Catalog) Save(endpoint string, token string, tag string) error {
 		return err
 	}
 
-	storage := NewAPIStore(endpoint, token)
+	storage := NewAPIStore(endpoint, client)
 	symbols, err := c.index.ListSymbols()
 	if err != nil {
 		return err
