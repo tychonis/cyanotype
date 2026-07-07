@@ -15,7 +15,6 @@ import (
 type RemoteIndex struct {
 	QualifierIndex map[Qualifier]model.ItemID          `json:"qualifier_index"`
 	ProcessIndex   map[model.ItemID]*ProcessIndexEntry `json:"process_index"`
-	TypeIndex      map[model.ItemID]string             `json:"type_index"`
 
 	Endpoint string `json:"-"`
 
@@ -26,7 +25,6 @@ func RemoteIndexFromLocal(l *LocalIndex) *RemoteIndex {
 	return &RemoteIndex{
 		QualifierIndex: l.qualifierIndex,
 		ProcessIndex:   l.processIndex,
-		TypeIndex:      l.typeIndex,
 	}
 }
 
@@ -52,9 +50,8 @@ func NewRemoteIndex(endpoint string, client *http.Client) *RemoteIndex {
 
 func initRemoteIndex(endpoint string, client *http.Client) *RemoteIndex {
 	return &RemoteIndex{
-		QualifierIndex: make(map[Qualifier]model.Digest),
-		ProcessIndex:   make(map[Qualifier]*ProcessIndexEntry),
-		TypeIndex:      make(map[model.Digest]string),
+		QualifierIndex: make(map[Qualifier]model.ItemID),
+		ProcessIndex:   make(map[model.ItemID]*ProcessIndexEntry),
 
 		Endpoint: endpoint,
 
@@ -90,18 +87,6 @@ func (idx *RemoteIndex) addToMainIndex(key string, val string) error {
 		}
 	}
 	idx.QualifierIndex[key] = val
-
-	return nil
-}
-
-func (idx *RemoteIndex) addToTypeIndex(key string, val string) error {
-	oldVal, ok := idx.TypeIndex[key]
-	if ok {
-		if oldVal == val {
-			return nil
-		}
-	}
-	idx.TypeIndex[key] = val
 
 	return nil
 }
@@ -154,31 +139,12 @@ func (idx *RemoteIndex) indexProcess(sym model.ConcreteSymbol) error {
 	return nil
 }
 
-// TODO: fix this hack.
-func (idx *RemoteIndex) indexType(sym model.ConcreteSymbol) error {
-	switch sym.(type) {
-	case *process.Process:
-		idx.addToTypeIndex(sym.GetDigest(), "process")
-	case *process.CoProcess:
-		idx.addToTypeIndex(sym.GetDigest(), "coprocess")
-	case *model.Item:
-		idx.addToTypeIndex(sym.GetDigest(), "item")
-	case *model.CoItem:
-		idx.addToTypeIndex(sym.GetDigest(), "coitem")
-	}
-	return nil
-}
-
 func (idx *RemoteIndex) Index(sym model.ConcreteSymbol) error {
 	err := idx.addToMainIndex(sym.GetQualifier(), sym.GetDigest())
 	if err != nil {
 		return err
 	}
-	err = idx.indexProcess(sym)
-	if err != nil {
-		return err
-	}
-	return idx.indexType(sym)
+	return idx.indexProcess(sym)
 }
 
 func (idx *RemoteIndex) Find(q Qualifier) (model.Digest, error) {
@@ -187,14 +153,6 @@ func (idx *RemoteIndex) Find(q Qualifier) (model.Digest, error) {
 		return "", ErrNotFound
 	}
 	return digest, nil
-}
-
-func (idx *RemoteIndex) GetType(digest model.Digest) (string, error) {
-	t, ok := idx.TypeIndex[digest]
-	if !ok {
-		return "", ErrNotFound
-	}
-	return t, nil
 }
 
 func (idx *RemoteIndex) GetItemProcesses(item model.ItemID) ([]process.ProcessID, error) {
@@ -211,8 +169,4 @@ func (idx *RemoteIndex) GetItemCoProcesses(item model.ItemID) ([]process.Process
 		return nil, ErrNotFound
 	}
 	return entry.CoProcesses, nil
-}
-
-func (idx *RemoteIndex) ListSymbols() (map[model.Digest]string, error) {
-	return idx.TypeIndex, nil
 }

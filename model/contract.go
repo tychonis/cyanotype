@@ -9,6 +9,7 @@ import (
 type ContractID = Digest
 
 type Contract struct {
+	Type      string     `json:"type" yaml:"type"`
 	Qualifier string     `json:"qualifier" yaml:"qualifier"`
 	Name      string     `json:"name" yaml:"name"`
 	Params    stable.Map `json:"params" yaml:"params"`
@@ -34,4 +35,8 @@ func (c *Contract) GetQualifier() string {
 
 func (c *Contract) GetDigest() string {
 	return c.Digest
+}
+
+func (c *Contract) GetType() string {
+	return c.Type
 }

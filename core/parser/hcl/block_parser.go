@@ -119,6 +119,7 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mode
 	}
 
 	item := &model.Item{}
+	item.Type = "item"
 	item.Qualifier = ctx.NameToQualifier(name)
 	item.Content = &model.ItemContent{
 		Name:       name,
@@ -158,6 +159,7 @@ func (c *Core) parseCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mo
 	var err error
 
 	coItem := &model.CoItem{}
+	coItem.Type = "coitem"
 	coItem.Qualifier = ctx.NameToQualifier(name)
 	coItem.Content = &model.ItemContent{
 		Name:       name,
@@ -197,6 +199,7 @@ func (c *Core) resolveBOMLinesAttr(ctx *ParserContext, attr *hcl.Attribute) ([]*
 func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *process.Process, err error) {
 	name := block.Labels[0]
 	ret = &process.Process{}
+	ret.Type = "process"
 	ret.Qualifier = ctx.NameToQualifier(name)
 	_, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
@@ -209,6 +212,7 @@ func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (re
 func (c *Core) parseCoProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *process.CoProcess, err error) {
 	name := block.Labels[0]
 	ret = &process.CoProcess{}
+	ret.Type = "coprocess"
 	ret.Qualifier = ctx.NameToQualifier(name)
 	_, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
@@ -231,6 +235,7 @@ func (c *Core) parseContractBlock(ctx *ParserContext, block *hclsyntax.Block) (*
 		params[attr] = param
 	}
 	contract := &model.Contract{
+		Type:      "contract",
 		Name:      name,
 		Qualifier: ctx.NameToQualifier(name),
 		Params:    params,

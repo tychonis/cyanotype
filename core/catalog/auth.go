@@ -22,7 +22,7 @@ func (t *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return t.base.RoundTrip(req2)
 }
 
-func NewClient(token string) *http.Client {
+func NewHTTPClient(token string) *http.Client {
 	if token == "" {
 		token = os.Getenv("BOMHUB_TOKEN")
 	}

@@ -8,15 +8,13 @@ import (
 	"net/http"
 
 	"github.com/tychonis/cyanotype/internal/serializer"
+	"github.com/tychonis/cyanotype/model"
 )
 
 type CatalogMetadata struct {
-	Name          string `json:"name"`
-	Version       string `json:"version"`
-	SourceVersion string `json:"source_version"`
-	SourceState   string `json:"source_state"`
-	Sequence      int    `json:"sequence"`
-	UniqueParts   int    `json:"unique_parts"`
+	Name           string          `json:"name"`
+	LatestRevision *model.Revision `json:"latest_revision"`
+	UniqueParts    int             `json:"unique_parts"`
 }
 
 func GetCatalogMetadata(client *http.Client, endpoint string, tag string) (*CatalogMetadata, error) {
@@ -42,14 +40,9 @@ func GetCatalogMetadata(client *http.Client, endpoint string, tag string) (*Cata
 
 func (c *Catalog) SaveCatalogMetadata(client *http.Client, endpoint string, tag string) error {
 	metaDataEndpoint := fmt.Sprintf("%s/workspace/%s", endpoint, tag)
-	symbols, err := c.index.ListSymbols()
-	if err != nil {
-		return err
-	}
 	metadata := CatalogMetadata{
-		Name:        "placeholder",
-		UniqueParts: len(symbols) / 4,
-		Sequence:    c.sequence,
+		Name:           "placeholder",
+		LatestRevision: c.latestRevision,
 	}
 	content, err := json.Marshal(metadata)
 	if err != nil {
@@ -71,21 +64,17 @@ func (c *Catalog) Save(endpoint string, token string, tag string) error {
 		return errors.New("can only save local index now")
 	}
 
-	client := NewClient(token)
-	err := c.SaveCatalogMetadata(client, endpoint, tag)
-	if err != nil {
-		return err
-	}
+	client := NewHTTPClient(token)
 
 	remote := RemoteIndexFromLocal(localIndex)
 	remote.Endpoint = endpoint + "/bom_index/" + tag
-	err = remote.Save()
+	err := remote.Save()
 	if err != nil {
 		return err
 	}
 
-	storage := NewAPIStore(endpoint, client)
-	symbols, err := c.index.ListSymbols()
+	remoteCatalog := NewRemoteCatalog(endpoint, token, tag)
+	symbols, err := c.GetSymbols()
 	if err != nil {
 		return err
 	}
@@ -98,10 +87,28 @@ func (c *Catalog) Save(endpoint string, token string, tag string) error {
 		if err != nil {
 			return err
 		}
-		err = storage.Save(symDigest, data)
+		remoteSym, _ := remoteCatalog.Get(symDigest)
+		// TODO: This is a hacky way to check if the symbol exists in the remote catalog.
+		// use a proper error type to check for this instead of relying on nil.
+		if remoteSym != nil {
+			continue
+		}
+		err = remoteCatalog.storage.Save(symDigest, data)
+		if err != nil {
+			return err
+		}
+		metadata, err := c.GetMetadata(symDigest)
+		if err != nil {
+			return err
+		}
+		metadataBytes, err := json.Marshal(metadata)
+		if err != nil {
+			return err
+		}
+		err = remoteCatalog.storage.SaveMetadata(symDigest, metadataBytes)
 		if err != nil {
 			return err
 		}
 	}
-	return nil
+	return c.SaveCatalogMetadata(client, endpoint, tag)
 }

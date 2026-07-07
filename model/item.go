@@ -9,14 +9,8 @@ import (
 type ItemID = Digest
 type LinkType string
 
-const (
-	DERIVE_SUPERSESSEION   LinkType = "supersession"
-	DERIVE_INTERCHANGEABLE LinkType = "interchangeable"
-	DERIVE_VARIANT         LinkType = "variant"
-	DERIVE_CHANGE          LinkType = "change"
-)
-
 type ItemBase struct {
+	Type      string       `json:"type" yaml:"type"`
 	Qualifier string       `json:"qualifier" yaml:"qualifier"`
 	Content   *ItemContent `json:"content" yaml:"content"`
 	Digest    ItemID       `json:"-" yaml:"-"`
@@ -51,11 +45,6 @@ type Reference struct {
 	Digest    string `json:"digest" yaml:"digest"`
 }
 
-type Derivation struct {
-	DerivedFrom ItemID
-	Type        LinkType
-}
-
 // TODO: implement attrs?
 func (i *Item) Resolve(path []string) (Symbol, error) {
 	if len(path) > 0 {
@@ -72,6 +61,10 @@ func (i *Item) GetDigest() string {
 	return i.Digest
 }
 
+func (i *Item) GetType() string {
+	return i.Type
+}
+
 // TODO: implement attrs?
 func (ci *CoItem) Resolve(path []string) (Symbol, error) {
 	if len(path) > 0 {
@@ -86,4 +79,8 @@ func (ci *CoItem) GetQualifier() string {
 
 func (ci *CoItem) GetDigest() string {
 	return ci.Digest
+}
+
+func (ci *CoItem) GetType() string {
+	return ci.Type
 }

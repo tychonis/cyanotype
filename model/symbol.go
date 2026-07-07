@@ -6,6 +6,7 @@ type Symbol interface {
 
 type ConcreteSymbol interface {
 	Symbol
+	GetType() string
 	GetQualifier() string
 	GetDigest() string
 }

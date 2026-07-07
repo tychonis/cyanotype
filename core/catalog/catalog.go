@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/tychonis/cyanotype/core/process"
+	"github.com/tychonis/cyanotype/internal/digest"
 	"github.com/tychonis/cyanotype/internal/serializer"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -23,16 +24,38 @@ type Catalog struct {
 	storage Storage
 	index   Index
 
-	sequence int
+	latestRevision *model.Revision
+}
+
+func newRevision(oldRevision *model.Revision) *model.Revision {
+	id, err := digest.RandomSHA256()
+	if err != nil {
+		slog.Error("failed to generate random SHA256 for revision", "error", err)
+		return nil
+	}
+	if oldRevision == nil {
+		return &model.Revision{
+			ID:        id,
+			CreatedAt: time.Now().UnixNano(),
+		}
+	}
+	return &model.Revision{
+		ID:        id,
+		CreatedAt: time.Now().UnixNano(),
+		Parents:   []model.RevisionID{oldRevision.ID},
+	}
 }
 
 func NewCatalog(catalogType string) *Catalog {
+	var c *Catalog
 	switch catalogType {
 	case "memory":
-		return NewMemoryCatalog()
+		c = NewMemoryCatalog()
 	default:
-		return NewLocalCatalog()
+		c = NewLocalCatalog()
 	}
+	c.latestRevision = newRevision(c.latestRevision)
+	return c
 }
 
 func NewLocalCatalog() *Catalog {
@@ -52,7 +75,7 @@ func NewMemoryCatalog() *Catalog {
 
 // Adhoc hardcoded remote catalog.
 func NewRemoteCatalog(endpoint string, token string, tag string) *Catalog {
-	client := NewClient(token)
+	client := NewHTTPClient(token)
 	cat := &Catalog{
 		storage: NewAPIStore(endpoint+"/definition", client),
 		index:   NewRemoteIndex(endpoint+"/bom_index/"+tag, client),
@@ -60,7 +83,7 @@ func NewRemoteCatalog(endpoint string, token string, tag string) *Catalog {
 	return cat
 }
 
-func (c *Catalog) UpdateSymbol(old model.ConcreteSymbol, new model.ConcreteSymbol) error {
+func (c *Catalog) updateSymbol(old model.ConcreteSymbol, new model.ConcreteSymbol) error {
 	switch oldSym := old.(type) {
 	case *model.Item:
 		newSym, ok := new.(*model.Item)
@@ -87,31 +110,16 @@ func (c *Catalog) UpdateSymbol(old model.ConcreteSymbol, new model.ConcreteSymbo
 	return nil
 }
 
-func (c *Catalog) GetRank() *Rank {
-	defer func() {
-		c.sequence += 1
-	}()
-	return &Rank{
-		Sequence: c.sequence,
-		WallTime: time.Now().UnixNano(),
-	}
-}
-
 func (c *Catalog) GenerateMetadata(sym model.ConcreteSymbol) *Metadata {
 	return &Metadata{
-		Rank: c.GetRank(),
+		IntroducedBy: &c.latestRevision.ID,
 	}
 }
 
-func (c *Catalog) Add(sym model.ConcreteSymbol) error {
-	oldSym, err := c.Find(sym.GetQualifier())
-	if err == nil {
-		if oldSym.GetDigest() == sym.GetDigest() {
-			return nil
-		}
-	}
-
-	err = c.index.Index(sym)
+// add sym adds a NEW symbol to the catalog.
+// It is assumed that the symbol is not already in the catalog.
+func (c *Catalog) add(sym model.ConcreteSymbol) error {
+	err := c.index.Index(sym)
 	if err != nil {
 		return err
 	}
@@ -131,16 +139,32 @@ func (c *Catalog) Add(sym model.ConcreteSymbol) error {
 	return c.storage.Save(sym.GetDigest(), body)
 }
 
+func (c *Catalog) Add(sym model.ConcreteSymbol) error {
+	oldSym, err := c.Find(sym.GetQualifier())
+	if err == nil {
+		if oldSym.GetDigest() == sym.GetDigest() {
+			return nil
+		} else {
+			err = c.updateSymbol(oldSym, sym)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return c.add(sym)
+}
+
 func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 	body, err := c.storage.Load(digest)
 	if err != nil {
 		return nil, err
 	}
-	t, err := c.index.GetType(digest)
+	symType, err := serializer.GetType(body)
 	if err != nil {
 		return nil, err
 	}
-	switch t {
+	switch symType {
 	case "item":
 		ret, err := serializer.Deserialize[*model.Item](body)
 		if err != nil {
@@ -267,4 +291,9 @@ func (c *Catalog) GetMetadata(digest model.Digest) (*Metadata, error) {
 	metadata := &Metadata{}
 	err = json.Unmarshal(data, metadata)
 	return metadata, err
+}
+
+func (c *Catalog) GetSymbols() (map[model.Digest]model.ConcreteSymbol, error) {
+	// TODO: implement this.
+	return nil, nil
 }

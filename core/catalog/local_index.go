@@ -29,7 +29,6 @@ type Index interface {
 	Index(sym model.ConcreteSymbol) error
 
 	Find(q Qualifier) (model.Digest, error)
-	GetType(digest model.Digest) (string, error)
 	GetItemProcesses(item model.ItemID) ([]process.ProcessID, error)
 	GetItemCoProcesses(item model.ItemID) ([]process.ProcessID, error)
 
@@ -39,7 +38,7 @@ type Index interface {
 type LocalIndex struct {
 	qualifierIndex map[Qualifier]model.ItemID
 	processIndex   map[model.ItemID]*ProcessIndexEntry
-	typeIndex      map[model.Digest]string
+	revisionIndex  map[model.RevisionID]*model.Revision
 
 	persistent bool
 }
@@ -49,6 +48,7 @@ func NewLocalIndex(persistent bool) *LocalIndex {
 		qualifierIndex: make(map[Qualifier]model.Digest),
 		processIndex:   make(map[Qualifier]*ProcessIndexEntry),
 		typeIndex:      make(map[model.Digest]string),
+		revisionIndex:  make(map[model.RevisionID]*model.Revision),
 
 		persistent: persistent,
 	}
@@ -357,4 +357,8 @@ func (idx *LocalIndex) GetItemCoProcesses(item model.ItemID) ([]process.ProcessI
 
 func (idx *LocalIndex) ListSymbols() (map[model.Digest]string, error) {
 	return idx.typeIndex, nil
+}
+
+func (idx *LocalIndex) loadRevisionIndex() error {
+	return nil
 }

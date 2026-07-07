@@ -6,18 +6,18 @@ import (
 	"github.com/tychonis/cyanotype/model"
 )
 
-func SerializeItem(item *model.Item) ([]byte, error) {
-	return json.Marshal(item)
-}
-
-func DeserializeItem(body []byte) (*model.Item, error) {
-	ret := model.Item{}
-	err := json.Unmarshal(body, &ret)
-	return &ret, err
-}
-
 func Serialize(s model.Symbol) ([]byte, error) {
 	return json.Marshal(s)
+}
+
+func GetType(body []byte) (string, error) {
+	var probe struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(body, &probe); err != nil {
+		return "", err
+	}
+	return probe.Type, nil
 }
 
 func Deserialize[T model.Symbol](body []byte) (T, error) {

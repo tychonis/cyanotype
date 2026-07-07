@@ -14,16 +14,10 @@ func (c *Catalog) Export() ([]byte, error) {
 	doc := &CatalogDocument{
 		Symbols: make(map[model.Digest]model.ConcreteSymbol),
 	}
-	symbols, err := c.index.ListSymbols()
+	symbols, err := c.GetSymbols()
 	if err != nil {
 		return nil, err
 	}
-	for symDigest := range symbols {
-		sym, err := c.Get(symDigest)
-		if err != nil {
-			return nil, err
-		}
-		doc.Symbols[symDigest] = sym
-	}
+	doc.Symbols = symbols
 	return json.Marshal(doc)
 }
