@@ -140,7 +140,7 @@ func (c *Catalog) add(sym model.ConcreteSymbol) error {
 }
 
 func (c *Catalog) Add(sym model.ConcreteSymbol) error {
-	oldSym, err := c.Find(sym.GetQualifier())
+	oldSym, err := c.FindCurrent(sym.GetQualifier())
 	if err == nil {
 		if oldSym.GetDigest() == sym.GetDigest() {
 			return nil
@@ -198,8 +198,8 @@ func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 	}
 }
 
-func (c *Catalog) Find(qualifier Qualifier) (model.ConcreteSymbol, error) {
-	digest, err := c.index.Find(qualifier)
+func (c *Catalog) FindCurrent(qualifier Qualifier) (model.ConcreteSymbol, error) {
+	digest, err := c.index.FindCurrent(qualifier)
 	if err != nil {
 		return nil, err
 	}

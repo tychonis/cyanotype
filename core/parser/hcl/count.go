@@ -17,7 +17,7 @@ type Component struct {
 }
 
 func (c Core) Count(root string) (map[string]float64, error) {
-	sym, err := c.Catalog.Find(root)
+	sym, err := c.Catalog.FindCurrent(root)
 	if err != nil {
 		slog.Info("Unknown symbol.", "error", err, "ref", root)
 		return nil, err
