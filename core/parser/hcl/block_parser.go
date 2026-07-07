@@ -19,7 +19,7 @@ import (
 func (c *Core) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, err error) {
 	// Already parsed before.
 	if s.qualifier != "" {
-		return c.Catalog.Find(s.qualifier)
+		return c.Catalog.FindCurrent(s.qualifier)
 	}
 
 	// New symbol.

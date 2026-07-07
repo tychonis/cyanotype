@@ -147,7 +147,7 @@ func (idx *RemoteIndex) Index(sym model.ConcreteSymbol) error {
 	return idx.indexProcess(sym)
 }
 
-func (idx *RemoteIndex) Find(q Qualifier) (model.Digest, error) {
+func (idx *RemoteIndex) FindCurrent(q Qualifier) (model.Digest, error) {
 	digest, ok := idx.QualifierIndex[q]
 	if !ok {
 		return "", ErrNotFound

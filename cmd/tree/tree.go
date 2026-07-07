@@ -42,7 +42,7 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	rootSym, err := core.Catalog.Find(root)
+	rootSym, err := core.Catalog.FindCurrent(root)
 	if err != nil {
 		slog.Error("Failed to find root item.", "error", err)
 		return

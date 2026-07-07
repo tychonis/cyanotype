@@ -20,15 +20,15 @@ type ProcessIndexEntry struct {
 
 func NewProcessIndexEntry() *ProcessIndexEntry {
 	return &ProcessIndexEntry{
-		Processes:   make([]Qualifier, 0),
-		CoProcesses: make([]Qualifier, 0),
+		Processes:   make([]process.ProcessID, 0),
+		CoProcesses: make([]process.ProcessID, 0),
 	}
 }
 
 type Index interface {
 	Index(sym model.ConcreteSymbol) error
 
-	Find(q Qualifier) (model.Digest, error)
+	FindCurrent(q Qualifier) (model.Digest, error)
 	GetItemProcesses(item model.ItemID) ([]process.ProcessID, error)
 	GetItemCoProcesses(item model.ItemID) ([]process.ProcessID, error)
 }
@@ -43,8 +43,8 @@ type LocalIndex struct {
 
 func NewLocalIndex(persistent bool) *LocalIndex {
 	idx := &LocalIndex{
-		qualifierIndex: make(map[Qualifier]model.Digest),
-		processIndex:   make(map[Qualifier]*ProcessIndexEntry),
+		qualifierIndex: make(map[Qualifier]model.ItemID),
+		processIndex:   make(map[model.ItemID]*ProcessIndexEntry),
 		revisionIndex:  make(map[model.RevisionID]*model.Revision),
 
 		persistent: persistent,
@@ -241,7 +241,7 @@ func (idx *LocalIndex) Index(sym model.ConcreteSymbol) error {
 	return idx.indexProcess(sym)
 }
 
-func (idx *LocalIndex) Find(q Qualifier) (model.Digest, error) {
+func (idx *LocalIndex) FindCurrent(q Qualifier) (model.Digest, error) {
 	digest, ok := idx.qualifierIndex[q]
 	if !ok {
 		return "", ErrNotFound

@@ -178,7 +178,7 @@ func (c *Core) processModuleScope(m *symbols.ModuleScope, cat *catalog.Catalog) 
 
 func (c *Core) resolveBOMLineRef(ctx *ParserContext, ref Ref) (*model.Item, error) {
 	qualifier := refToQualifier(ctx, ref)
-	itemSym, err := c.Catalog.Find(qualifier)
+	itemSym, err := c.Catalog.FindCurrent(qualifier)
 	if err != nil {
 		if err != catalog.ErrNotFound {
 			return nil, err
