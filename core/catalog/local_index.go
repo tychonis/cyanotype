@@ -31,8 +31,6 @@ type Index interface {
 	Find(q Qualifier) (model.Digest, error)
 	GetItemProcesses(item model.ItemID) ([]process.ProcessID, error)
 	GetItemCoProcesses(item model.ItemID) ([]process.ProcessID, error)
-
-	ListSymbols() (map[model.Digest]string, error)
 }
 
 type LocalIndex struct {
@@ -47,7 +45,6 @@ func NewLocalIndex(persistent bool) *LocalIndex {
 	idx := &LocalIndex{
 		qualifierIndex: make(map[Qualifier]model.Digest),
 		processIndex:   make(map[Qualifier]*ProcessIndexEntry),
-		typeIndex:      make(map[model.Digest]string),
 		revisionIndex:  make(map[model.RevisionID]*model.Revision),
 
 		persistent: persistent,
@@ -61,11 +58,7 @@ func (idx *LocalIndex) load() error {
 	if err != nil {
 		return err
 	}
-	err = idx.loadProcessIndex()
-	if err != nil {
-		return err
-	}
-	return idx.loadTypeIndex()
+	return idx.loadProcessIndex()
 }
 
 func (idx *LocalIndex) loadMainIndex() error {
@@ -114,62 +107,6 @@ func (idx *LocalIndex) addToMainIndex(key string, val string) error {
 	f, err := os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return fmt.Errorf("failed to add to index, cannot open index: %w", err)
-	}
-	defer f.Close()
-	rec := key + ":" + val + "\n"
-	_, err = f.Write([]byte(rec))
-	if err != nil {
-		return fmt.Errorf("write index: %w", err)
-	}
-	return f.Sync()
-}
-
-func (idx *LocalIndex) loadTypeIndex() error {
-	if !idx.persistent {
-		return nil
-	}
-
-	indexPath := filepath.Join(".bpc", "types")
-	data, err := os.ReadFile(indexPath)
-	if err != nil {
-		return fmt.Errorf("open index: %w", err)
-	}
-	lines := bytes.Split(data, []byte("\n"))
-	for _, line := range lines {
-		if len(line) == 0 {
-			continue
-		}
-
-		parts := bytes.SplitN(line, []byte(":"), 2)
-		if len(parts) != 2 {
-			return fmt.Errorf("malformed part")
-		}
-
-		key := string(parts[0])
-		val := string(parts[1])
-
-		idx.typeIndex[key] = val
-	}
-	return nil
-}
-
-func (idx *LocalIndex) addToTypeIndex(key string, val string) error {
-	oldVal, ok := idx.typeIndex[key]
-	if ok {
-		if oldVal == val {
-			return nil
-		}
-	}
-	idx.typeIndex[key] = val
-
-	if !idx.persistent {
-		return nil
-	}
-
-	indexPath := filepath.Join(".bpc", "types")
-	f, err := os.OpenFile(indexPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		return fmt.Errorf("open index: %w", err)
 	}
 	defer f.Close()
 	rec := key + ":" + val + "\n"
@@ -296,31 +233,12 @@ func (idx *LocalIndex) indexProcess(sym model.ConcreteSymbol) error {
 	return nil
 }
 
-// TODO: fix this hack.
-func (idx *LocalIndex) indexType(sym model.ConcreteSymbol) error {
-	switch sym.(type) {
-	case *process.Process:
-		idx.addToTypeIndex(sym.GetDigest(), "process")
-	case *process.CoProcess:
-		idx.addToTypeIndex(sym.GetDigest(), "coprocess")
-	case *model.Item:
-		idx.addToTypeIndex(sym.GetDigest(), "item")
-	case *model.CoItem:
-		idx.addToTypeIndex(sym.GetDigest(), "coitem")
-	}
-	return nil
-}
-
 func (idx *LocalIndex) Index(sym model.ConcreteSymbol) error {
 	err := idx.addToMainIndex(sym.GetQualifier(), sym.GetDigest())
 	if err != nil {
 		return err
 	}
-	err = idx.indexProcess(sym)
-	if err != nil {
-		return err
-	}
-	return idx.indexType(sym)
+	return idx.indexProcess(sym)
 }
 
 func (idx *LocalIndex) Find(q Qualifier) (model.Digest, error) {
@@ -329,14 +247,6 @@ func (idx *LocalIndex) Find(q Qualifier) (model.Digest, error) {
 		return "", ErrNotFound
 	}
 	return digest, nil
-}
-
-func (idx *LocalIndex) GetType(digest model.Digest) (string, error) {
-	t, ok := idx.typeIndex[digest]
-	if !ok {
-		return "", ErrNotFound
-	}
-	return t, nil
 }
 
 func (idx *LocalIndex) GetItemProcesses(item model.ItemID) ([]process.ProcessID, error) {
@@ -353,10 +263,6 @@ func (idx *LocalIndex) GetItemCoProcesses(item model.ItemID) ([]process.ProcessI
 		return nil, ErrNotFound
 	}
 	return entry.CoProcesses, nil
-}
-
-func (idx *LocalIndex) ListSymbols() (map[model.Digest]string, error) {
-	return idx.typeIndex, nil
 }
 
 func (idx *LocalIndex) loadRevisionIndex() error {

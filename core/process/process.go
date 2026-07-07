@@ -13,6 +13,7 @@ var processContentTypes = make(map[string]func() ProcessContent)
 type ProcessID = model.Digest
 
 type ProcessBase struct {
+	Type      string         `json:"type" yaml:"type"`
 	Qualifier string         `json:"qualifier" yaml:"qualifier"`
 	Content   ProcessContent `json:"content" yaml:"content"`
 
@@ -103,6 +104,10 @@ func (p *Process) GetDigest() string {
 	return p.Digest
 }
 
+func (p *Process) GetType() string {
+	return p.Type
+}
+
 func (cp *CoProcess) Input() []*model.BOMLine {
 	return cp.Content.GetInput()
 }
@@ -134,4 +139,8 @@ func (cp *CoProcess) GetQualifier() string {
 
 func (cp *CoProcess) GetDigest() string {
 	return cp.Digest
+}
+
+func (cp *CoProcess) GetType() string {
+	return cp.Type
 }
