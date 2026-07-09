@@ -2,11 +2,9 @@ package serializer
 
 import (
 	"encoding/json"
-
-	"github.com/tychonis/cyanotype/model"
 )
 
-func Serialize(s model.Symbol) ([]byte, error) {
+func Serialize(s any) ([]byte, error) {
 	return json.Marshal(s)
 }
 
@@ -20,7 +18,7 @@ func GetType(body []byte) (string, error) {
 	return probe.Type, nil
 }
 
-func Deserialize[T model.Symbol](body []byte) (T, error) {
+func Deserialize[T any](body []byte) (T, error) {
 	var ret T
 	err := json.Unmarshal(body, &ret)
 	return ret, err

@@ -6,21 +6,22 @@ import (
 
 	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/internal/digest"
+	"github.com/tychonis/cyanotype/internal/qualifier"
 	"github.com/tychonis/cyanotype/model"
 )
 
-func (c *Core) buildCompanionCoItem(item *model.Item) (*model.CoItem, error) {
+func (p *Parser) buildCompanionCoItem(item *model.Item) (*model.CoItem, error) {
 	var err error
 	co := &model.CoItem{}
-	co.Qualifier = getImplicitCoItemQualifier(item)
+	co.Qualifier = qualifier.ImplicitCoItem(item)
 	co.Digest, err = digest.SHA256FromSymbol(co)
 	if err != nil {
 		return co, err
 	}
-	return co, c.Catalog.Add(co)
+	return co, p.Symbols.RegisterConcreteSymbol(co)
 }
 
-func (c *Core) buildCompanionCoProcess(item *model.Item, coItem *model.CoItem) (*process.CoProcess, error) {
+func (p *Parser) buildCompanionCoProcess(item *model.Item, coItem *model.CoItem) (*process.CoProcess, error) {
 	var err error
 	content := &process.Abstract{
 		Input: []*model.BOMLine{
@@ -38,16 +39,16 @@ func (c *Core) buildCompanionCoProcess(item *model.Item, coItem *model.CoItem) (
 	}
 
 	cp := &process.CoProcess{}
-	cp.Qualifier = getImplicitCoProcessQualifier(item)
+	cp.Qualifier = qualifier.ImplicitCoProcess(item)
 	cp.Content = content
 	cp.Digest, err = digest.SHA256FromSymbol(cp)
 	if err != nil {
 		return cp, err
 	}
-	return cp, c.Catalog.Add(cp)
+	return cp, p.Symbols.RegisterConcreteSymbol(cp)
 }
 
-func (c *Core) buildCompanionProcess(item *model.Item, pc process.ProcessContent) (*process.Process, error) {
+func (p *Parser) buildCompanionProcess(item *model.Item, pc process.ProcessContent) (*process.Process, error) {
 	var err error
 	switch content := pc.(type) {
 	case *process.Abstract:
@@ -68,29 +69,43 @@ func (c *Core) buildCompanionProcess(item *model.Item, pc process.ProcessContent
 		return nil, errors.New("process content type not recognized")
 	}
 
-	p := &process.Process{}
-	p.Qualifier = getImplicitProcessQualifier(item)
-	p.Content = pc
-	p.Digest, err = digest.SHA256FromSymbol(p)
+	process := &process.Process{}
+	process.Qualifier = qualifier.ImplicitProcess(item)
+	process.Content = pc
+	process.Digest, err = digest.SHA256FromSymbol(process)
 	if err != nil {
-		return p, err
+		return process, err
 	}
-	return p, c.Catalog.Add(p)
+	return process, p.Symbols.RegisterConcreteSymbol(process)
 }
 
-func (c *Core) buildCompanionForItem(ctx *ParserContext, item *model.Item, pc process.ProcessContent) error {
+type Companion struct {
+	CoItem    *model.CoItem
+	Process   *process.Process
+	CoProcess *process.CoProcess
+}
+
+func (p *Parser) buildCompanionForItem(ctx *ParserContext, item *model.Item, pc process.ProcessContent) (*Companion, error) {
 	slog.Debug("build companions", "module", ctx.CurrentModule(), "item", item.Qualifier)
 
-	coItem, err := c.buildCompanionCoItem(item)
-	if err != nil {
-		return err
-	}
+	companion := &Companion{}
 
-	_, err = c.buildCompanionCoProcess(item, coItem)
+	coItem, err := p.buildCompanionCoItem(item)
 	if err != nil {
-		return err
+		return companion, err
 	}
+	companion.CoItem = coItem
 
-	_, err = c.buildCompanionProcess(item, pc)
-	return err
+	coProcess, err := p.buildCompanionCoProcess(item, coItem)
+	if err != nil {
+		return companion, err
+	}
+	companion.CoProcess = coProcess
+
+	process, err := p.buildCompanionProcess(item, pc)
+	if err != nil {
+		return companion, err
+	}
+	companion.Process = process
+	return companion, nil
 }

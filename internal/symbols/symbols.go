@@ -7,7 +7,9 @@ import (
 )
 
 type SymbolTable struct {
-	Modules map[string]*ModuleScope
+	Modules         map[string]*ModuleScope
+	ConcreteSymbols map[model.Digest]model.ConcreteSymbol
+	QualifierIndex  map[model.Qualifier]model.Digest
 }
 
 type ModuleScope struct {
@@ -15,7 +17,11 @@ type ModuleScope struct {
 }
 
 func NewSymbolTable() *SymbolTable {
-	return &SymbolTable{Modules: make(map[string]*ModuleScope)}
+	return &SymbolTable{
+		Modules:         make(map[string]*ModuleScope),
+		ConcreteSymbols: make(map[model.Digest]model.ConcreteSymbol),
+		QualifierIndex:  make(map[model.Qualifier]model.Digest),
+	}
 }
 
 func NewModuleScope() *ModuleScope {
@@ -32,6 +38,26 @@ func (t *SymbolTable) AddSymbol(module string, name string, symbol model.Symbol)
 	}
 	t.Modules[module].Symbols[name] = symbol
 	return nil
+}
+
+func (t *SymbolTable) RegisterConcreteSymbol(sym model.ConcreteSymbol) error {
+	t.ConcreteSymbols[sym.GetDigest()] = sym
+	t.QualifierIndex[sym.GetQualifier()] = sym.GetDigest()
+	return nil
+}
+
+var ErrNotFound = fmt.Errorf("symbol not found")
+
+func (t *SymbolTable) FindConcreteSymbol(qualifier model.Qualifier) (model.ConcreteSymbol, error) {
+	symDigest, ok := t.QualifierIndex[qualifier]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	sym, ok := t.ConcreteSymbols[symDigest]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	return sym, nil
 }
 
 func (m *ModuleScope) Resolve(ref []string) (model.Symbol, error) {

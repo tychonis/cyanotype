@@ -2,7 +2,6 @@ package export
 
 import (
 	"log/slog"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -32,13 +31,13 @@ func run(cmd *cobra.Command, args []string) {
 			catalogPath = "catalog.json"
 		}
 	}
-	core := hcl.NewCore("memory")
+	core := hcl.NewParser()
 	err := core.Build(bpoPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
 		return
 	}
 
-	output, _ := core.ExportCatalog()
-	os.WriteFile(catalogPath, output, 0o644)
+	// output, _ := core.ExportCatalog()
+	// os.WriteFile(catalogPath, output, 0o644)
 }

@@ -5,6 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/tychonis/cyanotype/core/catalog"
+	"github.com/tychonis/cyanotype/core/instantiator"
 	"github.com/tychonis/cyanotype/core/parser/hcl"
 )
 
@@ -28,16 +30,24 @@ func run(cmd *cobra.Command, args []string) {
 		slog.Warn("Format not supported.", "format", outputFmt)
 	}
 
-	core := hcl.NewCore("memory")
-	err := core.Build(bomPath)
+	p := hcl.NewParser()
+	err := p.Build(bomPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
 		return
 	}
 
-	counter, err := core.Count(rootPart)
+	cat := catalog.New("memory")
+	err = p.Commit(cat)
+	if err != nil {
+		slog.Error("Failed to commit to catalog.", "error", err)
+		return
+	}
+	ins := instantiator.New()
+
+	counter, err := ins.Count(cat, rootPart)
 	if err != nil {
 		slog.Warn("Error counting", "error", err)
 	}
-	core.CounterToCSV(counter)
+	ins.CounterToCSV(counter)
 }

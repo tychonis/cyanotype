@@ -7,16 +7,17 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/tychonis/cyanotype/core/process"
+	"github.com/tychonis/cyanotype/internal/qualifier"
 	"github.com/tychonis/cyanotype/model"
 )
 
 type Ref = []string
 
 type UnresolvedBOMLine struct {
-	Name         string  `json:"name" yaml:"name"`
-	Ref          Ref     `json:"ref" yaml:"ref"`
-	Qty          float64 `json:"qty" yaml:"qty"`
-	HasPlacement bool
+	Name         string          `json:"name" yaml:"name"`
+	Ref          Ref             `json:"ref" yaml:"ref"`
+	Qty          float64         `json:"qty" yaml:"qty"`
+	HasPlacement bool            `json:"-" yaml:"-"`
 	Placement    model.Placement `json:"placement" yaml:"placement"`
 }
 
@@ -78,7 +79,7 @@ func parseBOMLinesAttr(ctx *ParserContext, attr *hcl.Attribute) []*UnresolvedBOM
 	return comps
 }
 
-func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine) (process.ProcessContent, error) {
+func (p *Parser) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine) (process.ProcessContent, error) {
 	if len(from) <= 0 {
 		return nil, nil
 	}
@@ -94,17 +95,18 @@ func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine)
 	input := make([]*model.BOMLine, 0, len(from))
 
 	for _, comp := range from {
-		item, err := c.resolveBOMLineRef(ctx, comp.Ref)
+		item, err := p.resolveBOMLineRef(ctx, comp.Ref)
 		if err != nil {
 			return nil, err
 		}
-		coItems, err := c.Catalog.GetCoItems(item.Digest)
+		// Since this is a syntax sugar for keyword FROM, we will only use the
+		// companion coitem generated for the item. At this point, because we
+		// already run c.resolveBOMLineRef, the companion coitem of child item
+		// should already be generated and registered in the symbol table.
+		coItemQualifier := qualifier.ImplicitCoItem(item)
+		coItemSym, err := p.Symbols.FindConcreteSymbol(coItemQualifier)
 		if err != nil {
 			return nil, err
-		}
-		if len(coItems) != 1 {
-			slog.Debug("error getting coitems", "item", item.Qualifier, "length", len(coItems), "digest", item.Digest)
-			return nil, errors.New("non-unique coitems not implemented yet")
 		}
 		if drawing {
 			if !comp.HasPlacement {
@@ -113,14 +115,14 @@ func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine)
 			}
 			components = append(components, &process.Component{
 				Name:        comp.Name,
-				CoItem:      coItems[0].Item,
+				CoItem:      coItemSym.GetDigest(),
 				Rotation:    &comp.Placement.Rotation,
 				Translation: &comp.Placement.Position,
 			})
 		} else {
 			input = append(input, &model.BOMLine{
 				Name: comp.Name,
-				Item: coItems[0].Item,
+				Item: coItemSym.GetDigest(),
 				Qty:  comp.Qty,
 			})
 		}
@@ -138,7 +140,7 @@ func (c *Core) processKeywordFROM(ctx *ParserContext, from []*UnresolvedBOMLine)
 	return ret, nil
 }
 
-func (c *Core) readContractLine(ctx *ParserContext, expr hcl.Expression) ([]Ref, error) {
+func (p *Parser) readContractLine(ctx *ParserContext, expr hcl.Expression) ([]Ref, error) {
 	ret := make([]Ref, 0)
 	switch e := expr.(type) {
 	case *hclsyntax.TupleConsExpr:
@@ -159,10 +161,10 @@ func (c *Core) readContractLine(ctx *ParserContext, expr hcl.Expression) ([]Ref,
 	return ret, nil
 }
 
-func (c *Core) resolveContractsID(ctx *ParserContext, contracts []Ref) ([]model.ContractID, error) {
+func (p *Parser) resolveContractsID(ctx *ParserContext, contracts []Ref) ([]model.ContractID, error) {
 	ret := make([]model.ContractID, 0, len(contracts))
 	for _, ref := range contracts {
-		sym, err := c.Resolve(ctx, ref)
+		sym, err := p.Resolve(ctx, ref)
 		if err != nil {
 			return nil, err
 		}

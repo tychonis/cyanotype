@@ -1,5 +1,7 @@
 package model
 
+type Qualifier = string
+
 type Symbol interface {
 	Resolve(path []string) (Symbol, error)
 }
@@ -7,8 +9,8 @@ type Symbol interface {
 type ConcreteSymbol interface {
 	Symbol
 	GetType() string
-	GetQualifier() string
-	GetDigest() string
+	GetQualifier() Qualifier
+	GetDigest() Digest
 }
 
 type BOMLine struct {

@@ -23,7 +23,7 @@ func run(cmd *cobra.Command, args []string) {
 
 	catalog.Initialize()
 
-	core := hcl.NewCore("local")
+	core := hcl.NewParser()
 	err := core.Build(bpoPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)

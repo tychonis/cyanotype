@@ -1,53 +1,44 @@
-package hcl
+package instantiator
 
 import (
 	"errors"
 
 	"github.com/tychonis/cyanotype/core/bomtree"
-	"github.com/tychonis/cyanotype/core/process"
+	"github.com/tychonis/cyanotype/core/catalog"
+	"github.com/tychonis/cyanotype/core/ranker"
 	"github.com/tychonis/cyanotype/internal/digest"
 	"github.com/tychonis/cyanotype/model"
 )
 
-func getImplicitProcessQualifier(item *model.Item) string {
-	return item.Qualifier + ".__process__"
+type Instantiator struct {
+	Ranker ranker.Ranker
 }
 
-func getImplicitCoProcessQualifier(item *model.Item) string {
-	return item.Qualifier + ".__coprocess__"
+func New() *Instantiator {
+	return &Instantiator{
+		Ranker: &ranker.NaiveRanker{},
+	}
 }
 
-func getImplicitCoItemQualifier(item *model.Item) string {
-	return item.Qualifier + ".__coitem__"
-}
-
-func (c *Core) findProcesses(item *model.Item) ([]*process.Process, error) {
-	return c.Catalog.GetItemProcesses(item.Digest)
-}
-
-func (c *Core) findCoProcesses(item *model.CoItem) ([]*process.CoProcess, error) {
-	return c.Catalog.GetItemCoProcesses(item.Digest)
-}
-
-func (c *Core) build(name string, coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
+func (i *Instantiator) instantiate(cat *catalog.Catalog, name string, coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 	node := &bomtree.Node{
 		Name:     name,
 		CoItem:   coitem,
 		Children: make([]*bomtree.Node, 0),
 		Qty:      qty,
 	}
-	cp, err := c.findCoProcesses(coitem)
+	cp, err := cat.GetItemCoProcesses(coitem.Digest)
 	if err != nil {
 		return nil, err
 	}
-	coProcess, err := c.Ranker.TopCoProcess(cp)
+	coProcess, err := i.Ranker.TopCoProcess(cp)
 	if err != nil {
 		return nil, err
 	}
 	node.CoProcess = coProcess
 
 	itemID := coProcess.Input()[0].Item
-	itemSym, err := c.Catalog.Get(itemID)
+	itemSym, err := cat.Get(itemID)
 	if err != nil {
 		return nil, err
 	}
@@ -57,18 +48,18 @@ func (c *Core) build(name string, coitem *model.CoItem, qty float64) (*bomtree.N
 	}
 	node.Item = item
 
-	p, err := c.findProcesses(item)
+	p, err := cat.GetItemProcesses(item.Digest)
 	if err != nil {
 		return nil, err
 	}
-	process, err := c.Ranker.TopProcess(p)
+	process, err := i.Ranker.TopProcess(p)
 	if err != nil {
 		return nil, err
 	}
 
 	node.Process = process
 	for _, input := range process.Input() {
-		child, err := c.Catalog.Get(input.Item)
+		child, err := cat.Get(input.Item)
 		if err != nil {
 			return nil, err
 		}
@@ -76,7 +67,7 @@ func (c *Core) build(name string, coitem *model.CoItem, qty float64) (*bomtree.N
 		if !ok {
 			return nil, errors.New("invalid input")
 		}
-		childNode, err := c.build(input.Name, childCoItem, input.Qty)
+		childNode, err := i.instantiate(cat, input.Name, childCoItem, input.Qty)
 		if err != nil {
 			return nil, err
 		}
@@ -90,15 +81,15 @@ func (c *Core) build(name string, coitem *model.CoItem, qty float64) (*bomtree.N
 	return node, nil
 }
 
-func (c *Core) BuildTree(name string, item *model.Item) (*bomtree.Node, error) {
-	coItems, err := c.Catalog.GetCoItems(item.Digest)
+func (i *Instantiator) InstantiateTree(cat *catalog.Catalog, name string, item *model.Item) (*bomtree.Node, error) {
+	coItems, err := cat.GetCoItems(item.Digest)
 	if err != nil {
 		return nil, err
 	}
 	if len(coItems) != 1 {
 		return nil, errors.New("multiple coitems not implemented yet")
 	}
-	coItemSym, err := c.Catalog.Get(coItems[0].Item)
+	coItemSym, err := cat.Get(coItems[0].Item)
 	if err != nil {
 		return nil, err
 	}
@@ -106,5 +97,5 @@ func (c *Core) BuildTree(name string, item *model.Item) (*bomtree.Node, error) {
 	if !ok {
 		return nil, errors.New("not a coitem")
 	}
-	return c.build(name, coItem, 1)
+	return i.instantiate(cat, name, coItem, 1)
 }

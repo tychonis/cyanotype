@@ -22,8 +22,8 @@ func init() {
 func run(cmd *cobra.Command, args []string) {
 	bpoPath := "."
 
-	core := hcl.NewCore("local")
-	err := core.Build(bpoPath)
+	p := hcl.NewParser()
+	err := p.Build(bpoPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
 		return

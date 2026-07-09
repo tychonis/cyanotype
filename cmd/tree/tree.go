@@ -7,6 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/tychonis/cyanotype/core/catalog"
+	"github.com/tychonis/cyanotype/core/instantiator"
 	"github.com/tychonis/cyanotype/core/parser/hcl"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -35,14 +37,21 @@ func run(cmd *cobra.Command, args []string) {
 			bpcPath = root + ".bpc"
 		}
 	}
-	core := hcl.NewCore("memory")
-	err := core.Build(bpoPath)
+	p := hcl.NewParser()
+	err := p.Build(bpoPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
 		return
 	}
 
-	rootSym, err := core.Catalog.FindCurrent(root)
+	cat := catalog.New("local")
+	err = p.Commit(cat)
+	if err != nil {
+		slog.Error("Failed to commit to catalog.", "error", err)
+		return
+	}
+
+	rootSym, err := cat.FindCurrent(root)
 	if err != nil {
 		slog.Error("Failed to find root item.", "error", err)
 		return
@@ -54,7 +63,9 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	rootNode, err := core.BuildTree("root", rootItem)
+	ins := instantiator.New()
+
+	rootNode, err := ins.InstantiateTree(cat, "root", rootItem)
 	if err != nil {
 		slog.Error("Failed to build.", "error", err)
 		return

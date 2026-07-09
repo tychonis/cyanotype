@@ -27,26 +27,26 @@ type Catalog struct {
 	latestRevision *model.Revision
 }
 
-func newRevision(oldRevision *model.Revision) *model.Revision {
-	id, err := digest.RandomSHA256()
+func (c *Catalog) NewRevision() *model.Revision {
+	digest, err := digest.RandomSHA256()
 	if err != nil {
 		slog.Error("failed to generate random SHA256 for revision", "error", err)
 		return nil
 	}
-	if oldRevision == nil {
+	if c.latestRevision == nil {
 		return &model.Revision{
-			ID:        id,
+			Digest:    digest,
 			CreatedAt: time.Now().UnixNano(),
 		}
 	}
 	return &model.Revision{
-		ID:        id,
+		Digest:    digest,
 		CreatedAt: time.Now().UnixNano(),
-		Parents:   []model.RevisionID{oldRevision.ID},
+		Parents:   []model.RevisionID{c.latestRevision.Digest},
 	}
 }
 
-func NewCatalog(catalogType string) *Catalog {
+func New(catalogType string) *Catalog {
 	var c *Catalog
 	switch catalogType {
 	case "memory":
@@ -54,7 +54,6 @@ func NewCatalog(catalogType string) *Catalog {
 	default:
 		c = NewLocalCatalog()
 	}
-	c.latestRevision = newRevision(c.latestRevision)
 	return c
 }
 
@@ -73,57 +72,28 @@ func NewMemoryCatalog() *Catalog {
 	return cat
 }
 
-// Adhoc hardcoded remote catalog.
-func NewRemoteCatalog(endpoint string, token string, tag string) *Catalog {
-	client := NewHTTPClient(token)
-	cat := &Catalog{
-		storage: NewAPIStore(endpoint+"/definition", client),
-		index:   NewRemoteIndex(endpoint+"/bom_index/"+tag, client),
-	}
-	return cat
-}
+// // Adhoc hardcoded remote catalog.
+// func NewRemoteCatalog(endpoint string, token string, tag string) *Catalog {
+// 	client := NewHTTPClient(token)
+// 	cat := &Catalog{
+// 		storage: NewAPIStore(endpoint+"/definition", client),
+// 		index:   NewRemoteIndex(endpoint+"/bom_index/"+tag, client),
+// 	}
+// 	return cat
+// }
 
-func (c *Catalog) updateSymbol(old model.ConcreteSymbol, new model.ConcreteSymbol) error {
-	switch oldSym := old.(type) {
-	case *model.Item:
-		newSym, ok := new.(*model.Item)
-		if !ok {
-			return errors.New("type mismatch: expected Item")
-		}
-		coProcesses, err := c.GetItemCoProcesses(oldSym.Digest)
-		if err != nil {
-			return err
-		}
-		for _, cp := range coProcesses {
-			newCp := *cp
-			for _, bomLine := range newCp.Input() {
-				if bomLine.Item == oldSym.Digest {
-					bomLine.Item = newSym.Digest
-				}
-			}
-			err := c.Add(&newCp)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (c *Catalog) GenerateMetadata(sym model.ConcreteSymbol) *Metadata {
+func (c *Catalog) GenerateMetadata(revision *model.Revision, sym model.ConcreteSymbol) *Metadata {
 	return &Metadata{
-		IntroducedBy: &c.latestRevision.ID,
+		IntroducedBy: revision.Digest,
 	}
 }
 
-// add sym adds a NEW symbol to the catalog.
-// It is assumed that the symbol is not already in the catalog.
-func (c *Catalog) add(sym model.ConcreteSymbol) error {
-	err := c.index.Index(sym)
+func (c *Catalog) Add(rev *model.Revision, sym model.ConcreteSymbol) error {
+	err := c.index.IndexSymbol(rev, sym)
 	if err != nil {
 		return err
 	}
-	metadata := c.GenerateMetadata(sym)
+	metadata := c.GenerateMetadata(rev, sym)
 	body, err := json.Marshal(metadata)
 	if err != nil {
 		return err
@@ -137,22 +107,6 @@ func (c *Catalog) add(sym model.ConcreteSymbol) error {
 		return err
 	}
 	return c.storage.Save(sym.GetDigest(), body)
-}
-
-func (c *Catalog) Add(sym model.ConcreteSymbol) error {
-	oldSym, err := c.FindCurrent(sym.GetQualifier())
-	if err == nil {
-		if oldSym.GetDigest() == sym.GetDigest() {
-			return nil
-		} else {
-			err = c.updateSymbol(oldSym, sym)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return c.add(sym)
 }
 
 func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
@@ -296,4 +250,18 @@ func (c *Catalog) GetMetadata(digest model.Digest) (*Metadata, error) {
 func (c *Catalog) GetSymbols() (map[model.Digest]model.ConcreteSymbol, error) {
 	// TODO: implement this.
 	return nil, nil
+}
+
+func (c *Catalog) Commit(revision *model.Revision) error {
+	c.index.IndexRevision(revision)
+	body, err := serializer.Serialize(revision)
+	if err != nil {
+		return err
+	}
+	err = c.storage.Save(revision.Digest, body)
+	if err != nil {
+		return err
+	}
+	c.latestRevision = revision
+	return nil
 }

@@ -9,30 +9,30 @@ import (
 )
 
 // StableTopoRevisions returns a topological order where unrelated ready revisions
-// are ordered by CreatedAt, then RevisionID.
+// are ordered by CreatedAt, then RevisionDigest.
 func StableTopoRevisions(revisions []*model.Revision) ([]model.RevisionID, error) {
 	byID := make(map[model.RevisionID]model.Revision, len(revisions))
 	children := make(map[model.RevisionID][]model.RevisionID, len(revisions))
 	indegree := make(map[model.RevisionID]int, len(revisions))
 
 	for _, r := range revisions {
-		if r.ID == "" {
+		if r.Digest == "" {
 			return nil, fmt.Errorf("empty revision ID")
 		}
-		if _, exists := byID[r.ID]; exists {
-			return nil, fmt.Errorf("duplicate revision ID %q", r.ID)
+		if _, exists := byID[r.Digest]; exists {
+			return nil, fmt.Errorf("duplicate revision ID %q", r.Digest)
 		}
-		byID[r.ID] = *r
-		indegree[r.ID] = 0
+		byID[r.Digest] = *r
+		indegree[r.Digest] = 0
 	}
 
 	for _, r := range revisions {
 		for _, p := range r.Parents {
 			if _, exists := byID[p]; !exists {
-				return nil, fmt.Errorf("revision %q has unknown parent %q", r.ID, p)
+				return nil, fmt.Errorf("revision %q has unknown parent %q", r.Digest, p)
 			}
-			children[p] = append(children[p], r.ID)
-			indegree[r.ID]++
+			children[p] = append(children[p], r.Digest)
+			indegree[r.Digest]++
 		}
 	}
 
@@ -40,7 +40,7 @@ func StableTopoRevisions(revisions []*model.Revision) ([]model.RevisionID, error
 	heap.Init(pq)
 
 	for _, r := range revisions {
-		if indegree[r.ID] == 0 {
+		if indegree[r.Digest] == 0 {
 			heap.Push(pq, r)
 		}
 	}
@@ -49,9 +49,9 @@ func StableTopoRevisions(revisions []*model.Revision) ([]model.RevisionID, error
 
 	for pq.Len() > 0 {
 		r := heap.Pop(pq).(*model.Revision)
-		order = append(order, r.ID)
+		order = append(order, r.Digest)
 
-		for _, childID := range children[r.ID] {
+		for _, childID := range children[r.Digest] {
 			indegree[childID]--
 			if indegree[childID] == 0 {
 				heap.Push(pq, byID[childID])
@@ -76,7 +76,7 @@ func (h revisionHeap) Less(i, j int) bool {
 	if c := cmp.Compare(a.CreatedAt, b.CreatedAt); c != 0 {
 		return c < 0
 	}
-	return a.ID < b.ID
+	return a.Digest < b.Digest
 }
 
 func (h revisionHeap) Swap(i, j int) {

@@ -9,12 +9,12 @@ import (
 	"github.com/tychonis/cyanotype/internal/symbols"
 )
 
-func (c *Core) registerBlock(ctx *ParserContext, block *hclsyntax.Block) error {
+func (p *Parser) registerBlock(ctx *ParserContext, block *hclsyntax.Block) error {
 	switch block.Type {
 	case "import":
-		return c.parseImportBlock(ctx, block)
+		return p.parseImportBlock(ctx, block)
 	default:
-		return c.registerUnprocessedBlock(ctx, block)
+		return p.registerUnprocessedBlock(ctx, block)
 	}
 }
 
@@ -23,12 +23,12 @@ func pathToModuleName(path string) string {
 	return components[len(components)-1]
 }
 
-func (c *Core) parseImportBlock(ctx *ParserContext, block *hclsyntax.Block) error {
+func (p *Parser) parseImportBlock(ctx *ParserContext, block *hclsyntax.Block) error {
 	path := block.Labels[0]
 	moduleName := pathToModuleName(path)
 	currentModule := ctx.CurrentModule()
-	err := c.Symbols.AddSymbol(currentModule, moduleName,
-		&symbols.Import{Symbols: c.Symbols, Identifier: path})
+	err := p.Symbols.AddSymbol(currentModule, moduleName,
+		&symbols.Import{Symbols: p.Symbols, Identifier: path})
 	if err != nil {
 		return err
 	}
@@ -36,15 +36,15 @@ func (c *Core) parseImportBlock(ctx *ParserContext, block *hclsyntax.Block) erro
 	if err != nil {
 		return err
 	}
-	return c.parseFolder(newCtx, path)
+	return p.parseFolder(newCtx, path)
 }
 
-func (c *Core) registerUnprocessedBlock(ctx *ParserContext, block *hclsyntax.Block) error {
+func (p *Parser) registerUnprocessedBlock(ctx *ParserContext, block *hclsyntax.Block) error {
 	name := block.Labels[0]
 	symbol := &UnprocessedSymbol{
 		Context: ctx,
 		Block:   block,
 	}
 	slog.Debug("Register symbol.", "module", ctx.CurrentModule(), "name", name)
-	return c.Symbols.AddSymbol(ctx.CurrentModule(), name, symbol)
+	return p.Symbols.AddSymbol(ctx.CurrentModule(), name, symbol)
 }

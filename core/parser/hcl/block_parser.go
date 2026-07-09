@@ -16,10 +16,10 @@ import (
 	"github.com/tychonis/cyanotype/model"
 )
 
-func (c *Core) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, err error) {
+func (p *Parser) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, err error) {
 	// Already parsed before.
 	if s.qualifier != "" {
-		return c.Catalog.FindCurrent(s.qualifier)
+		return p.Symbols.FindConcreteSymbol(s.qualifier)
 	}
 
 	// New symbol.
@@ -28,24 +28,24 @@ func (c *Core) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, err 
 	}
 	switch s.Block.Type {
 	case "item":
-		sym, err = c.parseItemBlock(s.Context, s.Block)
+		sym, err = p.parseItemBlock(s.Context, s.Block)
 	case "coitem":
-		sym, err = c.parseCoItemBlock(s.Context, s.Block)
+		sym, err = p.parseCoItemBlock(s.Context, s.Block)
 	case "process":
-		sym, err = c.parseProcessBlock(s.Context, s.Block)
+		sym, err = p.parseProcessBlock(s.Context, s.Block)
 	case "coprocess":
-		sym, err = c.parseCoProcessBlock(s.Context, s.Block)
+		sym, err = p.parseCoProcessBlock(s.Context, s.Block)
 	case "contract":
-		sym, err = c.parseContractBlock(s.Context, s.Block)
+		sym, err = p.parseContractBlock(s.Context, s.Block)
 	default:
 		return nil, cerror.ErrorWithRange("unknown block type", s.Block.Range())
 	}
 	if err == nil {
 		// TODO: remove side effects here.
 		s.qualifier = sym.GetQualifier()
-		slog.Debug("adding symbol",
+		slog.Debug("saving symbol",
 			"qualifier", sym.GetQualifier(), "digest", sym.GetDigest())
-		err = c.Catalog.Add(sym)
+		p.Symbols.RegisterConcreteSymbol(sym)
 	} else {
 		err = cerror.ErrorWithRange(err.Error(), s.Block.Range())
 	}
@@ -60,12 +60,12 @@ func refToQualifier(ctx *ParserContext, ref []string) string {
 	}
 }
 
-func (c *Core) resolveContractsLinesAttr(ctx *ParserContext, attr *hcl.Attribute) ([]model.ContractID, error) {
-	refs, err := c.readContractLine(ctx, attr.Expr)
+func (p *Parser) resolveContractsLinesAttr(ctx *ParserContext, attr *hcl.Attribute) ([]model.ContractID, error) {
+	refs, err := p.readContractLine(ctx, attr.Expr)
 	if err != nil {
 		return nil, err
 	}
-	return c.resolveContractsID(ctx, refs)
+	return p.resolveContractsID(ctx, refs)
 }
 
 var RESERVED = map[string]struct{}{
@@ -75,7 +75,7 @@ var RESERVED = map[string]struct{}{
 	"impl":        {},
 }
 
-func (c *Core) getDetails(ctx *ParserContext, attrs hcl.Attributes) (stable.Map, error) {
+func (p *Parser) getDetails(ctx *ParserContext, attrs hcl.Attributes) (stable.Map, error) {
 	keys := make([]string, 0)
 	for key := range attrs {
 		_, ok := RESERVED[key]
@@ -95,7 +95,7 @@ func (c *Core) getDetails(ctx *ParserContext, attrs hcl.Attributes) (stable.Map,
 	return ret, nil
 }
 
-func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
+func (p *Parser) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
 	name := block.Labels[0]
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
@@ -110,7 +110,7 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mode
 	fromAttr, ok := attrs["from"]
 	if ok {
 		from := parseBOMLinesAttr(ctx, fromAttr)
-		pc, err = c.processKeywordFROM(ctx, from)
+		pc, err = p.processKeywordFROM(ctx, from)
 		if err != nil {
 			return nil, err
 		}
@@ -129,24 +129,29 @@ func (c *Core) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mode
 
 	implAttr, ok := attrs["impl"]
 	if ok {
-		item.Implement, _ = c.resolveContractsLinesAttr(ctx, implAttr)
+		item.Implement, _ = p.resolveContractsLinesAttr(ctx, implAttr)
 	}
 
+	item.Content.Details, err = p.getDetails(ctx, attrs)
+	if err != nil {
+		return item, err
+	}
+
+	// Digest need to be computed before building companion processes,
+	// because the companion processes will reference the item digest.
 	item.Digest, err = digest.SHA256FromSymbol(item)
 	if err != nil {
 		return item, err
 	}
 
-	err = c.buildCompanionForItem(ctx, item, pc)
+	_, err = p.buildCompanionForItem(ctx, item, pc)
 	if err != nil {
 		return nil, err
 	}
-
-	item.Content.Details, err = c.getDetails(ctx, attrs)
 	return item, err
 }
 
-func (c *Core) parseCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.CoItem, error) {
+func (p *Parser) parseCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.CoItem, error) {
 	name := block.Labels[0]
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
@@ -169,25 +174,25 @@ func (c *Core) parseCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mo
 
 	reqAttr, ok := attrs["req"]
 	if ok {
-		coItem.Require, _ = c.resolveContractsLinesAttr(ctx, reqAttr)
+		coItem.Require, _ = p.resolveContractsLinesAttr(ctx, reqAttr)
 	}
 
 	coItem.Digest, err = digest.SHA256FromSymbol(coItem)
 	return coItem, err
 }
 
-func (c *Core) createProcessContract(process *process.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {
+func (p *Parser) createProcessContract(process *process.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {
 	ret := &model.Contract{
 		Qualifier: fmt.Sprintf("%s.%s", process.Qualifier, mode),
 	}
 	return ret, nil
 }
 
-func (c *Core) resolveBOMLinesAttr(ctx *ParserContext, attr *hcl.Attribute) ([]*model.BOMLine, error) {
+func (p *Parser) resolveBOMLinesAttr(ctx *ParserContext, attr *hcl.Attribute) ([]*model.BOMLine, error) {
 	lines := parseBOMLinesAttr(ctx, attr)
 	ret := make([]*model.BOMLine, 0, len(lines))
 	for _, line := range lines {
-		resolved, err := c.ResolveBOMLine(ctx, line)
+		resolved, err := p.ResolveBOMLine(ctx, line)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +201,7 @@ func (c *Core) resolveBOMLinesAttr(ctx *ParserContext, attr *hcl.Attribute) ([]*
 	return ret, nil
 }
 
-func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *process.Process, err error) {
+func (p *Parser) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *process.Process, err error) {
 	name := block.Labels[0]
 	ret = &process.Process{}
 	ret.Type = "process"
@@ -209,7 +214,7 @@ func (c *Core) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (re
 	return
 }
 
-func (c *Core) parseCoProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *process.CoProcess, err error) {
+func (p *Parser) parseCoProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *process.CoProcess, err error) {
 	name := block.Labels[0]
 	ret = &process.CoProcess{}
 	ret.Type = "coprocess"
@@ -222,7 +227,7 @@ func (c *Core) parseCoProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (
 	return
 }
 
-func (c *Core) parseContractBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.Contract, error) {
+func (p *Parser) parseContractBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.Contract, error) {
 	name := block.Labels[0]
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
