@@ -148,6 +148,7 @@ func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 		ret.Digest = digest
 		return ret, nil
 	default:
+		slog.Warn("Unknown symbol type", "type", symType, "digest", digest)
 		return nil, errors.New("unknown type")
 	}
 }

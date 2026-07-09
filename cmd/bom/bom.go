@@ -43,8 +43,8 @@ func run(cmd *cobra.Command, args []string) {
 		slog.Error("Failed to commit to catalog.", "error", err)
 		return
 	}
-	ins := instantiator.New()
 
+	ins := instantiator.New()
 	counter, err := ins.Count(cat, rootPart)
 	if err != nil {
 		slog.Warn("Error counting", "error", err)

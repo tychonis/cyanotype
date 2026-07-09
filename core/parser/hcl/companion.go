@@ -13,6 +13,7 @@ import (
 func (p *Parser) buildCompanionCoItem(item *model.Item) (*model.CoItem, error) {
 	var err error
 	co := &model.CoItem{}
+	co.Type = "coitem"
 	co.Qualifier = qualifier.ImplicitCoItem(item)
 	co.Digest, err = digest.SHA256FromSymbol(co)
 	if err != nil {
@@ -39,6 +40,7 @@ func (p *Parser) buildCompanionCoProcess(item *model.Item, coItem *model.CoItem)
 	}
 
 	cp := &process.CoProcess{}
+	cp.Type = "coprocess"
 	cp.Qualifier = qualifier.ImplicitCoProcess(item)
 	cp.Content = content
 	cp.Digest, err = digest.SHA256FromSymbol(cp)
@@ -70,6 +72,7 @@ func (p *Parser) buildCompanionProcess(item *model.Item, pc process.ProcessConte
 	}
 
 	process := &process.Process{}
+	process.Type = "process"
 	process.Qualifier = qualifier.ImplicitProcess(item)
 	process.Content = pc
 	process.Digest, err = digest.SHA256FromSymbol(process)

@@ -288,7 +288,7 @@ func (idx *LocalIndex) FindCurrent(q Qualifier) (model.Digest, error) {
 		return idx.CompareRevisions(allRevisions[i], allRevisions[j]) < 0
 	})
 	latestRevision := entry[allRevisions[0]]
-	return entry[latestRevision], nil
+	return latestRevision, nil
 }
 
 func (idx *LocalIndex) GetItemProcesses(item model.ItemID) ([]process.ProcessID, error) {
