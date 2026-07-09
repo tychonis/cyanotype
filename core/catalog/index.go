@@ -23,6 +23,7 @@ type QualifierIndexEntry = map[model.RevisionID]model.Digest
 
 type SymbolIndex interface {
 	IndexSymbol(r *model.Revision, sym model.ConcreteSymbol) error
+	GetAllSymbols() ([]model.Digest, error)
 
 	FindAll(q Qualifier) ([]model.Digest, error)
 	FindCurrent(q Qualifier) (model.Digest, error)
@@ -35,6 +36,7 @@ type RevisionIndex interface {
 	IndexRevision(r *model.Revision) error
 	GetRevision(r model.RevisionID) (*model.Revision, error)
 	CompareRevisions(r1, r2 model.RevisionID) int
+	GetLatestRevision() (*model.Revision, error)
 }
 
 type Index interface {

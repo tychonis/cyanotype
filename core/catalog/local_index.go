@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/tychonis/cyanotype/core/process"
+	"github.com/tychonis/cyanotype/core/ranker"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -234,6 +235,16 @@ func (idx *LocalIndex) IndexSymbol(rev *model.Revision, sym model.ConcreteSymbol
 	return idx.indexProcess(sym)
 }
 
+func (idx *LocalIndex) GetAllSymbols() ([]model.Digest, error) {
+	allSymbols := make([]model.Digest, 0)
+	for _, entry := range idx.qualifierIndex {
+		for _, digest := range entry {
+			allSymbols = append(allSymbols, digest)
+		}
+	}
+	return allSymbols, nil
+}
+
 func (idx *LocalIndex) FindAll(q Qualifier) ([]model.Digest, error) {
 	entry, ok := idx.qualifierIndex[q]
 	if !ok {
@@ -365,4 +376,19 @@ func (idx *LocalIndex) loadRevisionIndex() error {
 		}
 	}
 	return nil
+}
+
+func (idx *LocalIndex) GetLatestRevision() (*model.Revision, error) {
+	allRevisions := make([]*model.Revision, 0, len(idx.revisionIndex))
+	for _, rev := range idx.revisionIndex {
+		allRevisions = append(allRevisions, rev)
+	}
+	if len(allRevisions) == 0 {
+		return nil, nil
+	}
+	sorted, err := ranker.StableTopoRevisions(allRevisions)
+	if err != nil {
+		return nil, fmt.Errorf("rank revisions: %w", err)
+	}
+	return idx.revisionIndex[sorted[len(sorted)-1]], nil
 }

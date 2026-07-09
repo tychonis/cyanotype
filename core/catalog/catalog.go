@@ -58,9 +58,13 @@ func New(catalogType string) *Catalog {
 }
 
 func NewLocalCatalog() *Catalog {
+	idx := NewLocalIndex(true)
+	latestRevision, _ := idx.GetLatestRevision()
 	return &Catalog{
 		storage: &LocalStorage{},
-		index:   NewLocalIndex(true),
+		index:   idx,
+
+		latestRevision: latestRevision,
 	}
 }
 
@@ -249,8 +253,19 @@ func (c *Catalog) GetMetadata(digest model.Digest) (*Metadata, error) {
 }
 
 func (c *Catalog) GetSymbols() (map[model.Digest]model.ConcreteSymbol, error) {
-	// TODO: implement this.
-	return nil, nil
+	ret := make(map[model.Digest]model.ConcreteSymbol)
+	allSymbols, err := c.index.GetAllSymbols()
+	if err != nil {
+		return nil, err
+	}
+	for _, digest := range allSymbols {
+		sym, err := c.Get(digest)
+		if err != nil {
+			return nil, err
+		}
+		ret[digest] = sym
+	}
+	return ret, nil
 }
 
 func (c *Catalog) Commit(revision *model.Revision) error {

@@ -1,6 +1,7 @@
 package export
 
 import (
+	"log/slog"
 	"os"
 	"strings"
 
@@ -31,7 +32,12 @@ func run(cmd *cobra.Command, args []string) {
 		}
 	}
 	cat := catalog.New("local")
+	slog.Debug("catalog", "catalog", cat)
 
-	output, _ := cat.Export()
+	output, err := cat.Export()
+	if err != nil {
+		slog.Error("Failed to export catalog.", "error", err)
+		return
+	}
 	os.WriteFile(catalogPath, output, 0o644)
 }
