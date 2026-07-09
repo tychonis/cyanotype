@@ -5,13 +5,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/tychonis/cyanotype/core/catalog"
 	"github.com/tychonis/cyanotype/core/parser/hcl"
 )
 
 var Cmd = &cobra.Command{
 	Use:   "build <path>",
-	Short: "Build .bpc folder from bpo",
+	Short: "Build revision from bpo, report errors but don't commit to catalog",
 	Run:   run,
 }
 
@@ -20,8 +19,6 @@ func run(cmd *cobra.Command, args []string) {
 	if bpoPath == "" {
 		bpoPath = "."
 	}
-
-	catalog.Initialize()
 
 	core := hcl.NewParser()
 	err := core.Build(bpoPath)

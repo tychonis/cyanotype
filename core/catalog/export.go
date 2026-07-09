@@ -7,12 +7,14 @@ import (
 )
 
 type CatalogDocument struct {
-	Symbols map[model.Digest]model.ConcreteSymbol `json:"symbols"`
+	Revision model.RevisionID                      `json:"revision"`
+	Symbols  map[model.Digest]model.ConcreteSymbol `json:"symbols"`
 }
 
 func (c *Catalog) Export() ([]byte, error) {
 	doc := &CatalogDocument{
-		Symbols: make(map[model.Digest]model.ConcreteSymbol),
+		Revision: c.latestRevision.Digest,
+		Symbols:  make(map[model.Digest]model.ConcreteSymbol),
 	}
 	symbols, err := c.GetSymbols()
 	if err != nil {

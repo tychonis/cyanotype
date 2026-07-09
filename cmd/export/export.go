@@ -1,12 +1,11 @@
 package export
 
 import (
-	"log/slog"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
-
-	"github.com/tychonis/cyanotype/core/parser/hcl"
+	"github.com/tychonis/cyanotype/core/catalog"
 )
 
 var Cmd = &cobra.Command{
@@ -31,13 +30,8 @@ func run(cmd *cobra.Command, args []string) {
 			catalogPath = "catalog.json"
 		}
 	}
-	core := hcl.NewParser()
-	err := core.Build(bpoPath)
-	if err != nil {
-		slog.Warn("Failed to parse bpo.", "error", err)
-		return
-	}
+	cat := catalog.New("local")
 
-	// output, _ := core.ExportCatalog()
-	// os.WriteFile(catalogPath, output, 0o644)
+	output, _ := cat.Export()
+	os.WriteFile(catalogPath, output, 0o644)
 }

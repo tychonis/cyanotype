@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/tychonis/cyanotype/core/catalog"
 	"github.com/tychonis/cyanotype/core/parser/hcl"
 )
 
@@ -26,6 +27,13 @@ func run(cmd *cobra.Command, args []string) {
 	err := p.Build(bpoPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
+		return
+	}
+
+	cat := catalog.New("local")
+	err = p.Commit(cat)
+	if err != nil {
+		slog.Error("Failed to commit to catalog.", "error", err)
 		return
 	}
 }
