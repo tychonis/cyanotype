@@ -59,7 +59,13 @@ func (c *Catalog) SaveCatalogMetadata(client *http.Client, endpoint string, tag 
 }
 
 func (c *Catalog) GetNewerRevisions(base *model.Revision) ([]*model.Revision, error) {
-	newRevisions, err := c.index.GetNewerRevisions(base.Digest)
+	var newRevisions []model.RevisionID
+	var err error
+	if base == nil {
+		newRevisions, err = c.index.GetAllRevisions()
+	} else {
+		newRevisions, err = c.index.GetNewerRevisions(base.Digest)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +116,7 @@ func (c *Catalog) Pull(other *Catalog) error {
 		if err != nil {
 			return err
 		}
-		if other.index.CompareRevisions(metadata.IntroducedBy, c.latestRevision.Digest) > 0 {
+		if c.latestRevision == nil || other.index.CompareRevisions(metadata.IntroducedBy, c.latestRevision.Digest) > 0 {
 			revData, err := other.storage.Load(metadata.IntroducedBy)
 			if err != nil {
 				return err

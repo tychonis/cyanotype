@@ -17,7 +17,7 @@ import (
 func NewRemoteCatalog(endpoint string, token string, tag string) *Catalog {
 	client := NewHTTPClient(token)
 	cat := &Catalog{
-		storage: NewAPIStore(endpoint+"/definition", client),
+		storage: NewAPIStore(endpoint, client),
 		index:   NewRemoteIndex(endpoint+"/bom_index/"+tag, client),
 	}
 	return cat
@@ -93,11 +93,17 @@ func initRemoteIndex(endpoint string, client *http.Client) *RemoteIndex {
 		RevisionIndex:  make(map[model.RevisionID]*model.Revision),
 
 		endpoint: endpoint,
+		client:   client,
 
-		client: client,
+		revisionOrderCache: make(map[model.RevisionID]int),
+		orderedRevisions:   make([]model.RevisionID, 0),
 	}
 	ret.buildRevisionOrderCache()
 	return ret
+}
+
+func (idx *RemoteIndex) GetAllRevisions() ([]model.RevisionID, error) {
+	return idx.orderedRevisions, nil
 }
 
 func (idx *RemoteIndex) GetNewerRevisions(r model.RevisionID) ([]model.RevisionID, error) {

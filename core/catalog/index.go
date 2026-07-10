@@ -37,6 +37,7 @@ type RevisionIndex interface {
 	// GetRevision(r model.RevisionID) (*model.Revision, error)
 	// CompareRevisions return negative if a is older than b.
 	CompareRevisions(r1, r2 model.RevisionID) int
+	GetAllRevisions() ([]model.RevisionID, error)
 	GetLatestRevision() (*model.Revision, error)
 	GetNewerRevisions(r model.RevisionID) ([]model.RevisionID, error)
 }

@@ -1,6 +1,7 @@
 package push
 
 import (
+	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -25,5 +26,8 @@ func run(cmd *cobra.Command, args []string) {
 
 	localCat := catalog.New("local")
 	remoteCat := catalog.NewRemoteCatalog(server, token, tag)
-	localCat.Push(remoteCat)
+	err := localCat.Push(remoteCat)
+	if err != nil {
+		slog.Error("Failed to push catalog to remote.", "error", err)
+	}
 }

@@ -291,6 +291,10 @@ func (idx *LocalIndex) GetRevision(r model.RevisionID) (*model.Revision, error) 
 	return revision, nil
 }
 
+func (idx *LocalIndex) GetAllRevisions() ([]model.RevisionID, error) {
+	return idx.orderedRevisions, nil
+}
+
 func (idx *LocalIndex) GetNewerRevisions(r model.RevisionID) ([]model.RevisionID, error) {
 	order, ok := idx.revisionOrderCache[r]
 	if !ok {
