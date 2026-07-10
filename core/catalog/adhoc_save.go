@@ -122,6 +122,12 @@ func (c *Catalog) Pull(other *Catalog) error {
 			c.Add(rev, sym)
 		}
 	}
+	// TODO: handle save logic elsewhere, maybe in the index itself.
+	switch c.index.(type) {
+	case *RemoteIndex:
+		remoteIdx, _ := c.index.(*RemoteIndex)
+		remoteIdx.Save()
+	}
 	return nil
 }
 
