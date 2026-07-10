@@ -76,16 +76,6 @@ func NewMemoryCatalog() *Catalog {
 	return cat
 }
 
-// // Adhoc hardcoded remote catalog.
-// func NewRemoteCatalog(endpoint string, token string, tag string) *Catalog {
-// 	client := NewHTTPClient(token)
-// 	cat := &Catalog{
-// 		storage: NewAPIStore(endpoint+"/definition", client),
-// 		index:   NewRemoteIndex(endpoint+"/bom_index/"+tag, client),
-// 	}
-// 	return cat
-// }
-
 func (c *Catalog) GenerateMetadata(revision *model.Revision, sym model.ConcreteSymbol) *Metadata {
 	return &Metadata{
 		IntroducedBy: revision.Digest,

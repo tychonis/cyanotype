@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/tychonis/cyanotype/internal/serializer"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -57,57 +58,73 @@ func (c *Catalog) SaveCatalogMetadata(client *http.Client, endpoint string, tag 
 	return nil
 }
 
-// func (c *Catalog) Save(endpoint string, token string, tag string) error {
-// 	localIndex, ok := c.index.(*LocalIndex)
-// 	if !ok {
-// 		return errors.New("can only save local index now")
-// 	}
+func (c *Catalog) GetNewerRevisions(base *model.Revision) ([]*model.Revision, error) {
+	newRevisions, err := c.index.GetNewerRevisions(base.Digest)
+	if err != nil {
+		return nil, err
+	}
+	ret := make([]*model.Revision, 0, len(newRevisions))
+	for _, revID := range newRevisions {
+		body, err := c.storage.Load(revID)
+		if err != nil {
+			return nil, err
+		}
+		rev, err := serializer.Deserialize[*model.Revision](body)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, rev)
+	}
+	return ret, nil
+}
 
-// 	client := NewHTTPClient(token)
+func (c *Catalog) Pull(other *Catalog) error {
+	newRevisions, err := other.GetNewerRevisions(c.latestRevision)
+	if err != nil {
+		return err
+	}
+	if len(newRevisions) == 0 {
+		return errors.New("other catalog has no newer revisions")
+	}
+	for _, rev := range newRevisions {
+		c.index.IndexRevision(rev)
+		body, err := serializer.Serialize(rev)
+		if err != nil {
+			return err
+		}
+		err = c.storage.Save(rev.Digest, body)
+		if err != nil {
+			return err
+		}
+	}
+	allSymbols, err := other.index.GetAllSymbols()
+	if err != nil {
+		return err
+	}
+	for _, symDigest := range allSymbols {
+		sym, err := other.Get(symDigest)
+		if err != nil {
+			return err
+		}
+		metadata, err := other.GetMetadata(symDigest)
+		if err != nil {
+			return err
+		}
+		if other.index.CompareRevisions(metadata.IntroducedBy, c.latestRevision.Digest) > 0 {
+			revData, err := other.storage.Load(metadata.IntroducedBy)
+			if err != nil {
+				return err
+			}
+			rev, err := serializer.Deserialize[*model.Revision](revData)
+			if err != nil {
+				return err
+			}
+			c.Add(rev, sym)
+		}
+	}
+	return nil
+}
 
-// 	remote := RemoteIndexFromLocal(localIndex)
-// 	remote.Endpoint = endpoint + "/bom_index/" + tag
-// 	err := remote.Save()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	remoteCatalog := NewRemoteCatalog(endpoint, token, tag)
-// 	symbols, err := c.GetSymbols()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	for symDigest := range symbols {
-// 		sym, err := c.Get(symDigest)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		data, err := serializer.Serialize(sym)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		remoteSym, _ := remoteCatalog.Get(symDigest)
-// 		// TODO: This is a hacky way to check if the symbol exists in the remote catalog.
-// 		// use a proper error type to check for this instead of relying on nil.
-// 		if remoteSym != nil {
-// 			continue
-// 		}
-// 		err = remoteCatalog.storage.Save(symDigest, data)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		metadata, err := c.GetMetadata(symDigest)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		metadataBytes, err := json.Marshal(metadata)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		err = remoteCatalog.storage.SaveMetadata(symDigest, metadataBytes)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-// 	return c.SaveCatalogMetadata(client, endpoint, tag)
-// }
+func (c *Catalog) Push(other *Catalog) error {
+	return other.Pull(c)
+}

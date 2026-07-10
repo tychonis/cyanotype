@@ -11,7 +11,7 @@ import (
 // StableTopoRevisions returns a topological order where unrelated ready revisions
 // are ordered by CreatedAt, then RevisionDigest.
 func StableTopoRevisions(revisions []*model.Revision) ([]model.RevisionID, error) {
-	byID := make(map[model.RevisionID]model.Revision, len(revisions))
+	byID := make(map[model.RevisionID]*model.Revision, len(revisions))
 	children := make(map[model.RevisionID][]model.RevisionID, len(revisions))
 	indegree := make(map[model.RevisionID]int, len(revisions))
 
@@ -22,7 +22,7 @@ func StableTopoRevisions(revisions []*model.Revision) ([]model.RevisionID, error
 		if _, exists := byID[r.Digest]; exists {
 			return nil, fmt.Errorf("duplicate revision ID %q", r.Digest)
 		}
-		byID[r.Digest] = *r
+		byID[r.Digest] = r
 		indegree[r.Digest] = 0
 	}
 

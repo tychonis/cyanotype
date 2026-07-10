@@ -34,9 +34,11 @@ type SymbolIndex interface {
 
 type RevisionIndex interface {
 	IndexRevision(r *model.Revision) error
-	GetRevision(r model.RevisionID) (*model.Revision, error)
+	// GetRevision(r model.RevisionID) (*model.Revision, error)
+	// CompareRevisions return negative if a is older than b.
 	CompareRevisions(r1, r2 model.RevisionID) int
 	GetLatestRevision() (*model.Revision, error)
+	GetNewerRevisions(r model.RevisionID) ([]model.RevisionID, error)
 }
 
 type Index interface {

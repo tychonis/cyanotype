@@ -21,6 +21,10 @@ type LocalIndex struct {
 	revisionIndex  map[model.RevisionID]*model.Revision
 
 	persistent bool
+
+	revisionOrderCache map[model.RevisionID]int
+	orderedRevisions   []model.RevisionID
+	latestRevision     model.RevisionID
 }
 
 func NewLocalIndex(persistent bool) *LocalIndex {
@@ -29,7 +33,9 @@ func NewLocalIndex(persistent bool) *LocalIndex {
 		processIndex:   make(map[model.ItemID]*ProcessIndexEntry),
 		revisionIndex:  make(map[model.RevisionID]*model.Revision),
 
-		persistent: persistent,
+		revisionOrderCache: make(map[model.RevisionID]int),
+		orderedRevisions:   make([]model.RevisionID, 0),
+		persistent:         persistent,
 	}
 	idx.load()
 	return idx
@@ -48,6 +54,26 @@ func (idx *LocalIndex) load() error {
 	if err != nil {
 		return err
 	}
+	return idx.buildRevisionOrderCache()
+}
+
+func (idx *LocalIndex) buildRevisionOrderCache() error {
+	allRevisions := make([]*model.Revision, 0, len(idx.revisionIndex))
+	for _, rev := range idx.revisionIndex {
+		allRevisions = append(allRevisions, rev)
+	}
+	if len(allRevisions) == 0 {
+		return nil
+	}
+	sorted, err := ranker.StableTopoRevisions(allRevisions)
+	if err != nil {
+		return fmt.Errorf("rank revisions: %w", err)
+	}
+	for i, rev := range sorted {
+		idx.revisionOrderCache[rev] = i
+	}
+	idx.orderedRevisions = sorted
+	idx.latestRevision = sorted[len(sorted)-1]
 	return nil
 }
 
@@ -265,22 +291,24 @@ func (idx *LocalIndex) GetRevision(r model.RevisionID) (*model.Revision, error) 
 	return revision, nil
 }
 
+func (idx *LocalIndex) GetNewerRevisions(r model.RevisionID) ([]model.RevisionID, error) {
+	order, ok := idx.revisionOrderCache[r]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	return idx.orderedRevisions[order:], nil
+}
+
 func (idx *LocalIndex) CompareRevisions(a, b model.RevisionID) int {
-	revA, err := idx.GetRevision(a)
-	if err != nil {
-		return 0
-	}
-	revB, err := idx.GetRevision(b)
-	if err != nil {
-		return 0
-	}
-	// TODO: Compare based on topological order of revisions before CreatedAt.
-	if revA.CreatedAt > revB.CreatedAt {
+	revAOrder, ok := idx.revisionOrderCache[a]
+	if !ok {
 		return -1
-	} else if revA.CreatedAt < revB.CreatedAt {
+	}
+	revBOrder, ok := idx.revisionOrderCache[b]
+	if !ok {
 		return 1
 	}
-	return 0
+	return revAOrder - revBOrder
 }
 
 func (idx *LocalIndex) FindCurrent(q Qualifier) (model.Digest, error) {
@@ -334,6 +362,7 @@ func (idx *LocalIndex) IndexRevision(r *model.Revision) error {
 			return fmt.Errorf("write index: %w", err)
 		}
 	}
+	idx.buildRevisionOrderCache()
 	return nil
 }
 
@@ -379,16 +408,9 @@ func (idx *LocalIndex) loadRevisionIndex() error {
 }
 
 func (idx *LocalIndex) GetLatestRevision() (*model.Revision, error) {
-	allRevisions := make([]*model.Revision, 0, len(idx.revisionIndex))
-	for _, rev := range idx.revisionIndex {
-		allRevisions = append(allRevisions, rev)
+	rev, ok := idx.revisionIndex[idx.latestRevision]
+	if !ok {
+		return nil, ErrNotFound
 	}
-	if len(allRevisions) == 0 {
-		return nil, nil
-	}
-	sorted, err := ranker.StableTopoRevisions(allRevisions)
-	if err != nil {
-		return nil, fmt.Errorf("rank revisions: %w", err)
-	}
-	return idx.revisionIndex[sorted[len(sorted)-1]], nil
+	return rev, nil
 }
