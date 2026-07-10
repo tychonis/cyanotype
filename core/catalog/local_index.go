@@ -324,7 +324,7 @@ func (idx *LocalIndex) FindCurrent(q Qualifier) (model.Digest, error) {
 		return "", ErrNotFound
 	}
 	sort.SliceStable(allRevisions, func(i, j int) bool {
-		return idx.CompareRevisions(allRevisions[i], allRevisions[j]) < 0
+		return idx.CompareRevisions(allRevisions[i], allRevisions[j]) > 0
 	})
 	latestRevision := entry[allRevisions[0]]
 	return latestRevision, nil
