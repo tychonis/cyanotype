@@ -12,8 +12,14 @@ type CatalogDocument struct {
 }
 
 func (c *Catalog) Export() ([]byte, error) {
+	var revision model.RevisionID
+	if c.latestRevision == nil {
+		revision = ""
+	} else {
+		revision = c.latestRevision.Digest
+	}
 	doc := &CatalogDocument{
-		Revision: c.latestRevision.Digest,
+		Revision: revision,
 		Symbols:  make(map[model.Digest]model.ConcreteSymbol),
 	}
 	symbols, err := c.GetSymbols()

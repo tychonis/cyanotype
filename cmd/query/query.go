@@ -38,6 +38,7 @@ func run(cmd *cobra.Command, args []string) {
 		slog.Error("Failed to find item.", "error", err)
 		return
 	}
+	fmt.Print(sym.GetDigest() + ":")
 	report(sym)
 
 	meta, err := cat.GetMetadata(sym.GetDigest())
