@@ -271,3 +271,7 @@ func (c *Catalog) Commit(revision *model.Revision) error {
 	c.latestRevision = revision
 	return nil
 }
+
+func (c *Catalog) GetLatestRevision() (*model.Revision, error) {
+	return c.latestRevision, nil
+}
