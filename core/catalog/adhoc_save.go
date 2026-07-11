@@ -128,6 +128,10 @@ func (c *Catalog) Pull(other *Catalog) error {
 			c.Add(rev, sym)
 		}
 	}
+	err = c.updateLatestRevision()
+	if err != nil {
+		return err
+	}
 	// TODO: handle save logic elsewhere, maybe in the index itself.
 	switch c.index.(type) {
 	case *RemoteIndex:
@@ -139,4 +143,21 @@ func (c *Catalog) Pull(other *Catalog) error {
 
 func (c *Catalog) Push(other *Catalog) error {
 	return other.Pull(c)
+}
+
+func (c *Catalog) updateLatestRevision() error {
+	latestRev, err := c.index.GetLatestRevision()
+	if err != nil {
+		return err
+	}
+	fullRevData, err := c.storage.Load(latestRev.Digest)
+	if err != nil {
+		return err
+	}
+	fullRev, err := serializer.Deserialize[*model.Revision](fullRevData)
+	if err != nil {
+		return err
+	}
+	c.latestRevision = fullRev
+	return nil
 }

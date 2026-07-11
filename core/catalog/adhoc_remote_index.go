@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sort"
 
@@ -19,6 +20,10 @@ func NewRemoteCatalog(endpoint string, token string, tag string) *Catalog {
 	cat := &Catalog{
 		storage: NewAPIStore(endpoint, client),
 		index:   NewRemoteIndex(endpoint+"/bom_index/"+tag, client),
+	}
+	err := cat.updateLatestRevision()
+	if err != nil {
+		slog.Warn("Failed to update latest revision", "error", err)
 	}
 	return cat
 }
@@ -63,6 +68,10 @@ func NewRemoteIndex(endpoint string, client *http.Client) *RemoteIndex {
 	if err != nil {
 		return initRemoteIndex(endpoint, client)
 	}
+	err = idx.buildRevisionOrderCache()
+	if err != nil {
+		slog.Warn("Failed to build revision order cache", "error", err)
+	}
 	return &idx
 }
 
@@ -77,6 +86,9 @@ func (idx *RemoteIndex) buildRevisionOrderCache() error {
 	sorted, err := ranker.StableTopoRevisions(allRevisions)
 	if err != nil {
 		return fmt.Errorf("rank revisions: %w", err)
+	}
+	if idx.revisionOrderCache == nil {
+		idx.revisionOrderCache = make(map[model.RevisionID]int)
 	}
 	for i, rev := range sorted {
 		idx.revisionOrderCache[rev] = i
