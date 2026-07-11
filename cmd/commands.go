@@ -44,5 +44,8 @@ func Run() {
 		query.Cmd,
 	)
 
-	rootCmd.Execute()
+	err := rootCmd.Execute()
+	if err != nil {
+		rootCmd.Usage()
+	}
 }

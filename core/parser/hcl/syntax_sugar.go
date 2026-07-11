@@ -18,7 +18,7 @@ type UnresolvedBOMLine struct {
 	Ref          Ref             `json:"ref" yaml:"ref"`
 	Qty          float64         `json:"qty" yaml:"qty"`
 	HasPlacement bool            `json:"-" yaml:"-"`
-	Placement    model.Placement `json:"placement" yaml:"placement"`
+	Placement    model.Placement `json:"placement,omitempty" yaml:"placement,omitempty"`
 }
 
 func readBOMLine(ctx *ParserContext, expr *hclsyntax.ObjectConsExpr) *UnresolvedBOMLine {
