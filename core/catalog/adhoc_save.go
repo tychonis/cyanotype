@@ -1,62 +1,11 @@
 package catalog
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"net/http"
 
 	"github.com/tychonis/cyanotype/internal/serializer"
 	"github.com/tychonis/cyanotype/model"
 )
-
-type CatalogMetadata struct {
-	Name           string          `json:"name"`
-	LatestRevision *model.Revision `json:"latest_revision"`
-	UniqueParts    int             `json:"unique_parts"`
-}
-
-func GetCatalogMetadata(client *http.Client, endpoint string, tag string) (*CatalogMetadata, error) {
-	metaDataEndpoint := fmt.Sprintf("%s/workspace/%s", endpoint, tag)
-	resp, err := client.Get(metaDataEndpoint)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("error response")
-	}
-
-	var metadata CatalogMetadata
-	err = json.NewDecoder(resp.Body).Decode(&metadata)
-	if err != nil {
-		return nil, err
-	}
-
-	return &metadata, nil
-}
-
-func (c *Catalog) SaveCatalogMetadata(client *http.Client, endpoint string, tag string) error {
-	metaDataEndpoint := fmt.Sprintf("%s/workspace/%s", endpoint, tag)
-	metadata := CatalogMetadata{
-		Name:           "placeholder",
-		LatestRevision: c.latestRevision,
-	}
-	content, err := json.Marshal(metadata)
-	if err != nil {
-		return err
-	}
-	resp, err := client.Post(metaDataEndpoint, "application/json", bytes.NewReader(content))
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != http.StatusAccepted {
-		return errors.New("error response")
-	}
-	return nil
-}
 
 func (c *Catalog) GetNewerRevisions(base *model.Revision) ([]*model.Revision, error) {
 	var newRevisions []model.RevisionID
@@ -137,6 +86,7 @@ func (c *Catalog) Pull(other *Catalog) error {
 	case *RemoteIndex:
 		remoteIdx, _ := c.index.(*RemoteIndex)
 		remoteIdx.Save()
+		remoteIdx.SaveCatalogMetadata()
 	}
 	return nil
 }

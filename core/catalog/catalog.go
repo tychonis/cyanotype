@@ -87,20 +87,20 @@ func (c *Catalog) Add(rev *model.Revision, sym model.ConcreteSymbol) error {
 	if err != nil {
 		return err
 	}
+	body, err := serializer.Serialize(sym)
+	if err != nil {
+		return err
+	}
+	err = c.storage.Save(sym.GetDigest(), body)
+	if err != nil {
+		return err
+	}
 	metadata := c.GenerateMetadata(rev, sym)
-	body, err := json.Marshal(metadata)
+	body, err = json.Marshal(metadata)
 	if err != nil {
 		return err
 	}
-	err = c.storage.SaveMetadata(sym.GetDigest(), body)
-	if err != nil {
-		return err
-	}
-	body, err = serializer.Serialize(sym)
-	if err != nil {
-		return err
-	}
-	return c.storage.Save(sym.GetDigest(), body)
+	return c.storage.SaveMetadata(sym.GetDigest(), body)
 }
 
 func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {

@@ -19,7 +19,7 @@ func NewRemoteCatalog(endpoint string, token string, tag string) *Catalog {
 	client := NewHTTPClient(token)
 	cat := &Catalog{
 		storage: NewAPIStore(endpoint, client),
-		index:   NewRemoteIndex(endpoint+"/bom_index/"+tag, client),
+		index:   NewRemoteIndex(endpoint+"/workspace/"+tag, client),
 	}
 	err := cat.updateLatestRevision()
 	if err != nil {
@@ -52,7 +52,7 @@ func RemoteIndexFromLocal(l *LocalIndex) *RemoteIndex {
 }
 
 func NewRemoteIndex(endpoint string, client *http.Client) *RemoteIndex {
-	req, err := http.NewRequest("GET", endpoint, nil)
+	req, err := http.NewRequest("GET", endpoint+"/index", nil)
 	if err != nil {
 		return initRemoteIndex(endpoint, client)
 	}
@@ -131,7 +131,7 @@ func (idx *RemoteIndex) Save() error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", idx.endpoint, bytes.NewReader(content))
+	req, err := http.NewRequest("POST", idx.endpoint+"/index", bytes.NewReader(content))
 	if err != nil {
 		return err
 	}
@@ -313,4 +313,49 @@ func (idx *RemoteIndex) GetLatestRevision() (*model.Revision, error) {
 		return nil, fmt.Errorf("rank revisions: %w", err)
 	}
 	return idx.RevisionIndex[sorted[len(sorted)-1]], nil
+}
+
+type CatalogMetadata struct {
+	Name           string           `json:"name"`
+	LatestRevision model.RevisionID `json:"latest_revision"`
+	UniqueParts    int              `json:"unique_parts"`
+}
+
+func (idx *RemoteIndex) GetCatalogMetadata() (*CatalogMetadata, error) {
+	resp, err := idx.client.Get(idx.endpoint)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("error response")
+	}
+
+	var metadata CatalogMetadata
+	err = json.NewDecoder(resp.Body).Decode(&metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	return &metadata, nil
+}
+
+func (idx *RemoteIndex) SaveCatalogMetadata() error {
+	metadata := CatalogMetadata{
+		Name:           "placeholder",
+		LatestRevision: idx.latestRevision,
+	}
+	content, err := json.Marshal(metadata)
+	if err != nil {
+		return err
+	}
+	resp, err := idx.client.Post(idx.endpoint, "application/json", bytes.NewReader(content))
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusAccepted {
+		return errors.New("error response")
+	}
+	return nil
 }
