@@ -68,6 +68,8 @@ func NewRemoteIndex(endpoint string, client *http.Client) *RemoteIndex {
 	if err != nil {
 		return initRemoteIndex(endpoint, client)
 	}
+	idx.endpoint = endpoint
+	idx.client = client
 	err = idx.buildRevisionOrderCache()
 	if err != nil {
 		slog.Warn("Failed to build revision order cache", "error", err)

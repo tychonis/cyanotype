@@ -85,8 +85,14 @@ func (c *Catalog) Pull(other *Catalog) error {
 	switch c.index.(type) {
 	case *RemoteIndex:
 		remoteIdx, _ := c.index.(*RemoteIndex)
-		remoteIdx.Save()
-		remoteIdx.SaveCatalogMetadata()
+		err = remoteIdx.Save()
+		if err != nil {
+			return err
+		}
+		err = remoteIdx.SaveCatalogMetadata()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
