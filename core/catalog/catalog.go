@@ -78,12 +78,33 @@ func NewMemoryCatalog() *Catalog {
 
 func (c *Catalog) GenerateMetadata(revision *model.Revision, sym model.ConcreteSymbol) *Metadata {
 	return &Metadata{
-		IntroducedBy: revision.Digest,
+		IntroducedBy:  revision.Digest,
+		CommitHistory: []model.RevisionID{revision.Digest},
 	}
 }
 
+func (c *Catalog) Revive(rev *model.Revision, digest model.Digest) error {
+	metadata, err := c.GetMetadata(digest)
+	if err != nil {
+		return err
+	}
+	metadata.Commit(rev.Digest)
+	body, err := json.Marshal(metadata)
+	if err != nil {
+		return err
+	}
+	return c.storage.SaveMetadata(digest, body)
+}
+
 func (c *Catalog) Add(rev *model.Revision, sym model.ConcreteSymbol) error {
-	err := c.index.IndexSymbol(rev, sym)
+	existSym, err := c.Get(sym.GetDigest())
+	if err != nil && err != ErrNotFound {
+		return err
+	}
+	if existSym != nil {
+		return c.Revive(rev, sym.GetDigest())
+	}
+	err = c.index.IndexSymbol(rev, sym)
 	if err != nil {
 		return err
 	}

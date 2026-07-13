@@ -22,9 +22,7 @@ type LocalIndex struct {
 
 	persistent bool
 
-	revisionOrderCache map[model.RevisionID]int
-	orderedRevisions   []model.RevisionID
-	latestRevision     model.RevisionID
+	revisionCache *revision.Cache
 }
 
 func NewLocalIndex(persistent bool) *LocalIndex {
@@ -33,9 +31,7 @@ func NewLocalIndex(persistent bool) *LocalIndex {
 		processIndex:   make(map[model.ItemID]*ProcessIndexEntry),
 		revisionIndex:  make(map[model.RevisionID]*model.Revision),
 
-		revisionOrderCache: make(map[model.RevisionID]int),
-		orderedRevisions:   make([]model.RevisionID, 0),
-		persistent:         persistent,
+		persistent: persistent,
 	}
 	idx.load()
 	return idx
@@ -58,23 +54,9 @@ func (idx *LocalIndex) load() error {
 }
 
 func (idx *LocalIndex) buildRevisionOrderCache() error {
-	allRevisions := make([]*model.Revision, 0, len(idx.revisionIndex))
-	for _, rev := range idx.revisionIndex {
-		allRevisions = append(allRevisions, rev)
-	}
-	if len(allRevisions) == 0 {
-		return nil
-	}
-	sorted, err := revision.StableTopoRevisions(allRevisions)
-	if err != nil {
-		return fmt.Errorf("rank revisions: %w", err)
-	}
-	for i, rev := range sorted {
-		idx.revisionOrderCache[rev] = i
-	}
-	idx.orderedRevisions = sorted
-	idx.latestRevision = sorted[len(sorted)-1]
-	return nil
+	var err error
+	idx.revisionCache, err = revision.NewFromIndex(idx.revisionIndex)
+	return err
 }
 
 func (idx *LocalIndex) loadQualifierIndex() error {
@@ -292,27 +274,15 @@ func (idx *LocalIndex) GetRevision(r model.RevisionID) (*model.Revision, error) 
 }
 
 func (idx *LocalIndex) GetAllRevisions() ([]model.RevisionID, error) {
-	return idx.orderedRevisions, nil
+	return idx.revisionCache.GetAllRevisions()
 }
 
 func (idx *LocalIndex) GetNewerRevisions(r model.RevisionID) ([]model.RevisionID, error) {
-	order, ok := idx.revisionOrderCache[r]
-	if !ok {
-		return nil, ErrNotFound
-	}
-	return idx.orderedRevisions[order:], nil
+	return idx.revisionCache.GetNewerRevisions(r)
 }
 
 func (idx *LocalIndex) CompareRevisions(a, b model.RevisionID) int {
-	revAOrder, ok := idx.revisionOrderCache[a]
-	if !ok {
-		return -1
-	}
-	revBOrder, ok := idx.revisionOrderCache[b]
-	if !ok {
-		return 1
-	}
-	return revAOrder - revBOrder
+	return idx.revisionCache.CompareRevisions(a, b)
 }
 
 func (idx *LocalIndex) FindCurrent(q Qualifier) (model.Digest, error) {
@@ -412,7 +382,7 @@ func (idx *LocalIndex) loadRevisionIndex() error {
 }
 
 func (idx *LocalIndex) GetLatestRevision() (*model.Revision, error) {
-	rev, ok := idx.revisionIndex[idx.latestRevision]
+	rev, ok := idx.revisionIndex[idx.revisionCache.LatestRevision]
 	if !ok {
 		return nil, ErrNotFound
 	}

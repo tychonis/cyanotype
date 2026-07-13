@@ -31,7 +31,10 @@ func (p *Parser) commit(cat *catalog.Catalog, dryrun bool) error {
 			return errors.New("symbol not found in symbol table")
 		}
 		if !dryrun {
-			cat.Add(revision, sym)
+			err = cat.Add(revision, sym)
+			if err != nil {
+				return err
+			}
 		} else {
 			slog.Info("New symbol", "qualifier", qualifier, "digest", symDigest)
 		}

@@ -38,9 +38,7 @@ type RemoteIndex struct {
 	endpoint string       `json:"-"`
 	client   *http.Client `json:"-"`
 
-	revisionOrderCache map[model.RevisionID]int `json:"-"`
-	orderedRevisions   []model.RevisionID       `json:"-"`
-	latestRevision     model.RevisionID         `json:"-"`
+	revisionCache *revision.Cache `json:"-"`
 }
 
 func RemoteIndexFromLocal(l *LocalIndex) *RemoteIndex {
@@ -78,26 +76,9 @@ func NewRemoteIndex(endpoint string, client *http.Client) *RemoteIndex {
 }
 
 func (idx *RemoteIndex) buildRevisionOrderCache() error {
-	allRevisions := make([]*model.Revision, 0, len(idx.RevisionIndex))
-	for _, rev := range idx.RevisionIndex {
-		allRevisions = append(allRevisions, rev)
-	}
-	if len(allRevisions) == 0 {
-		return nil
-	}
-	sorted, err := revision.StableTopoRevisions(allRevisions)
-	if err != nil {
-		return fmt.Errorf("rank revisions: %w", err)
-	}
-	if idx.revisionOrderCache == nil {
-		idx.revisionOrderCache = make(map[model.RevisionID]int)
-	}
-	for i, rev := range sorted {
-		idx.revisionOrderCache[rev] = i
-	}
-	idx.orderedRevisions = sorted
-	idx.latestRevision = sorted[len(sorted)-1]
-	return nil
+	var err error
+	idx.revisionCache, err = revision.NewFromIndex(idx.RevisionIndex)
+	return err
 }
 
 func initRemoteIndex(endpoint string, client *http.Client) *RemoteIndex {
@@ -108,24 +89,17 @@ func initRemoteIndex(endpoint string, client *http.Client) *RemoteIndex {
 
 		endpoint: endpoint,
 		client:   client,
-
-		revisionOrderCache: make(map[model.RevisionID]int),
-		orderedRevisions:   make([]model.RevisionID, 0),
 	}
 	ret.buildRevisionOrderCache()
 	return ret
 }
 
 func (idx *RemoteIndex) GetAllRevisions() ([]model.RevisionID, error) {
-	return idx.orderedRevisions, nil
+	return idx.revisionCache.GetAllRevisions()
 }
 
 func (idx *RemoteIndex) GetNewerRevisions(r model.RevisionID) ([]model.RevisionID, error) {
-	order, ok := idx.revisionOrderCache[r]
-	if !ok {
-		return nil, ErrNotFound
-	}
-	return idx.orderedRevisions[order:], nil
+	return idx.revisionCache.GetNewerRevisions(r)
 }
 
 func (idx *RemoteIndex) Save() error {
@@ -280,15 +254,7 @@ func (idx *RemoteIndex) GetRevision(r model.RevisionID) (*model.Revision, error)
 }
 
 func (idx *RemoteIndex) CompareRevisions(a, b model.RevisionID) int {
-	revAOrder, ok := idx.revisionOrderCache[a]
-	if !ok {
-		return -1
-	}
-	revBOrder, ok := idx.revisionOrderCache[b]
-	if !ok {
-		return 1
-	}
-	return revAOrder - revBOrder
+	return idx.revisionCache.CompareRevisions(a, b)
 }
 
 func (idx *RemoteIndex) IndexRevision(r *model.Revision) error {
@@ -340,7 +306,7 @@ func (idx *RemoteIndex) GetCatalogMetadata() (*CatalogMetadata, error) {
 func (idx *RemoteIndex) SaveCatalogMetadata() error {
 	metadata := CatalogMetadata{
 		Name:           "placeholder",
-		LatestRevision: idx.latestRevision,
+		LatestRevision: idx.revisionCache.LatestRevision,
 	}
 	content, err := json.Marshal(metadata)
 	if err != nil {
