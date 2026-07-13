@@ -8,6 +8,7 @@ import (
 	"github.com/tychonis/cyanotype/cmd/build"
 	"github.com/tychonis/cyanotype/cmd/commit"
 	"github.com/tychonis/cyanotype/cmd/export"
+	"github.com/tychonis/cyanotype/cmd/history"
 	"github.com/tychonis/cyanotype/cmd/initialize"
 	"github.com/tychonis/cyanotype/cmd/plan"
 	"github.com/tychonis/cyanotype/cmd/push"
@@ -42,6 +43,7 @@ func Run() {
 		push.Cmd,
 		plan.Cmd,
 		query.Cmd,
+		history.Cmd,
 	)
 
 	err := rootCmd.Execute()

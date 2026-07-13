@@ -10,7 +10,7 @@ type CatalogTypeRanker struct {
 	catalogRanker *CatalogRanker
 }
 
-func NewCatalogTypeRanker(preferedType string, catalog *catalog.Catalog) *CatalogTypeRanker {
+func NewCatalogTypeRanker(catalog *catalog.Catalog, preferedType string) *CatalogTypeRanker {
 	return &CatalogTypeRanker{
 		PreferedType:  preferedType,
 		catalogRanker: NewCatalogRanker(catalog),

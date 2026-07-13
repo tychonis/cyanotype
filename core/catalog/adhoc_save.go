@@ -106,6 +106,9 @@ func (c *Catalog) updateLatestRevision() error {
 	if err != nil {
 		return err
 	}
+	if latestRev == nil {
+		return nil
+	}
 	fullRevData, err := c.storage.Load(latestRev.Digest)
 	if err != nil {
 		return err

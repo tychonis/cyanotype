@@ -17,6 +17,7 @@ func NewCatalogRanker(c *catalog.Catalog) *CatalogRanker {
 	}
 }
 
+// RankCoProcess from newest to oldest based on the introducedBy revision of the coProcess
 func (r *CatalogRanker) RankCoProcess(cps []*process.CoProcess) ([]*process.CoProcess, error) {
 	sort.SliceStable(cps, func(i, j int) bool {
 		metaI, errI := r.catalog.GetSymbolMetadata(cps[i].Digest)
@@ -26,7 +27,7 @@ func (r *CatalogRanker) RankCoProcess(cps []*process.CoProcess) ([]*process.CoPr
 			return false
 		}
 
-		return r.catalog.CompareRevisions(metaI.IntroducedBy, metaJ.IntroducedBy) < 0
+		return r.catalog.CompareRevisions(metaI.IntroducedBy, metaJ.IntroducedBy) > 0
 	})
 	return cps, nil
 }
@@ -42,6 +43,7 @@ func (r *CatalogRanker) TopCoProcess(cps []*process.CoProcess) (*process.CoProce
 	return nil, ErrNotFound
 }
 
+// RankProcess from newest to oldest based on the introducedBy revision of the process
 func (r *CatalogRanker) RankProcess(ps []*process.Process) ([]*process.Process, error) {
 	sort.SliceStable(ps, func(i, j int) bool {
 		metaI, errI := r.catalog.GetSymbolMetadata(ps[i].Digest)
@@ -51,7 +53,7 @@ func (r *CatalogRanker) RankProcess(ps []*process.Process) ([]*process.Process, 
 			return false
 		}
 
-		return r.catalog.CompareRevisions(metaI.IntroducedBy, metaJ.IntroducedBy) < 0
+		return r.catalog.CompareRevisions(metaI.IntroducedBy, metaJ.IntroducedBy) > 0
 	})
 	return ps, nil
 }

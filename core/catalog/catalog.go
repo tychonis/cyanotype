@@ -168,6 +168,22 @@ func (c *Catalog) FindCurrent(qualifier Qualifier) (model.ConcreteSymbol, error)
 	return c.Get(digest)
 }
 
+func (c *Catalog) FindAll(qualifier Qualifier) ([]model.ConcreteSymbol, error) {
+	digests, err := c.index.FindAll(qualifier)
+	if err != nil {
+		return nil, err
+	}
+	ret := make([]model.ConcreteSymbol, 0, len(digests))
+	for _, digest := range digests {
+		sym, err := c.Get(digest)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, sym)
+	}
+	return ret, nil
+}
+
 func getSymbols[T model.ConcreteSymbol](c *Catalog, ids []model.Digest) ([]T, error) {
 	ret := make([]T, 0, len(ids))
 	for _, pid := range ids {

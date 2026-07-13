@@ -280,21 +280,15 @@ func (idx *RemoteIndex) GetRevision(r model.RevisionID) (*model.Revision, error)
 }
 
 func (idx *RemoteIndex) CompareRevisions(a, b model.RevisionID) int {
-	revA, err := idx.GetRevision(a)
-	if err != nil {
-		return 0
-	}
-	revB, err := idx.GetRevision(b)
-	if err != nil {
-		return 0
-	}
-	// TODO: Compare based on topological order of revisions before CreatedAt.
-	if revA.CreatedAt > revB.CreatedAt {
+	revAOrder, ok := idx.revisionOrderCache[a]
+	if !ok {
 		return -1
-	} else if revA.CreatedAt < revB.CreatedAt {
+	}
+	revBOrder, ok := idx.revisionOrderCache[b]
+	if !ok {
 		return 1
 	}
-	return 0
+	return revAOrder - revBOrder
 }
 
 func (idx *RemoteIndex) IndexRevision(r *model.Revision) error {
