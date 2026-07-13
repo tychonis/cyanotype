@@ -1,4 +1,4 @@
-package ranker
+package revision
 
 import (
 	"cmp"

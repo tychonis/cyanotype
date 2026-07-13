@@ -10,7 +10,7 @@ import (
 	"sort"
 
 	"github.com/tychonis/cyanotype/core/process"
-	"github.com/tychonis/cyanotype/core/ranker"
+	"github.com/tychonis/cyanotype/internal/revision"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -85,7 +85,7 @@ func (idx *RemoteIndex) buildRevisionOrderCache() error {
 	if len(allRevisions) == 0 {
 		return nil
 	}
-	sorted, err := ranker.StableTopoRevisions(allRevisions)
+	sorted, err := revision.StableTopoRevisions(allRevisions)
 	if err != nil {
 		return fmt.Errorf("rank revisions: %w", err)
 	}
@@ -310,7 +310,7 @@ func (idx *RemoteIndex) GetLatestRevision() (*model.Revision, error) {
 	if len(allRevisions) == 0 {
 		return nil, nil
 	}
-	sorted, err := ranker.StableTopoRevisions(allRevisions)
+	sorted, err := revision.StableTopoRevisions(allRevisions)
 	if err != nil {
 		return nil, fmt.Errorf("rank revisions: %w", err)
 	}

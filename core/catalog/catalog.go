@@ -147,6 +147,19 @@ func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 	}
 }
 
+func (c *Catalog) GetSymbolMetadata(digest model.Digest) (*Metadata, error) {
+	body, err := c.storage.LoadMetadata(digest)
+	if err != nil {
+		return nil, err
+	}
+	var metadata Metadata
+	err = json.Unmarshal(body, &metadata)
+	if err != nil {
+		return nil, err
+	}
+	return &metadata, nil
+}
+
 func (c *Catalog) FindCurrent(qualifier Qualifier) (model.ConcreteSymbol, error) {
 	digest, err := c.index.FindCurrent(qualifier)
 	if err != nil {
@@ -274,4 +287,8 @@ func (c *Catalog) Commit(revision *model.Revision) error {
 
 func (c *Catalog) GetLatestRevision() (*model.Revision, error) {
 	return c.latestRevision, nil
+}
+
+func (c *Catalog) CompareRevisions(a, b model.RevisionID) int {
+	return c.index.CompareRevisions(a, b)
 }
