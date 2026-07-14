@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"sort"
@@ -263,18 +262,11 @@ func (idx *RemoteIndex) IndexRevision(r *model.Revision) error {
 }
 
 func (idx *RemoteIndex) GetLatestRevision() (*model.Revision, error) {
-	allRevisions := make([]*model.Revision, 0, len(idx.RevisionIndex))
-	for _, rev := range idx.RevisionIndex {
-		allRevisions = append(allRevisions, rev)
+	rev, ok := idx.RevisionIndex[idx.revisionCache.LatestRevision]
+	if !ok {
+		return nil, ErrNotFound
 	}
-	if len(allRevisions) == 0 {
-		return nil, nil
-	}
-	sorted, err := revision.StableTopoRevisions(allRevisions)
-	if err != nil {
-		return nil, fmt.Errorf("rank revisions: %w", err)
-	}
-	return idx.RevisionIndex[sorted[len(sorted)-1]], nil
+	return rev, nil
 }
 
 type CatalogMetadata struct {
@@ -304,6 +296,10 @@ func (idx *RemoteIndex) GetCatalogMetadata() (*CatalogMetadata, error) {
 }
 
 func (idx *RemoteIndex) SaveCatalogMetadata() error {
+	err := idx.buildRevisionOrderCache()
+	if err != nil {
+		return err
+	}
 	metadata := CatalogMetadata{
 		Name:           "placeholder",
 		LatestRevision: idx.revisionCache.LatestRevision,
