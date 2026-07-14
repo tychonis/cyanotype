@@ -97,14 +97,11 @@ func (c *Catalog) Revive(rev *model.Revision, digest model.Digest) error {
 }
 
 func (c *Catalog) Add(rev *model.Revision, sym model.ConcreteSymbol) error {
-	existSym, err := c.Get(sym.GetDigest())
-	if err != nil && err != ErrNotFound {
-		return err
-	}
+	existSym, _ := c.Get(sym.GetDigest())
 	if existSym != nil {
 		return c.Revive(rev, sym.GetDigest())
 	}
-	err = c.index.IndexSymbol(rev, sym)
+	err := c.index.IndexSymbol(rev, sym)
 	if err != nil {
 		return err
 	}
