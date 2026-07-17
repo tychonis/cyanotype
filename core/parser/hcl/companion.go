@@ -5,8 +5,8 @@ import (
 	"log/slog"
 
 	"github.com/tychonis/cyanotype/core/process"
+	"github.com/tychonis/cyanotype/core/qualifier"
 	"github.com/tychonis/cyanotype/internal/digest"
-	"github.com/tychonis/cyanotype/internal/qualifier"
 	"github.com/tychonis/cyanotype/model"
 )
 

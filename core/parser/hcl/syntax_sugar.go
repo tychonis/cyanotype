@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/tychonis/cyanotype/core/process"
-	"github.com/tychonis/cyanotype/internal/qualifier"
+	"github.com/tychonis/cyanotype/core/qualifier"
 	"github.com/tychonis/cyanotype/model"
 )
 

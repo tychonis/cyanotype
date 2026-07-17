@@ -5,9 +5,9 @@ import (
 
 	"github.com/tychonis/cyanotype/core/bomtree"
 	"github.com/tychonis/cyanotype/core/catalog"
+	"github.com/tychonis/cyanotype/core/qualifier"
 	"github.com/tychonis/cyanotype/core/ranker"
 	"github.com/tychonis/cyanotype/internal/digest"
-	"github.com/tychonis/cyanotype/internal/qualifier"
 	"github.com/tychonis/cyanotype/model"
 )
 
