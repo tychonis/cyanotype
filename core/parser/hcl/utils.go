@@ -17,6 +17,14 @@ func (e *ErrorWithRange) Error() string {
 	return e.Err.Error()
 }
 
+func extractAttributes(body *hclsyntax.Body) (hcl.Attributes, error) {
+	attrs := make(hcl.Attributes, len(body.Attributes))
+	for name, attr := range body.Attributes {
+		attrs[name] = attr.AsHCLAttribute()
+	}
+	return attrs, nil
+}
+
 func getString(attrs hcl.Attributes, key string) (string, error) {
 	attr, ok := attrs[key]
 	if !ok {

@@ -31,18 +31,18 @@ type CoItem struct {
 }
 
 type ItemContent struct {
-	Name       string       `json:"name" yaml:"name"`
-	Source     string       `json:"source,omitempty" yaml:"source,omitempty"`
-	PartNumber string       `json:"part_number" yaml:"part_number"`
-	References []*Reference `json:"ref,omitempty" yaml:"ref,omitempty"`
-	Details    stable.Map   `json:"details" yaml:"details"`
+	Name       string      `json:"name" yaml:"name"`
+	Source     string      `json:"source,omitempty" yaml:"source,omitempty"`
+	PartNumber string      `json:"part_number" yaml:"part_number"`
+	Artifacts  []*Artifact `json:"artifacts,omitempty" yaml:"artifacts,omitempty"`
+	Details    stable.Map  `json:"details" yaml:"details"`
 }
 
-type Reference struct {
-	Reference string `json:"ref" yaml:"ref"`
-	Tag       string `json:"tag" yaml:"tag"`
-	Path      string `json:"path" yaml:"path"`
-	Digest    string `json:"digest" yaml:"digest"`
+type Artifact struct {
+	Name   string `json:"name" yaml:"name"`
+	Tag    string `json:"tag" yaml:"tag"`
+	Path   string `json:"path" yaml:"path"`
+	Digest string `json:"digest" yaml:"digest"`
 }
 
 // TODO: implement attrs?

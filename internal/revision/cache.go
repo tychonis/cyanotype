@@ -23,11 +23,11 @@ func NewFromIndex(idx map[model.RevisionID]*model.Revision) (*Cache, error) {
 		allRevisions = append(allRevisions, rev)
 	}
 	if len(allRevisions) == 0 {
-		return nil, nil
+		return cache, nil
 	}
 	sorted, err := StableTopoRevisions(allRevisions)
 	if err != nil {
-		return nil, fmt.Errorf("rank revisions: %w", err)
+		return cache, fmt.Errorf("rank revisions: %w", err)
 	}
 	cache.orderedRevisions = sorted
 	cache.LatestRevision = sorted[len(sorted)-1]

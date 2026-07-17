@@ -97,16 +97,14 @@ func (p *Parser) getDetails(ctx *ParserContext, attrs hcl.Attributes) (stable.Ma
 
 func (p *Parser) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.Item, error) {
 	name := block.Labels[0]
-	attrs, diags := block.Body.JustAttributes()
-	if diags.HasErrors() {
-		return nil, diags
+	attrs, err := extractAttributes(block.Body)
+	if err != nil {
+		return nil, err
 	}
 	pn, _ := getString(attrs, "part_number")
-	// ref, _ := getString(attrs, "ref")
 	src, _ := getString(attrs, "source")
 
 	var pc process.ProcessContent
-	var err error
 	fromAttr, ok := attrs["from"]
 	if ok {
 		from := parseBOMLinesAttr(ctx, fromAttr)
@@ -137,6 +135,11 @@ func (p *Parser) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mo
 		return item, err
 	}
 
+	item.Content.Artifacts, err = ParseArtifacts(ctx, block)
+	if err != nil {
+		return item, err
+	}
+
 	// Digest need to be computed before building companion processes,
 	// because the companion processes will reference the item digest.
 	item.Digest, err = digest.SHA256FromSymbol(item)
@@ -153,15 +156,12 @@ func (p *Parser) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mo
 
 func (p *Parser) parseCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.CoItem, error) {
 	name := block.Labels[0]
-	attrs, diags := block.Body.JustAttributes()
-	if diags.HasErrors() {
-		return nil, diags
+	attrs, err := extractAttributes(block.Body)
+	if err != nil {
+		return nil, err
 	}
 	pn, _ := getString(attrs, "part_number")
-	// ref, _ := getString(attrs, "ref")
 	src, _ := getString(attrs, "source")
-
-	var err error
 
 	coItem := &model.CoItem{}
 	coItem.Type = "coitem"
@@ -175,6 +175,15 @@ func (p *Parser) parseCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*
 	reqAttr, ok := attrs["req"]
 	if ok {
 		coItem.Require, _ = p.resolveContractsLinesAttr(ctx, reqAttr)
+	}
+
+	coItem.Content.Details, err = p.getDetails(ctx, attrs)
+	if err != nil {
+		return coItem, err
+	}
+	coItem.Content.Artifacts, err = ParseArtifacts(ctx, block)
+	if err != nil {
+		return coItem, err
 	}
 
 	coItem.Digest, err = digest.SHA256FromSymbol(coItem)

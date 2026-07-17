@@ -27,13 +27,13 @@ type Catalog struct {
 	latestRevision *model.Revision
 }
 
-func (c *Catalog) NewRevision() *model.Revision {
+func newRevision(parent *model.Revision) *model.Revision {
 	digest, err := digest.RandomSHA256()
 	if err != nil {
 		slog.Error("failed to generate random SHA256 for revision", "error", err)
 		return nil
 	}
-	if c.latestRevision == nil {
+	if parent == nil {
 		return &model.Revision{
 			Digest:    digest,
 			CreatedAt: time.Now().UnixNano(),
@@ -42,8 +42,12 @@ func (c *Catalog) NewRevision() *model.Revision {
 	return &model.Revision{
 		Digest:    digest,
 		CreatedAt: time.Now().UnixNano(),
-		Parents:   []model.RevisionID{c.latestRevision.Digest},
+		Parents:   []model.RevisionID{parent.Digest},
 	}
+}
+
+func (c *Catalog) NewRevision() *model.Revision {
+	return newRevision(c.latestRevision)
 }
 
 func New(catalogType string) *Catalog {

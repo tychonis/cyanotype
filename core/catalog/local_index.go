@@ -34,6 +34,7 @@ func NewLocalIndex(persistent bool) *LocalIndex {
 		persistent: persistent,
 	}
 	idx.load()
+	idx.buildRevisionOrderCache()
 	return idx
 }
 
@@ -46,11 +47,7 @@ func (idx *LocalIndex) load() error {
 	if err != nil {
 		return err
 	}
-	err = idx.loadRevisionIndex()
-	if err != nil {
-		return err
-	}
-	return idx.buildRevisionOrderCache()
+	return idx.loadRevisionIndex()
 }
 
 func (idx *LocalIndex) buildRevisionOrderCache() error {
