@@ -12,7 +12,6 @@ type BuildEnv interface {
 
 	GetItemProcesses(item model.ItemID) ([]*process.Process, error)
 	GetItemCoProcesses(item model.ItemID) ([]*process.CoProcess, error)
-	GetCoItems(item model.ItemID) ([]*ItemProcess, error)
 
 	Export() ([]byte, error)
 }

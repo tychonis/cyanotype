@@ -7,6 +7,7 @@ import (
 	"github.com/tychonis/cyanotype/core/catalog"
 	"github.com/tychonis/cyanotype/core/ranker"
 	"github.com/tychonis/cyanotype/internal/digest"
+	"github.com/tychonis/cyanotype/internal/qualifier"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -81,15 +82,14 @@ func (i *Instantiator) instantiate(cat *catalog.Catalog, name string, coitem *mo
 	return node, nil
 }
 
-func (i *Instantiator) InstantiateTree(cat *catalog.Catalog, name string, item *model.Item) (*bomtree.Node, error) {
-	coItems, err := cat.GetCoItems(item.Digest)
-	if err != nil {
-		return nil, err
-	}
-	if len(coItems) != 1 {
-		return nil, errors.New("multiple coitems not implemented yet")
-	}
-	coItemSym, err := cat.Get(coItems[0].Item)
+func (i *Instantiator) InstantiateTree(cat *catalog.Catalog, name string, coItem *model.CoItem) (*bomtree.Node, error) {
+	return i.instantiate(cat, name, coItem, 1)
+}
+
+// InstantiateTreeFromItem provides a shortcut. Trees should be instantiated from a coitem.
+func (i *Instantiator) InstantiateTreeFromItem(cat *catalog.Catalog, name string, item *model.Item) (*bomtree.Node, error) {
+	coItemQualifier := qualifier.ImplicitCoItem(item)
+	coItemSym, err := cat.FindCurrent(coItemQualifier)
 	if err != nil {
 		return nil, err
 	}
@@ -97,5 +97,5 @@ func (i *Instantiator) InstantiateTree(cat *catalog.Catalog, name string, item *
 	if !ok {
 		return nil, errors.New("not a coitem")
 	}
-	return i.instantiate(cat, name, coItem, 1)
+	return i.InstantiateTree(cat, name, coItem)
 }

@@ -29,7 +29,7 @@ func (i *Instantiator) Count(cat *catalog.Catalog, root string) (map[string]floa
 		return nil, errors.New("unknown item")
 	}
 
-	tree, err := i.InstantiateTree(cat, "root", item)
+	tree, err := i.InstantiateTreeFromItem(cat, "root", item)
 	if err != nil {
 		return nil, err
 	}

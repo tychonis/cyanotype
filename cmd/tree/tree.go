@@ -65,7 +65,7 @@ func run(cmd *cobra.Command, args []string) {
 
 	ins := instantiator.New()
 
-	rootNode, err := ins.InstantiateTree(cat, "root", rootItem)
+	rootNode, err := ins.InstantiateTreeFromItem(cat, "root", rootItem)
 	if err != nil {
 		slog.Error("Failed to build.", "error", err)
 		return

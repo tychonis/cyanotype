@@ -245,26 +245,6 @@ func (c *Catalog) GetItemCoProcesses(item model.ItemID) ([]*process.CoProcess, e
 	return getSymbols[*process.CoProcess](c, coProcesses)
 }
 
-func (c *Catalog) GetCoItems(item model.ItemID) ([]*ItemProcess, error) {
-	slog.Debug("get coitems", "item", item)
-	cps, err := c.GetItemCoProcesses(item)
-	if err != nil {
-		return nil, err
-	}
-	ret := make([]*ItemProcess, 0, len(cps))
-	for _, cp := range cps {
-		slog.Debug("coprocess", "item", item, "coprocess", cp.Digest)
-		if len(cp.Output()) != 1 {
-			return nil, errors.New("multiple output not implemented yet")
-		}
-		ret = append(ret, &ItemProcess{
-			Item:    cp.Output()[0].Item,
-			Process: cp.Digest,
-		})
-	}
-	return ret, nil
-}
-
 func (c *Catalog) GetItems(coItem model.ItemID) ([]*ItemProcess, error) {
 	cps, err := c.GetItemCoProcesses(coItem)
 	if err != nil {
