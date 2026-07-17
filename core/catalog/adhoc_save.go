@@ -82,14 +82,21 @@ func (c *Catalog) Pull(other *Catalog) error {
 		return err
 	}
 	// TODO: handle save logic elsewhere, maybe in the index itself.
-	switch c.index.(type) {
+	switch idx := c.index.(type) {
 	case *RemoteIndex:
-		remoteIdx, _ := c.index.(*RemoteIndex)
-		err = remoteIdx.Save()
+		// hacky way updating remoteindex.
+		localIdx, ok := other.index.(*LocalIndex)
+		if ok {
+			tmpIndex := RemoteIndexFromLocal(localIdx)
+			idx.ProcessIndex = tmpIndex.ProcessIndex
+			idx.QualifierIndex = tmpIndex.QualifierIndex
+			idx.RevisionIndex = tmpIndex.RevisionIndex
+		}
+		err = idx.Save()
 		if err != nil {
 			return err
 		}
-		err = remoteIdx.SaveCatalogMetadata()
+		err = idx.SaveCatalogMetadata()
 		if err != nil {
 			return err
 		}
