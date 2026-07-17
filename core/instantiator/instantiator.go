@@ -21,7 +21,7 @@ func New() *Instantiator {
 	}
 }
 
-func (i *Instantiator) instantiate(cat *catalog.Catalog, name string, coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
+func (i *Instantiator) instantiateNode(cat *catalog.Catalog, name string, coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 	node := &bomtree.Node{
 		Name:     name,
 		CoItem:   coitem,
@@ -59,7 +59,15 @@ func (i *Instantiator) instantiate(cat *catalog.Catalog, name string, coitem *mo
 	}
 
 	node.Process = process
-	for _, input := range process.Input() {
+	return node, nil
+}
+
+func (i *Instantiator) instantiate(cat *catalog.Catalog, name string, coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
+	node, err := i.instantiateNode(cat, name, coitem, qty)
+	if err != nil {
+		return nil, err
+	}
+	for _, input := range node.Process.Input() {
 		child, err := cat.Get(input.Item)
 		if err != nil {
 			return nil, err
@@ -98,4 +106,32 @@ func (i *Instantiator) InstantiateTreeFromItem(cat *catalog.Catalog, name string
 		return nil, errors.New("not a coitem")
 	}
 	return i.InstantiateTree(cat, name, coItem)
+}
+
+func (i *Instantiator) ExpandNode(cat *catalog.Catalog, name string, coitem *model.CoItem) (*bomtree.Node, error) {
+	node, err := i.instantiateNode(cat, name, coitem, 1)
+	if err != nil {
+		return nil, err
+	}
+	for _, input := range node.Process.Input() {
+		child, err := cat.Get(input.Item)
+		if err != nil {
+			return nil, err
+		}
+		childCoItem, ok := child.(*model.CoItem)
+		if !ok {
+			return nil, errors.New("invalid input")
+		}
+		childNode, err := i.instantiateNode(cat, input.Name, childCoItem, input.Qty)
+		if err != nil {
+			return nil, err
+		}
+		childNode.Parent = node
+		node.Children = append(node.Children, childNode)
+	}
+	node.ID, err = digest.RandomSHA256()
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
 }
