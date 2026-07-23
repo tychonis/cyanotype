@@ -27,7 +27,7 @@ func (r *CatalogRanker) RankCoProcess(cps []*process.CoProcess) ([]*process.CoPr
 			return false
 		}
 
-		return r.catalog.CompareRevisions(metaI.LastCommited(), metaJ.LastCommited()) > 0
+		return r.catalog.CompareRevisions(metaI.LastCommitted(), metaJ.LastCommitted()) > 0
 	})
 	return cps, nil
 }
@@ -53,7 +53,7 @@ func (r *CatalogRanker) RankProcess(ps []*process.Process) ([]*process.Process, 
 			return false
 		}
 
-		return r.catalog.CompareRevisions(metaI.LastCommited(), metaJ.LastCommited()) > 0
+		return r.catalog.CompareRevisions(metaI.LastCommitted(), metaJ.LastCommitted()) > 0
 	})
 	return ps, nil
 }

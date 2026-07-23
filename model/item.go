@@ -65,6 +65,13 @@ func (i *Item) GetType() string {
 	return i.Type
 }
 
+func (i *Item) GetName() string {
+	if i.Content != nil {
+		return i.Content.Name
+	}
+	return i.GetQualifier()
+}
+
 // TODO: implement attrs?
 func (ci *CoItem) Resolve(path []string) (Symbol, error) {
 	if len(path) > 0 {
@@ -83,4 +90,11 @@ func (ci *CoItem) GetDigest() string {
 
 func (ci *CoItem) GetType() string {
 	return ci.Type
+}
+
+func (ci *CoItem) GetName() string {
+	if ci.Content != nil {
+		return ci.Content.Name
+	}
+	return ci.GetQualifier()
 }

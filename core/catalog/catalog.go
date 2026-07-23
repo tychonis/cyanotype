@@ -310,3 +310,15 @@ func (c *Catalog) GetLatestRevision() (*model.Revision, error) {
 func (c *Catalog) CompareRevisions(a, b model.RevisionID) int {
 	return c.index.CompareRevisions(a, b)
 }
+
+func (c *Catalog) GetRevision(id model.RevisionID) (*model.Revision, error) {
+	body, err := c.storage.Load(id)
+	if err != nil {
+		return nil, err
+	}
+	rev, err := serializer.Deserialize[*model.Revision](body)
+	if err != nil {
+		return nil, err
+	}
+	return rev, nil
+}

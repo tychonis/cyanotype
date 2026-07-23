@@ -14,7 +14,7 @@ func (m *Metadata) Commit(rev model.RevisionID) {
 	m.CommitHistory = append(m.CommitHistory, rev)
 }
 
-func (m *Metadata) LastCommited() model.RevisionID {
+func (m *Metadata) LastCommitted() model.RevisionID {
 	if len(m.CommitHistory) == 0 {
 		return m.IntroducedBy
 	}
