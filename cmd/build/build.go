@@ -15,9 +15,11 @@ var Cmd = &cobra.Command{
 }
 
 func run(cmd *cobra.Command, args []string) {
-	bpoPath := args[0]
-	if bpoPath == "" {
+	var bpoPath string
+	if len(args) == 0 {
 		bpoPath = "."
+	} else {
+		bpoPath = args[0]
 	}
 
 	core := hcl.NewParser()
