@@ -140,7 +140,7 @@ func (a *APIStore) Save(digest model.Digest, data []byte) error {
 		return err
 	}
 	if resp.StatusCode != http.StatusAccepted {
-		return errors.New("error response")
+		return errors.New("error response: " + resp.Status)
 	}
 	return nil
 }
@@ -153,7 +153,7 @@ func (a *APIStore) Load(digest model.Digest) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("error response")
+		return nil, errors.New("error response: " + resp.Status)
 	}
 	return io.ReadAll(resp.Body)
 }
@@ -171,7 +171,7 @@ func (a *APIStore) SaveMetadata(digest model.Digest, metadata []byte) error {
 		return err
 	}
 	if resp.StatusCode != http.StatusAccepted {
-		return errors.New("error response")
+		return errors.New("error response: " + resp.Status)
 	}
 	return nil
 }
@@ -184,7 +184,7 @@ func (a *APIStore) LoadMetadata(digest model.Digest) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("error response")
+		return nil, errors.New("error response: " + resp.Status)
 	}
 	return io.ReadAll(resp.Body)
 }
