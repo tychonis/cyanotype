@@ -11,6 +11,7 @@ import (
 	"github.com/tychonis/cyanotype/cmd/history"
 	"github.com/tychonis/cyanotype/cmd/initialize"
 	"github.com/tychonis/cyanotype/cmd/plan"
+	"github.com/tychonis/cyanotype/cmd/pull"
 	"github.com/tychonis/cyanotype/cmd/push"
 	"github.com/tychonis/cyanotype/cmd/query"
 	"github.com/tychonis/cyanotype/cmd/tree"
@@ -40,6 +41,7 @@ func Run() {
 		commit.Cmd,
 		export.Cmd,
 		tree.Cmd,
+		pull.Cmd,
 		push.Cmd,
 		plan.Cmd,
 		query.Cmd,

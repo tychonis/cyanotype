@@ -1,4 +1,4 @@
-package push
+package pull
 
 import (
 	"log/slog"
@@ -9,8 +9,8 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "push <server> <tag>",
-	Short: "Adhoc implementation saving catalog to remote",
+	Use:   "pull <server> <tag>",
+	Short: "Adhoc implementation pulling catalog from remote",
 	Run:   run,
 }
 
@@ -21,8 +21,8 @@ func run(cmd *cobra.Command, args []string) {
 
 	localCat := catalog.New("local")
 	remoteCat := catalog.NewRemoteCatalog(server, token, tag)
-	err := localCat.Push(remoteCat)
+	err := localCat.Pull(remoteCat)
 	if err != nil {
-		slog.Error("Failed to push catalog to remote.", "error", err)
+		slog.Error("Failed to pull catalog from remote.", "error", err)
 	}
 }
