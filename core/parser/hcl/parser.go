@@ -17,8 +17,14 @@ const EXTENSION string = ".bpo"
 const IMPLICIT string = "implicit."
 const DEFAULT string = "default"
 
+type ParserOptions struct {
+	IgnoreArtifacts bool
+}
+
 type Parser struct {
 	Symbols *symbols.SymbolTable
+
+	Options *ParserOptions
 }
 
 type ParserContext struct {
@@ -57,6 +63,7 @@ func (ctx *ParserContext) NameToQualifier(name string) string {
 func NewParser() *Parser {
 	return &Parser{
 		Symbols: symbols.NewSymbolTable(),
+		Options: &ParserOptions{},
 	}
 }
 
@@ -211,7 +218,3 @@ func (p *Parser) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*m
 		Qty:  line.Qty,
 	}, nil
 }
-
-// func (c *Core) ExportCatalog() ([]byte, error) {
-// 	return c.BuildEnv.Export()
-// }

@@ -8,7 +8,7 @@ import (
 	"github.com/tychonis/cyanotype/model"
 )
 
-func ParseArtifacts(ctx *ParserContext, block *hclsyntax.Block) ([]*model.Artifact, error) {
+func (p *Parser) ParseArtifacts(ctx *ParserContext, block *hclsyntax.Block) ([]*model.Artifact, error) {
 	if block == nil {
 		return nil, fmt.Errorf("block is nil")
 	}
@@ -20,7 +20,7 @@ func ParseArtifacts(ctx *ParserContext, block *hclsyntax.Block) ([]*model.Artifa
 			continue
 		}
 
-		artifact, err := parseArtifactBlock(ctx, child)
+		artifact, err := p.parseArtifactBlock(ctx, child)
 		if err != nil {
 			return nil, err
 		}
@@ -31,7 +31,7 @@ func ParseArtifacts(ctx *ParserContext, block *hclsyntax.Block) ([]*model.Artifa
 	return artifacts, nil
 }
 
-func parseArtifactBlock(_ *ParserContext, block *hclsyntax.Block) (*model.Artifact, error) {
+func (p *Parser) parseArtifactBlock(_ *ParserContext, block *hclsyntax.Block) (*model.Artifact, error) {
 	if len(block.Labels) != 1 {
 		return nil, fmt.Errorf(
 			"%s: artifact block must have exactly one label",
@@ -53,9 +53,13 @@ func parseArtifactBlock(_ *ParserContext, block *hclsyntax.Block) (*model.Artifa
 		return nil, err
 	}
 	artifact.Path = path
-	artifact.Digest, err = digest.SHA256FromFile(path)
-	if err != nil {
-		return nil, err
+	if p.Options.IgnoreArtifacts {
+		artifact.Digest = "ignored"
+	} else {
+		artifact.Digest, err = digest.SHA256FromFile(path)
+		if err != nil {
+			return nil, err
+		}
 	}
 	tag, err := getString(attrs, "tag")
 	if err != nil {

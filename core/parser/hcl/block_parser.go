@@ -135,7 +135,7 @@ func (p *Parser) parseItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*mo
 		return item, err
 	}
 
-	item.Content.Artifacts, err = ParseArtifacts(ctx, block)
+	item.Content.Artifacts, err = p.ParseArtifacts(ctx, block)
 	if err != nil {
 		return item, err
 	}
@@ -181,7 +181,7 @@ func (p *Parser) parseCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*
 	if err != nil {
 		return coItem, err
 	}
-	coItem.Content.Artifacts, err = ParseArtifacts(ctx, block)
+	coItem.Content.Artifacts, err = p.ParseArtifacts(ctx, block)
 	if err != nil {
 		return coItem, err
 	}

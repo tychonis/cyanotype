@@ -14,16 +14,19 @@ var Cmd = &cobra.Command{
 	Short: "Build bpc from bpo",
 	Run:   run,
 }
+var ignoreArtifacts bool
 
 func init() {
 	// TODO: distinguish from output format
 	Cmd.Flags().StringP("output", "o", "", "set output path")
+	Cmd.Flags().BoolVar(&ignoreArtifacts, "ignore-artifacts", false, "ignore artifacts during commit")
 }
 
 func run(cmd *cobra.Command, args []string) {
 	bpoPath := "."
 
 	p := hcl.NewParser()
+	p.Options.IgnoreArtifacts = ignoreArtifacts
 	err := p.Build(bpoPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
