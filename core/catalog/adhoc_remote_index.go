@@ -283,7 +283,7 @@ func (idx *RemoteIndex) GetCatalogMetadata() (*CatalogMetadata, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("error response: " + resp.Status)
+		return nil, errors.New("error response getting catalog metadata: " + resp.Status)
 	}
 
 	var metadata CatalogMetadata
@@ -313,7 +313,7 @@ func (idx *RemoteIndex) SaveCatalogMetadata() error {
 		return err
 	}
 	if resp.StatusCode != http.StatusAccepted {
-		return errors.New("error response: " + resp.Status)
+		return errors.New("error response saving catalog metadata: " + resp.Status)
 	}
 	return nil
 }
