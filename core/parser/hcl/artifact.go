@@ -2,6 +2,7 @@ package hcl
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/tychonis/cyanotype/internal/digest"
@@ -31,7 +32,25 @@ func (p *Parser) ParseArtifacts(ctx *ParserContext, block *hclsyntax.Block) ([]*
 	return artifacts, nil
 }
 
-func (p *Parser) parseArtifactBlock(_ *ParserContext, block *hclsyntax.Block) (*model.Artifact, error) {
+func (p *Parser) getDigest(_ *ParserContext, source string) (string, error) {
+	parsed, err := url.Parse(source)
+	if err != nil {
+		return "", err
+	}
+	switch parsed.Scheme {
+	case "file":
+		filepath := parsed.Host + parsed.Path
+		return digest.SHA256FromFile(filepath)
+	case "digest":
+		return parsed.Opaque, nil
+	case "s3":
+		return "", fmt.Errorf("s3 scheme not supported yet")
+	default:
+		return "", fmt.Errorf("scheme not supported: %s", parsed.Scheme)
+	}
+}
+
+func (p *Parser) parseArtifactBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.Artifact, error) {
 	if len(block.Labels) != 1 {
 		return nil, fmt.Errorf(
 			"%s: artifact block must have exactly one label",
@@ -48,23 +67,24 @@ func (p *Parser) parseArtifactBlock(_ *ParserContext, block *hclsyntax.Block) (*
 		return nil, diags
 	}
 
-	path, err := getString(attrs, "path")
+	filename, err := getString(attrs, "filename")
 	if err != nil {
 		return nil, err
 	}
-	artifact.Path = path
-	if p.Options.IgnoreArtifacts {
-		artifact.Digest = "ignored"
-	} else {
-		artifact.Digest, err = digest.SHA256FromFile(path)
-		if err != nil {
-			return nil, err
-		}
-	}
+	artifact.Filename = filename
 	tag, err := getString(attrs, "tag")
 	if err != nil {
 		return nil, err
 	}
 	artifact.Tag = tag
+	source, err := getString(attrs, "source")
+	if err != nil {
+		return nil, err
+	}
+	artifact.Source = source
+	artifact.Digest, err = p.getDigest(ctx, source)
+	if err != nil {
+		return nil, err
+	}
 	return artifact, nil
 }

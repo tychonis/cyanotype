@@ -39,10 +39,11 @@ type ItemContent struct {
 }
 
 type Artifact struct {
-	Name   string `json:"name" yaml:"name"`
-	Tag    string `json:"tag" yaml:"tag"`
-	Path   string `json:"path" yaml:"path"`
-	Digest string `json:"digest" yaml:"digest"`
+	Name     string `json:"name" yaml:"name"`
+	Filename string `json:"filename" yaml:"filename"`
+	Tag      string `json:"tag" yaml:"tag"`
+	Source   string `json:"source" yaml:"source"`
+	Digest   string `json:"digest" yaml:"digest"`
 }
 
 // TODO: implement attrs?
