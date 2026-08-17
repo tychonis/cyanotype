@@ -12,7 +12,7 @@ import (
 var Cmd = &cobra.Command{
 	Use:   "query",
 	Short: "Query queries the local catalog for a given symbol",
-	Run:   run,
+	RunE:  run,
 }
 
 func report(data any) error {
@@ -25,7 +25,10 @@ func report(data any) error {
 	return nil
 }
 
-func run(cmd *cobra.Command, args []string) {
+func run(cmd *cobra.Command, args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("not enough arguments")
+	}
 	bpoPath := args[0]
 	qualifier := args[1]
 	if bpoPath == "" {
@@ -36,7 +39,7 @@ func run(cmd *cobra.Command, args []string) {
 	sym, err := cat.FindCurrent(qualifier)
 	if err != nil {
 		slog.Error("Failed to find item.", "error", err)
-		return
+		return nil
 	}
 	fmt.Print(sym.GetDigest() + ":")
 	report(sym)
@@ -44,7 +47,8 @@ func run(cmd *cobra.Command, args []string) {
 	meta, err := cat.GetMetadata(sym.GetDigest())
 	if err != nil {
 		slog.Error("Failed to get metadata.", "error", err)
-		return
+		return nil
 	}
 	report(meta)
+	return nil
 }
