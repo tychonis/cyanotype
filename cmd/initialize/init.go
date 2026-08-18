@@ -3,6 +3,8 @@
 package initialize
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/tychonis/cyanotype/core/catalog"
@@ -15,5 +17,10 @@ var Cmd = &cobra.Command{
 }
 
 func run(cmd *cobra.Command, args []string) {
-	catalog.Initialize()
+	err := catalog.Initialize()
+	if err != nil {
+		fmt.Println("Failed to initialize:", err)
+		return
+	}
+	fmt.Println("Initialized empty cyanotype repo in .bpc/")
 }

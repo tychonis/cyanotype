@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log/slog"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/tychonis/cyanotype/cmd/bom"
@@ -52,4 +53,5 @@ func Run() {
 	if err != nil {
 		rootCmd.Usage()
 	}
+	os.Exit(0)
 }

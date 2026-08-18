@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"errors"
+	"log/slog"
 
 	"github.com/tychonis/cyanotype/internal/serializer"
 	"github.com/tychonis/cyanotype/model"
@@ -38,11 +39,16 @@ func (c *Catalog) Pull(other *Catalog) error {
 	if err != nil {
 		return err
 	}
+	slog.Debug("Pulling revisions.", "count", len(newRevisions))
 	if len(newRevisions) == 0 {
 		return errors.New("other catalog has no newer revisions")
 	}
 	for _, rev := range newRevisions {
-		c.index.IndexRevision(rev)
+		slog.Debug("Processing revision", "revision", rev)
+		err = c.index.IndexRevision(rev)
+		if err != nil {
+			return err
+		}
 		body, err := serializer.Serialize(rev)
 		if err != nil {
 			return err
@@ -52,10 +58,12 @@ func (c *Catalog) Pull(other *Catalog) error {
 			return err
 		}
 	}
+	slog.Debug("Getting symbols list.")
 	allSymbols, err := other.index.GetAllSymbols()
 	if err != nil {
 		return err
 	}
+	slog.Debug("Getting symbols.")
 	for _, symDigest := range allSymbols {
 		sym, err := other.Get(symDigest)
 		if err != nil {
@@ -77,11 +85,13 @@ func (c *Catalog) Pull(other *Catalog) error {
 			c.Add(rev, sym)
 		}
 	}
+	slog.Debug("Updating latest revision.")
 	err = c.updateLatestRevision()
 	if err != nil {
 		return err
 	}
 	// TODO: handle save logic elsewhere, maybe in the index itself.
+	slog.Debug("Saving index.")
 	switch idx := c.index.(type) {
 	case *RemoteIndex:
 		// hacky way updating remoteindex.
@@ -109,6 +119,7 @@ func (c *Catalog) Push(other *Catalog) error {
 }
 
 func (c *Catalog) updateLatestRevision() error {
+	slog.Debug("Getting latest revision.")
 	latestRev, err := c.index.GetLatestRevision()
 	if err != nil {
 		return err
@@ -116,6 +127,7 @@ func (c *Catalog) updateLatestRevision() error {
 	if latestRev == nil {
 		return nil
 	}
+	slog.Debug("Found latest revision", "digest", latestRev.Digest)
 	fullRevData, err := c.storage.Load(latestRev.Digest)
 	if err != nil {
 		return err

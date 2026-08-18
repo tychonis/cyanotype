@@ -2,24 +2,18 @@ package catalog
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 )
 
-func Initialize() {
+func Initialize() error {
 	bpcDir := ".bpc"
 	stat, err := os.Stat(bpcDir)
 	if err == nil {
 		if !stat.IsDir() {
-			slog.Error("invalid .bpc format")
+			return fmt.Errorf("invalid .bpc format")
 		}
-		return
+		return fmt.Errorf("cyanotype repo already initialized")
 	}
 
-	err = os.Mkdir(bpcDir, 0755)
-	if err != nil {
-		return
-	}
-
-	fmt.Println("Initialized empty cyanotype repo in .bpc/")
+	return os.Mkdir(bpcDir, 0755)
 }

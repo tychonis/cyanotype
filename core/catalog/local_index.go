@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -26,6 +27,9 @@ type LocalIndex struct {
 }
 
 func NewLocalIndex(persistent bool) *LocalIndex {
+	if persistent {
+		Initialize()
+	}
 	idx := &LocalIndex{
 		qualifierIndex: make(map[Qualifier]QualifierIndexEntry),
 		processIndex:   make(map[model.ItemID]*ProcessIndexEntry),
@@ -333,8 +337,7 @@ func (idx *LocalIndex) IndexRevision(r *model.Revision) error {
 			return fmt.Errorf("write index: %w", err)
 		}
 	}
-	idx.buildRevisionOrderCache()
-	return nil
+	return idx.buildRevisionOrderCache()
 }
 
 func (idx *LocalIndex) loadRevisionIndex() error {
@@ -379,6 +382,7 @@ func (idx *LocalIndex) loadRevisionIndex() error {
 }
 
 func (idx *LocalIndex) GetLatestRevision() (*model.Revision, error) {
+	slog.Debug("Fetch cached revision", "digest", idx.revisionCache.LatestRevision)
 	rev, ok := idx.revisionIndex[idx.revisionCache.LatestRevision]
 	if !ok {
 		return nil, ErrNotFound

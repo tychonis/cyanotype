@@ -3,6 +3,7 @@ package query
 import (
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/tychonis/cyanotype/core/catalog"
@@ -39,7 +40,7 @@ func run(cmd *cobra.Command, args []string) error {
 	sym, err := cat.FindCurrent(qualifier)
 	if err != nil {
 		slog.Error("Failed to find item.", "error", err)
-		return nil
+		os.Exit(1)
 	}
 	fmt.Print(sym.GetDigest() + ":")
 	report(sym)
@@ -47,7 +48,7 @@ func run(cmd *cobra.Command, args []string) error {
 	meta, err := cat.GetMetadata(sym.GetDigest())
 	if err != nil {
 		slog.Error("Failed to get metadata.", "error", err)
-		return nil
+		os.Exit(1)
 	}
 	report(meta)
 	return nil
