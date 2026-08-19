@@ -41,7 +41,7 @@ func (c *Catalog) Pull(other *Catalog) error {
 	}
 	slog.Debug("Pulling revisions.", "count", len(newRevisions))
 	if len(newRevisions) == 0 {
-		return errors.New("other catalog has no newer revisions")
+		return errors.New("source catalog has no newer revisions")
 	}
 	for _, rev := range newRevisions {
 		slog.Debug("Processing revision", "revision", rev)
