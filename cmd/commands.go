@@ -16,6 +16,7 @@ import (
 	"github.com/tychonis/cyanotype/cmd/push"
 	"github.com/tychonis/cyanotype/cmd/query"
 	"github.com/tychonis/cyanotype/cmd/tree"
+	"github.com/tychonis/cyanotype/cmd/version"
 )
 
 var debug bool
@@ -47,6 +48,7 @@ func Run() {
 		plan.Cmd,
 		query.Cmd,
 		history.Cmd,
+		version.Cmd,
 	)
 
 	err := rootCmd.Execute()

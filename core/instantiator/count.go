@@ -2,13 +2,10 @@ package instantiator
 
 import (
 	"encoding/csv"
-	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 
 	"github.com/tychonis/cyanotype/core/catalog"
-	"github.com/tychonis/cyanotype/model"
 )
 
 type Component struct {
@@ -18,18 +15,7 @@ type Component struct {
 }
 
 func (i *Instantiator) Count(cat *catalog.Catalog, root string) (map[string]float64, error) {
-	sym, err := cat.FindCurrent(root)
-	if err != nil {
-		slog.Info("Unknown symbol.", "error", err, "ref", root)
-		return nil, err
-	}
-
-	item, ok := sym.(*model.Item)
-	if !ok {
-		return nil, errors.New("unknown item")
-	}
-
-	tree, err := i.InstantiateTreeFromItem(cat, "root", item)
+	tree, err := i.TreeFromQualifier(cat, root)
 	if err != nil {
 		return nil, err
 	}

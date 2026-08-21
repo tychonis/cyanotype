@@ -13,11 +13,11 @@ var processContentTypes = make(map[string]func() ProcessContent)
 type ProcessID = model.Digest
 
 type ProcessBase struct {
-	Type      string         `json:"type" yaml:"type"`
-	Qualifier string         `json:"qualifier" yaml:"qualifier"`
-	Content   ProcessContent `json:"content" yaml:"content"`
+	Qualifier string    `json:"-" yaml:"-"`
+	Digest    ProcessID `json:"-" yaml:"-"`
 
-	Digest ProcessID `json:"-" yaml:"-"`
+	Type    string         `json:"type" yaml:"type"`
+	Content ProcessContent `json:"content" yaml:"content"`
 }
 
 func (pb *ProcessBase) UnmarshalJSON(data []byte) error {

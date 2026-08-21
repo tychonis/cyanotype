@@ -10,7 +10,6 @@ import (
 	"github.com/tychonis/cyanotype/core/catalog"
 	"github.com/tychonis/cyanotype/core/instantiator"
 	"github.com/tychonis/cyanotype/core/parser/hcl"
-	"github.com/tychonis/cyanotype/model"
 )
 
 var Cmd = &cobra.Command{
@@ -51,26 +50,17 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	rootSym, err := cat.FindCurrent(root)
-	if err != nil {
-		slog.Error("Failed to find root item.", "error", err)
-		return
-	}
-
-	rootItem, ok := rootSym.(*model.Item)
-	if !ok {
-		slog.Error("Root is not an Item.")
-		return
-	}
-
 	ins := instantiator.New()
-
-	rootNode, err := ins.InstantiateTreeFromItem(cat, rootItem.GetName(), rootItem)
+	rootNode, err := ins.TreeFromQualifier(cat, root)
 	if err != nil {
 		slog.Error("Failed to build.", "error", err)
 		return
 	}
 
-	output, _ := rootNode.Export()
+	output, err := rootNode.Export()
+	if err != nil {
+		slog.Error("Failed to export.", "error", err)
+		return
+	}
 	os.WriteFile(bpcPath, output, 0o644)
 }

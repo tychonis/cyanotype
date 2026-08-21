@@ -134,12 +134,17 @@ func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 	if err != nil {
 		return nil, err
 	}
+	qualifier, err := c.index.FindCurrentQualifier(digest)
+	if err != nil {
+		return nil, err
+	}
 	switch symType {
 	case "item":
 		ret, err := serializer.Deserialize[*model.Item](body)
 		if err != nil {
 			return ret, err
 		}
+		ret.Qualifier = qualifier
 		ret.Digest = digest
 		return ret, nil
 	case "coitem":
@@ -147,6 +152,7 @@ func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 		if err != nil {
 			return ret, err
 		}
+		ret.Qualifier = qualifier
 		ret.Digest = digest
 		return ret, nil
 	case "process":
@@ -154,6 +160,7 @@ func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 		if err != nil {
 			return ret, err
 		}
+		ret.Qualifier = qualifier
 		ret.Digest = digest
 		return ret, nil
 	case "coprocess":
@@ -161,6 +168,7 @@ func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 		if err != nil {
 			return ret, err
 		}
+		ret.Qualifier = qualifier
 		ret.Digest = digest
 		return ret, nil
 	default:
@@ -183,7 +191,7 @@ func (c *Catalog) GetSymbolMetadata(digest model.Digest) (*Metadata, error) {
 }
 
 func (c *Catalog) FindCurrent(qualifier Qualifier) (model.ConcreteSymbol, error) {
-	digest, err := c.index.FindCurrent(qualifier)
+	digest, err := c.index.FindCurrentDigest(qualifier)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +199,7 @@ func (c *Catalog) FindCurrent(qualifier Qualifier) (model.ConcreteSymbol, error)
 }
 
 func (c *Catalog) FindAll(qualifier Qualifier) ([]model.ConcreteSymbol, error) {
-	digests, err := c.index.FindAll(qualifier)
+	digests, err := c.index.FindAllDigests(qualifier)
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,9 @@
 FROM golang:1.25 AS build
 WORKDIR /src
 COPY . .
-RUN go build -o /cyanotype .
+RUN go build \
+    -ldflags="-X 'github.com/tychonis/cyanotype/internal/version.Version=$(git describe --always --dirty)'" \
+    -o /cyanotype .
 
 FROM debian:bookworm-slim
 RUN apt-get update \

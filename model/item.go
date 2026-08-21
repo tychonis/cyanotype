@@ -10,10 +10,11 @@ type ItemID = Digest
 type LinkType string
 
 type ItemBase struct {
-	Type      string       `json:"type" yaml:"type"`
-	Qualifier string       `json:"qualifier" yaml:"qualifier"`
-	Content   *ItemContent `json:"content" yaml:"content"`
-	Digest    ItemID       `json:"-" yaml:"-"`
+	Qualifier string `json:"-" yaml:"-"`
+	Digest    ItemID `json:"-" yaml:"-"`
+
+	Type    string       `json:"type" yaml:"type"`
+	Content *ItemContent `json:"content" yaml:"content"`
 }
 
 // Item corresponds to a single immutable snapshot of a part or assembly.
