@@ -20,16 +20,22 @@ func NewProcessIndexEntry() *ProcessIndexEntry {
 }
 
 type QualifierIndexEntry = map[model.RevisionID]model.Digest
+type DigestIndexEntry = map[model.RevisionID]Qualifier
 
 type SymbolIndex interface {
 	IndexSymbol(r *model.Revision, sym model.ConcreteSymbol) error
 	GetAllSymbols() ([]model.Digest, error)
 
-	FindAll(q Qualifier) ([]model.Digest, error)
-	FindCurrent(q Qualifier) (model.Digest, error)
+	FindAllDigests(q Qualifier) ([]model.Digest, error)
+	FindCurrentDigest(q Qualifier) (model.Digest, error)
+
+	FindAllQualifiers(d model.Digest) ([]Qualifier, error)
+	FindCurrentQualifier(d model.Digest) (Qualifier, error)
 
 	GetItemProcesses(item model.ItemID) ([]process.ProcessID, error)
 	GetItemCoProcesses(item model.ItemID) ([]process.ProcessID, error)
+
+	GetContent() *IndexContent
 }
 
 type RevisionIndex interface {

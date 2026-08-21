@@ -25,4 +25,5 @@ func run(cmd *cobra.Command, args []string) {
 	if err != nil {
 		slog.Error("Failed to push catalog to remote.", "error", err)
 	}
+	remoteCat.Upload(server, token, tag)
 }

@@ -18,6 +18,7 @@ import (
 
 type LocalIndex struct {
 	qualifierIndex map[Qualifier]QualifierIndexEntry
+	digestIndex    map[model.Digest]DigestIndexEntry
 	processIndex   map[model.ItemID]*ProcessIndexEntry
 	revisionIndex  map[model.RevisionID]*model.Revision
 
@@ -32,6 +33,7 @@ func NewLocalIndex(persistent bool) *LocalIndex {
 	}
 	idx := &LocalIndex{
 		qualifierIndex: make(map[Qualifier]QualifierIndexEntry),
+		digestIndex:    make(map[model.Digest]DigestIndexEntry),
 		processIndex:   make(map[model.ItemID]*ProcessIndexEntry),
 		revisionIndex:  make(map[model.RevisionID]*model.Revision),
 
@@ -43,7 +45,7 @@ func NewLocalIndex(persistent bool) *LocalIndex {
 }
 
 func (idx *LocalIndex) load() error {
-	err := idx.loadQualifierIndex()
+	err := idx.loadMainIndex()
 	if err != nil {
 		return err
 	}
@@ -60,7 +62,7 @@ func (idx *LocalIndex) buildRevisionOrderCache() error {
 	return err
 }
 
-func (idx *LocalIndex) loadQualifierIndex() error {
+func (idx *LocalIndex) loadMainIndex() error {
 	if !idx.persistent {
 		return nil
 	}
@@ -84,23 +86,36 @@ func (idx *LocalIndex) loadQualifierIndex() error {
 		qualifier := string(parts[0])
 		revision := model.RevisionID(parts[1])
 		symDigest := model.Digest(parts[2])
-		entry, ok := idx.qualifierIndex[qualifier]
+		qEntry, ok := idx.qualifierIndex[qualifier]
 		if !ok {
-			entry = make(QualifierIndexEntry)
-			idx.qualifierIndex[qualifier] = entry
+			qEntry = make(QualifierIndexEntry)
+			idx.qualifierIndex[qualifier] = qEntry
 		}
-		entry[revision] = symDigest
+		qEntry[revision] = symDigest
+		dEntry, ok := idx.digestIndex[symDigest]
+		if !ok {
+			dEntry = make(DigestIndexEntry)
+			idx.digestIndex[symDigest] = dEntry
+		}
+		dEntry[revision] = qualifier
 	}
 	return nil
 }
 
-func (idx *LocalIndex) addToQualifierIndex(qualifier string, revision model.RevisionID, symDigest model.Digest) error {
-	currentEntry, ok := idx.qualifierIndex[qualifier]
+func (idx *LocalIndex) addToMainIndex(qualifier string, revision model.RevisionID, symDigest model.Digest) error {
+	qEntry, ok := idx.qualifierIndex[qualifier]
 	if !ok {
-		currentEntry = make(QualifierIndexEntry)
-		idx.qualifierIndex[qualifier] = currentEntry
+		qEntry = make(QualifierIndexEntry)
+		idx.qualifierIndex[qualifier] = qEntry
 	}
-	currentEntry[revision] = symDigest
+	qEntry[revision] = symDigest
+
+	dEntry, ok := idx.digestIndex[symDigest]
+	if !ok {
+		dEntry = make(DigestIndexEntry)
+		idx.digestIndex[symDigest] = dEntry
+	}
+	dEntry[revision] = qualifier
 
 	if !idx.persistent {
 		return nil
@@ -237,7 +252,7 @@ func (idx *LocalIndex) indexProcess(sym model.ConcreteSymbol) error {
 }
 
 func (idx *LocalIndex) IndexSymbol(rev *model.Revision, sym model.ConcreteSymbol) error {
-	err := idx.addToQualifierIndex(sym.GetQualifier(), rev.Digest, sym.GetDigest())
+	err := idx.addToMainIndex(sym.GetQualifier(), rev.Digest, sym.GetDigest())
 	if err != nil {
 		return err
 	}
@@ -254,7 +269,7 @@ func (idx *LocalIndex) GetAllSymbols() ([]model.Digest, error) {
 	return allSymbols, nil
 }
 
-func (idx *LocalIndex) FindAll(q Qualifier) ([]model.Digest, error) {
+func (idx *LocalIndex) FindAllDigests(q Qualifier) ([]model.Digest, error) {
 	entry, ok := idx.qualifierIndex[q]
 	if !ok {
 		return nil, ErrNotFound
@@ -264,6 +279,18 @@ func (idx *LocalIndex) FindAll(q Qualifier) ([]model.Digest, error) {
 		digests = append(digests, digest)
 	}
 	return digests, nil
+}
+
+func (idx *LocalIndex) FindAllQualifiers(digest model.Digest) ([]Qualifier, error) {
+	entry, ok := idx.digestIndex[digest]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	qualifiers := make([]Qualifier, 0, len(entry))
+	for _, qualifier := range entry {
+		qualifiers = append(qualifiers, qualifier)
+	}
+	return qualifiers, nil
 }
 
 func (idx *LocalIndex) GetRevision(r model.RevisionID) (*model.Revision, error) {
@@ -286,7 +313,7 @@ func (idx *LocalIndex) CompareRevisions(a, b model.RevisionID) int {
 	return idx.revisionCache.CompareRevisions(a, b)
 }
 
-func (idx *LocalIndex) FindCurrent(q Qualifier) (model.Digest, error) {
+func (idx *LocalIndex) FindCurrentDigest(q Qualifier) (model.Digest, error) {
 	entry, ok := idx.qualifierIndex[q]
 	if !ok {
 		return "", ErrNotFound
@@ -303,6 +330,25 @@ func (idx *LocalIndex) FindCurrent(q Qualifier) (model.Digest, error) {
 	})
 	latestRevision := entry[allRevisions[0]]
 	return latestRevision, nil
+}
+
+func (idx *LocalIndex) FindCurrentQualifier(d model.Digest) (Qualifier, error) {
+	entry, ok := idx.digestIndex[d]
+	if !ok {
+		return "", ErrNotFound
+	}
+	allRevisions := make([]model.RevisionID, 0, len(entry))
+	for rev := range entry {
+		allRevisions = append(allRevisions, rev)
+	}
+	if len(allRevisions) == 0 {
+		return "", ErrNotFound
+	}
+	sort.SliceStable(allRevisions, func(i, j int) bool {
+		return idx.CompareRevisions(allRevisions[i], allRevisions[j]) > 0
+	})
+	latestQualifier := entry[allRevisions[0]]
+	return latestQualifier, nil
 }
 
 func (idx *LocalIndex) GetItemProcesses(item model.ItemID) ([]process.ProcessID, error) {
@@ -388,4 +434,12 @@ func (idx *LocalIndex) GetLatestRevision() (*model.Revision, error) {
 		return nil, ErrNotFound
 	}
 	return rev, nil
+}
+
+func (idx *LocalIndex) GetContent() *IndexContent {
+	return &IndexContent{
+		QualifierIndex: idx.qualifierIndex,
+		ProcessIndex:   idx.processIndex,
+		RevisionIndex:  idx.revisionIndex,
+	}
 }
