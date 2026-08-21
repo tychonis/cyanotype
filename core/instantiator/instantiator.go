@@ -135,3 +135,20 @@ func (i *Instantiator) ExpandNode(cat *catalog.Catalog, name string, coitem *mod
 	}
 	return node, nil
 }
+
+func (i *Instantiator) TreeFromQualifier(cat *catalog.Catalog, root string) (*bomtree.Node, error) {
+	sym, err := cat.FindCurrent(root)
+	if err != nil {
+		return nil, err
+	}
+
+	switch resolved := sym.(type) {
+	case *model.CoItem:
+		return i.InstantiateTree(cat, resolved.GetName(), resolved)
+	case *model.Item:
+		// TODO: Deprecate this.
+		return i.InstantiateTreeFromItem(cat, resolved.GetName(), resolved)
+	default:
+		return nil, errors.New("unknown symbol type")
+	}
+}
