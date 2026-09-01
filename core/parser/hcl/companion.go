@@ -15,6 +15,9 @@ func (p *Parser) buildCompanionCoItem(item *model.Item) (*model.CoItem, error) {
 	co := &model.CoItem{}
 	co.Type = "coitem"
 	co.Qualifier = qualifier.ImplicitCoItem(item)
+	co.Content = &model.ItemContent{
+		Name: "Implicit requirements for " + item.Content.Name,
+	}
 	co.Digest, err = digest.SHA256FromSymbol(co)
 	if err != nil {
 		return co, err
@@ -25,6 +28,7 @@ func (p *Parser) buildCompanionCoItem(item *model.Item) (*model.CoItem, error) {
 func (p *Parser) buildCompanionCoProcess(item *model.Item, coItem *model.CoItem) (*process.CoProcess, error) {
 	var err error
 	content := &process.Abstract{
+		Name: "Implicit co-process for " + item.Content.Name,
 		Input: []*model.BOMLine{
 			{
 				Item: item.Digest,
@@ -54,6 +58,7 @@ func (p *Parser) buildCompanionProcess(item *model.Item, pc process.ProcessConte
 	var err error
 	switch content := pc.(type) {
 	case *process.Abstract:
+		content.Name = "Implicit process for " + item.Content.Name
 		content.Output = []*model.BOMLine{
 			{
 				Item: item.Digest,
@@ -61,6 +66,7 @@ func (p *Parser) buildCompanionProcess(item *model.Item, pc process.ProcessConte
 			},
 		}
 	case *process.Drawing:
+		content.Name = "Implicit drawing for " + item.Content.Name
 		content.Output = []*model.BOMLine{
 			{
 				Item: item.Digest,

@@ -115,6 +115,10 @@ func (idx *LocalIndex) addToMainIndex(qualifier string, revision model.RevisionI
 		dEntry = make(DigestIndexEntry)
 		idx.digestIndex[symDigest] = dEntry
 	}
+	currentQualifier, ok := dEntry[revision]
+	if ok && currentQualifier != qualifier {
+		return fmt.Errorf("conflict: digest %s already associated with qualifier %s for revision %s", symDigest, currentQualifier, revision)
+	}
 	dEntry[revision] = qualifier
 
 	if !idx.persistent {
