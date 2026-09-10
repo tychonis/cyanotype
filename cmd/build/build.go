@@ -9,18 +9,13 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "build <path>",
+	Use:   "build",
 	Short: "Build revision from bpo, report errors but don't commit to catalog",
 	Run:   run,
 }
 
 func run(cmd *cobra.Command, args []string) {
-	var bpoPath string
-	if len(args) == 0 {
-		bpoPath = "."
-	} else {
-		bpoPath = args[0]
-	}
+	bpoPath := "."
 
 	core := hcl.NewParser()
 	err := core.Build(bpoPath)

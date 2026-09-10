@@ -13,10 +13,10 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "tree <path> <root>",
+	Use:   "tree <root>",
 	Short: "Build bom tree from bpo",
 	Run:   run,
-	Args:  cobra.MinimumNArgs(2),
+	Args:  cobra.ExactArgs(1),
 }
 
 func init() {
@@ -25,8 +25,8 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) {
-	bpoPath := args[0]
-	root := args[1]
+	bpoPath := "."
+	root := args[0]
 
 	bpcPath := cmd.Flag("output").Value.String()
 	if bpcPath == "" {

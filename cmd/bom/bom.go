@@ -11,29 +11,25 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "bom <path> <root>",
+	Use:   "bom <root>",
 	Short: "Generate bom from bpo",
 	Run:   run,
-	Args:  cobra.MinimumNArgs(2),
+	Args:  cobra.ExactArgs(1),
 }
 
 func init() {
-	Cmd.Flags().StringP("output", "o", "csv", "set output format")
+	Cmd.Flags().StringP("output", "o", "csv", "set output format: csv, list")
 }
 
 func run(cmd *cobra.Command, args []string) {
-	bomPath := args[0]
-	rootPart := args[1]
+	rootPart := args[0]
 
-	outputFmt := cmd.Flag("output").Value.String()
-	if outputFmt != "csv" {
-		slog.Warn("Format not supported.", "format", outputFmt)
-	}
+	outputFmt, _ := cmd.Flags().GetString("output")
 
 	p := hcl.NewParser()
-	err := p.Build(bomPath)
+	err := p.Build(".")
 	if err != nil {
-		slog.Warn("Failed to parse bpo.", "error", err)
+		slog.Error("Failed to parse bpo.", "error", err)
 		return
 	}
 
@@ -47,7 +43,16 @@ func run(cmd *cobra.Command, args []string) {
 	ins := instantiator.New()
 	counter, err := ins.Count(cat, rootPart)
 	if err != nil {
-		slog.Warn("Error counting", "error", err)
+		slog.Error("Error counting", "error", err)
+		return
 	}
-	ins.CounterToCSV(counter)
+
+	switch outputFmt {
+	case "csv":
+		FmtCounterAsCSV(counter)
+	case "list":
+		FmtCounterAsList(counter)
+	default:
+		slog.Error("Format not supported.", "format", outputFmt)
+	}
 }

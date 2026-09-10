@@ -21,7 +21,7 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) {
-	bpoPath := args[0]
+	bpoPath := "."
 
 	catalogPath := cmd.Flag("output").Value.String()
 	if catalogPath == "" {

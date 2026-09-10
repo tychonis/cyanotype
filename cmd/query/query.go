@@ -27,14 +27,10 @@ func report(data any) error {
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	if len(args) < 2 {
+	if len(args) < 1 {
 		return fmt.Errorf("not enough arguments")
 	}
-	bpoPath := args[0]
-	qualifier := args[1]
-	if bpoPath == "" {
-		bpoPath = "."
-	}
+	qualifier := args[0]
 
 	cat := catalog.New("local")
 	sym, err := cat.FindCurrent(qualifier)
