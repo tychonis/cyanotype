@@ -18,13 +18,13 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
-	Cmd.Flags().StringP("output", "o", "csv", "set output format: csv, list")
+	Cmd.Flags().StringP("format", "f", "csv", "set output format: csv, list")
 }
 
 func run(cmd *cobra.Command, args []string) {
 	rootPart := args[0]
 
-	outputFmt, _ := cmd.Flags().GetString("output")
+	outputFmt, _ := cmd.Flags().GetString("format")
 
 	p := hcl.NewParser()
 	err := p.Build(".")

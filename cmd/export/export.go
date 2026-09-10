@@ -16,7 +16,6 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
-	// TODO: distinguish from output format
 	Cmd.Flags().StringP("output", "o", "", "set output path")
 }
 
