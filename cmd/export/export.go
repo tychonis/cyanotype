@@ -3,40 +3,33 @@ package export
 import (
 	"log/slog"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tychonis/cyanotype/core/catalog"
 )
 
 var Cmd = &cobra.Command{
-	Use:   "export <path> <root>",
-	Short: "Export catalog from bpo",
-	Run:   run,
+	Use:   "export",
+	Short: "Export catalog from .bpo",
+	RunE:  run,
 }
 
 func init() {
 	Cmd.Flags().StringP("output", "o", "", "set output path")
 }
 
-func run(cmd *cobra.Command, args []string) {
-	bpoPath := "."
-
+func run(cmd *cobra.Command, args []string) error {
 	catalogPath := cmd.Flag("output").Value.String()
 	if catalogPath == "" {
-		catalogPath = strings.ReplaceAll(bpoPath, ".bpo", ".bpc")
-		// Folder
-		if !strings.Contains(catalogPath, ".bpc") {
-			catalogPath = "catalog.json"
-		}
+		catalogPath = "catalog.json"
 	}
 	cat := catalog.New("local")
-	slog.Debug("catalog", "catalog", cat)
 
 	output, err := cat.Export()
 	if err != nil {
 		slog.Error("Failed to export catalog.", "error", err)
-		return
+		return err
 	}
 	os.WriteFile(catalogPath, output, 0o644)
+	return nil
 }

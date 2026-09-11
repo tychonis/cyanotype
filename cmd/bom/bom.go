@@ -1,6 +1,7 @@
 package bom
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/spf13/cobra"
@@ -13,7 +14,7 @@ import (
 var Cmd = &cobra.Command{
 	Use:   "bom <root>",
 	Short: "Generate bom from bpo",
-	Run:   run,
+	RunE:  run,
 	Args:  cobra.ExactArgs(1),
 }
 
@@ -21,7 +22,7 @@ func init() {
 	Cmd.Flags().StringP("format", "f", "csv", "set output format: csv, list")
 }
 
-func run(cmd *cobra.Command, args []string) {
+func run(cmd *cobra.Command, args []string) error {
 	rootPart := args[0]
 
 	outputFmt, _ := cmd.Flags().GetString("format")
@@ -30,21 +31,21 @@ func run(cmd *cobra.Command, args []string) {
 	err := p.Build(".")
 	if err != nil {
 		slog.Error("Failed to parse bpo.", "error", err)
-		return
+		return err
 	}
 
 	cat := catalog.New("memory")
 	err = p.Commit(cat)
 	if err != nil {
 		slog.Error("Failed to commit to catalog.", "error", err)
-		return
+		return err
 	}
 
 	ins := instantiator.New()
 	counter, err := ins.Count(cat, rootPart)
 	if err != nil {
 		slog.Error("Error counting", "error", err)
-		return
+		return err
 	}
 
 	switch outputFmt {
@@ -54,5 +55,7 @@ func run(cmd *cobra.Command, args []string) {
 		FmtCounterAsList(counter)
 	default:
 		slog.Error("Format not supported.", "format", outputFmt)
+		return fmt.Errorf("unsupported format: %s", outputFmt)
 	}
+	return nil
 }

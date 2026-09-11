@@ -13,14 +13,15 @@ import (
 var Cmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize current folder",
-	Run:   run,
+	RunE:  run,
 }
 
-func run(cmd *cobra.Command, args []string) {
+func run(cmd *cobra.Command, args []string) error {
 	err := catalog.Initialize()
 	if err != nil {
 		fmt.Println("Failed to initialize:", err)
-		return
+		return err
 	}
 	fmt.Println("Initialized empty cyanotype repo in .bpc/")
+	return nil
 }

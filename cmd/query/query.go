@@ -3,7 +3,6 @@ package query
 import (
 	"fmt"
 	"log/slog"
-	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/tychonis/cyanotype/core/catalog"
@@ -11,9 +10,10 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "query",
+	Use:   "query <symbol>",
 	Short: "Query queries the local catalog for a given symbol",
 	RunE:  run,
+	Args:  cobra.ExactArgs(1),
 }
 
 func report(data any) error {
@@ -27,16 +27,13 @@ func report(data any) error {
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("not enough arguments")
-	}
 	qualifier := args[0]
 
 	cat := catalog.New("local")
 	sym, err := cat.FindCurrent(qualifier)
 	if err != nil {
 		slog.Error("Failed to find item.", "error", err)
-		os.Exit(1)
+		return err
 	}
 	fmt.Print(sym.GetDigest() + ":")
 	report(sym)
@@ -44,7 +41,7 @@ func run(cmd *cobra.Command, args []string) error {
 	meta, err := cat.GetMetadata(sym.GetDigest())
 	if err != nil {
 		slog.Error("Failed to get metadata.", "error", err)
-		os.Exit(1)
+		return err
 	}
 	report(meta)
 	return nil

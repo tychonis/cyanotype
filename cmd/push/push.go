@@ -11,10 +11,11 @@ import (
 var Cmd = &cobra.Command{
 	Use:   "push <server> <tag>",
 	Short: "Adhoc implementation saving catalog to remote",
-	Run:   run,
+	RunE:  run,
+	Args:  cobra.ExactArgs(2),
 }
 
-func run(cmd *cobra.Command, args []string) {
+func run(cmd *cobra.Command, args []string) error {
 	server := args[0]
 	tag := args[1]
 	token := os.Getenv("BOMHUB_TOKEN")
@@ -24,6 +25,8 @@ func run(cmd *cobra.Command, args []string) {
 	err := localCat.Push(remoteCat)
 	if err != nil {
 		slog.Error("Failed to push catalog to remote.", "error", err)
+		return err
 	}
 	remoteCat.Upload(server, token, tag)
+	return nil
 }

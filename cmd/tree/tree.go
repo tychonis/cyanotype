@@ -3,7 +3,6 @@ package tree
 import (
 	"log/slog"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -15,7 +14,7 @@ import (
 var Cmd = &cobra.Command{
 	Use:   "tree <root>",
 	Short: "Build bom tree from bpo",
-	Run:   run,
+	RunE:  run,
 	Args:  cobra.ExactArgs(1),
 }
 
@@ -24,43 +23,40 @@ func init() {
 	Cmd.Flags().StringP("output", "o", "", "set output path")
 }
 
-func run(cmd *cobra.Command, args []string) {
+func run(cmd *cobra.Command, args []string) error {
 	bpoPath := "."
 	root := args[0]
 
 	bpcPath := cmd.Flag("output").Value.String()
 	if bpcPath == "" {
-		bpcPath = strings.ReplaceAll(bpoPath, ".bpo", ".bpc")
-		// Folder
-		if !strings.Contains(bpcPath, ".bpc") {
-			bpcPath = root + ".bpc"
-		}
+		bpcPath = root + ".bpc"
 	}
 	p := hcl.NewParser()
 	err := p.Build(bpoPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
-		return
+		return err
 	}
 
 	cat := catalog.New("local")
 	err = p.Commit(cat)
 	if err != nil {
 		slog.Error("Failed to commit to catalog.", "error", err)
-		return
+		return err
 	}
 
 	ins := instantiator.New()
 	rootNode, err := ins.TreeFromQualifier(cat, root)
 	if err != nil {
 		slog.Error("Failed to build.", "error", err)
-		return
+		return err
 	}
 
 	output, err := rootNode.Export()
 	if err != nil {
 		slog.Error("Failed to export.", "error", err)
-		return
+		return err
 	}
 	os.WriteFile(bpcPath, output, 0o644)
+	return nil
 }

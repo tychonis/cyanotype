@@ -15,6 +15,7 @@ import (
 	"github.com/tychonis/cyanotype/cmd/pull"
 	"github.com/tychonis/cyanotype/cmd/push"
 	"github.com/tychonis/cyanotype/cmd/query"
+	"github.com/tychonis/cyanotype/cmd/scene"
 	"github.com/tychonis/cyanotype/cmd/tree"
 	"github.com/tychonis/cyanotype/cmd/version"
 )
@@ -47,13 +48,15 @@ func Run() {
 		push.Cmd,
 		plan.Cmd,
 		query.Cmd,
+		scene.Cmd,
 		history.Cmd,
 		version.Cmd,
 	)
 
 	err := rootCmd.Execute()
 	if err != nil {
-		rootCmd.Usage()
+		slog.Error("Failed to execute command.", "error", err)
+		os.Exit(1)
 	}
 	os.Exit(0)
 }

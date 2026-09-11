@@ -10,9 +10,10 @@ import (
 )
 
 var Cmd = &cobra.Command{
-	Use:   "history",
+	Use:   "history <symbol>",
 	Short: "History shows the history of a given symbol",
-	Run:   run,
+	RunE:  run,
+	Args:  cobra.ExactArgs(1),
 }
 
 func report(data any) error {
@@ -25,18 +26,14 @@ func report(data any) error {
 	return nil
 }
 
-func run(cmd *cobra.Command, args []string) {
-	bpoPath := args[0]
-	qualifier := args[1]
-	if bpoPath == "" {
-		bpoPath = "."
-	}
+func run(cmd *cobra.Command, args []string) error {
+	qualifier := args[0]
 
 	cat := catalog.New("local")
 	syms, err := cat.FindAll(qualifier)
 	if err != nil {
 		slog.Error("Failed to find item.", "error", err)
-		return
+		return err
 	}
 	for _, sym := range syms {
 		fmt.Print(sym.GetDigest() + ":")
@@ -45,8 +42,9 @@ func run(cmd *cobra.Command, args []string) {
 		meta, err := cat.GetMetadata(sym.GetDigest())
 		if err != nil {
 			slog.Error("Failed to get metadata.", "error", err)
-			return
+			return err
 		}
 		report(meta)
 	}
+	return nil
 }

@@ -11,10 +11,11 @@ import (
 var Cmd = &cobra.Command{
 	Use:   "pull <server> <tag>",
 	Short: "Adhoc implementation pulling catalog from remote",
-	Run:   run,
+	RunE:  run,
+	Args:  cobra.ExactArgs(2),
 }
 
-func run(cmd *cobra.Command, args []string) {
+func run(cmd *cobra.Command, args []string) error {
 	server := args[0]
 	tag := args[1]
 	token := os.Getenv("BOMHUB_TOKEN")
@@ -24,5 +25,7 @@ func run(cmd *cobra.Command, args []string) {
 	err := localCat.Pull(remoteCat)
 	if err != nil {
 		slog.Error("Failed to pull catalog from remote.", "error", err)
+		return err
 	}
+	return nil
 }

@@ -11,7 +11,7 @@ import (
 var Cmd = &cobra.Command{
 	Use:   "plan",
 	Short: "Plan shows the diff between working-tree and local catalog",
-	Run:   run,
+	RunE:  run,
 }
 var ignoreArtifacts bool
 
@@ -19,7 +19,7 @@ func init() {
 	Cmd.Flags().BoolVar(&ignoreArtifacts, "ignore-artifacts", false, "ignore artifacts during commit")
 }
 
-func run(cmd *cobra.Command, args []string) {
+func run(cmd *cobra.Command, args []string) error {
 	bpoPath := "."
 
 	p := hcl.NewParser()
@@ -27,13 +27,14 @@ func run(cmd *cobra.Command, args []string) {
 	err := p.Build(bpoPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
-		return
+		return err
 	}
 
 	cat := catalog.New("local")
 	err = p.PreviewCommit(cat)
 	if err != nil {
 		slog.Error("Failed to commit to catalog.", "error", err)
-		return
+		return err
 	}
+	return nil
 }
