@@ -1,13 +1,14 @@
 package scene
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
 	"github.com/spf13/cobra"
 
 	"github.com/tychonis/cyanotype/core/catalog"
-	"github.com/tychonis/cyanotype/internal/scene"
+	"github.com/tychonis/cyanotype/core/scene"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -33,12 +34,17 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to assert symbol as item")
 	}
 
-	scene.RenderSymbol(item)
+	rendered, err := scene.RenderSymbol(cat, item, true)
+	if err != nil {
+		slog.Error("Failed to render scene.", "error", err)
+		return err
+	}
+	data, err := json.Marshal(rendered)
+	if err != nil {
+		slog.Error("Failed to marshal scene.", "error", err)
+		return err
+	}
+	fmt.Println(string(data))
 
-	// meta, err := cat.GetMetadata(sym.GetDigest())
-	// if err != nil {
-	// 	slog.Error("Failed to get metadata.", "error", err)
-	// 	os.Exit(1)
-	// }
 	return nil
 }
