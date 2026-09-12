@@ -1,9 +1,11 @@
 package scene
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -17,6 +19,10 @@ var Cmd = &cobra.Command{
 	Short: "Generate scene from item",
 	RunE:  run,
 	Args:  cobra.ExactArgs(1),
+}
+
+func init() {
+	Cmd.Flags().StringP("output", "o", "", "set output path")
 }
 
 func run(cmd *cobra.Command, args []string) error {
@@ -44,7 +50,17 @@ func run(cmd *cobra.Command, args []string) error {
 		slog.Error("Failed to marshal scene.", "error", err)
 		return err
 	}
-	fmt.Println(string(data))
 
-	return nil
+	output, _ := cmd.Flags().GetString("output")
+	if output == "" {
+		fmt.Println(string(data))
+		return nil
+	}
+
+	old, err := os.ReadFile(output)
+	if err == nil && bytes.Equal(old, data) {
+		return nil
+	}
+
+	return os.WriteFile(output, data, 0644)
 }
