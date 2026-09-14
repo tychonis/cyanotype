@@ -330,3 +330,14 @@ func (c *Catalog) GetRevision(id model.RevisionID) (*model.Revision, error) {
 	}
 	return rev, nil
 }
+
+func (c *Catalog) SaveArtifact(artifact *model.Artifact) error {
+	exists, err := c.storage.Exists(artifact.Digest)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return c.storage.SaveArtifact(artifact)
+	}
+	return nil
+}

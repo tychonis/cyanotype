@@ -26,6 +26,7 @@ func (p *Parser) ParseArtifacts(ctx *ParserContext, block *hclsyntax.Block) ([]*
 			return nil, err
 		}
 
+		p.Artifacts[artifact.Digest] = artifact
 		artifacts = append(artifacts, artifact)
 	}
 

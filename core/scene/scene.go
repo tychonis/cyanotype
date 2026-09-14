@@ -32,6 +32,9 @@ func renderLeafNode(node *bomtree.Node) (*model.Scene, error) {
 	}
 	comps := strings.Split(m.Filename, ".")
 	obj := model.Object{
+		Name:      node.Name,
+		Item:      node.Item.Digest,
+		ItemName:  node.Item.GetName(),
 		Source:    m.Source,
 		Type:      "." + comps[len(comps)-1],
 		Placement: &model.IdentityPlacement,
@@ -43,6 +46,9 @@ func renderLeafNode(node *bomtree.Node) (*model.Scene, error) {
 
 func renderCacheNode(node *bomtree.Node) (*model.Scene, error) {
 	obj := model.Object{
+		Name:      node.Name,
+		Item:      node.Item.Digest,
+		ItemName:  node.Item.GetName(),
 		Source:    node.Item.Digest,
 		Type:      "cache",
 		Placement: &model.IdentityPlacement,

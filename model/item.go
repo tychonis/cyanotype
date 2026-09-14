@@ -39,14 +39,6 @@ type ItemContent struct {
 	Details    stable.Map  `json:"details" yaml:"details"`
 }
 
-type Artifact struct {
-	Name     string `json:"name" yaml:"name"`
-	Filename string `json:"filename" yaml:"filename"`
-	Tag      string `json:"tag" yaml:"tag"`
-	Source   string `json:"source" yaml:"source"`
-	Digest   string `json:"digest" yaml:"digest"`
-}
-
 // TODO: implement attrs?
 func (i *Item) Resolve(path []string) (Symbol, error) {
 	if len(path) > 0 {

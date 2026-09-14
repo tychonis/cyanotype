@@ -185,6 +185,17 @@ func (c *Catalog) GetNewerRevisions(base *model.Revision) ([]*model.Revision, er
 	return ret, nil
 }
 
+func getArtifacts(sym model.ConcreteSymbol) []*model.Artifact {
+	switch s := sym.(type) {
+	case *model.Item:
+		return s.Content.Artifacts
+	case *model.CoItem:
+		return s.Content.Artifacts
+	default:
+		return nil
+	}
+}
+
 func (c *Catalog) Pull(other *Catalog) error {
 	newRevisions, err := other.GetNewerRevisions(c.latestRevision)
 	if err != nil {
@@ -234,6 +245,12 @@ func (c *Catalog) Pull(other *Catalog) error {
 				return err
 			}
 			c.Add(rev, sym)
+			for _, artifact := range getArtifacts(sym) {
+				err = c.SaveArtifact(artifact)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 	slog.Debug("Updating latest revision.")

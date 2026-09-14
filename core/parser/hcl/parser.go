@@ -22,7 +22,8 @@ type ParserOptions struct {
 }
 
 type Parser struct {
-	Symbols *symbols.SymbolTable
+	Symbols   *symbols.SymbolTable
+	Artifacts map[model.Digest]*model.Artifact
 
 	Options *ParserOptions
 }
@@ -62,8 +63,9 @@ func (ctx *ParserContext) NameToQualifier(name string) string {
 
 func NewParser() *Parser {
 	return &Parser{
-		Symbols: symbols.NewSymbolTable(),
-		Options: &ParserOptions{},
+		Symbols:   symbols.NewSymbolTable(),
+		Artifacts: make(map[model.Digest]*model.Artifact),
+		Options:   &ParserOptions{},
 	}
 }
 

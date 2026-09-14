@@ -54,5 +54,11 @@ func (p *Parser) commit(cat *catalog.Catalog, dryrun bool) error {
 	if dryrun || change == 0 {
 		return nil
 	}
+	for _, artifact := range p.Artifacts {
+		err := cat.SaveArtifact(artifact)
+		if err != nil {
+			return err
+		}
+	}
 	return cat.Commit(revision)
 }
