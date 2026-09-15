@@ -1,6 +1,7 @@
 package build
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/spf13/cobra"
@@ -17,11 +18,12 @@ var Cmd = &cobra.Command{
 func run(cmd *cobra.Command, args []string) error {
 	bpoPath := "."
 
-	core := hcl.NewParser()
-	err := core.Build(bpoPath)
+	p := hcl.NewParser()
+	err := p.Build(bpoPath)
 	if err != nil {
 		slog.Warn("Failed to parse bpo.", "error", err)
 		return err
 	}
+	fmt.Printf("Successfully built bpo for %s.\n", p.ModuleName)
 	return nil
 }

@@ -22,8 +22,9 @@ type ParserOptions struct {
 }
 
 type Parser struct {
-	Symbols   *symbols.SymbolTable
-	Artifacts map[model.Digest]*model.Artifact
+	ModuleName string
+	Symbols    *symbols.SymbolTable
+	Artifacts  map[model.Digest]*model.Artifact
 
 	Options *ParserOptions
 }

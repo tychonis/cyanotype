@@ -27,6 +27,10 @@ func (p *Parser) isSymbolChanged(old model.ConcreteSymbol, new model.ConcreteSym
 }
 
 func (p *Parser) commit(cat *catalog.Catalog, dryrun bool) error {
+	err := cat.SetModuleName(p.ModuleName)
+	if err != nil {
+		return err
+	}
 	revision := cat.NewRevision()
 	change := 0
 	for qualifier, symDigest := range p.Symbols.QualifierIndex {

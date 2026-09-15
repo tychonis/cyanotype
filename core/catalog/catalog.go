@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"reflect"
 	"time"
 
@@ -21,6 +23,8 @@ type ItemProcess = struct {
 var ErrNotFound = errors.New("symbol not found")
 
 type Catalog struct {
+	ModuleName string
+
 	storage Storage
 	index   Index
 
@@ -61,10 +65,19 @@ func New(catalogType string) *Catalog {
 	return c
 }
 
+func loadModuleName() (string, error) {
+	modulePath := filepath.Join(".bpc", "module")
+	data, err := os.ReadFile(modulePath)
+	return string(data), err
+}
+
 func NewLocalCatalog() *Catalog {
 	idx := NewLocalIndex(true)
 	latestRevision, _ := idx.GetLatestRevision()
+	moduleName, _ := loadModuleName()
 	return &Catalog{
+		ModuleName: moduleName,
+
 		storage: &LocalStorage{},
 		index:   idx,
 
@@ -85,6 +98,15 @@ func (c *Catalog) GenerateMetadata(revision *model.Revision, sym model.ConcreteS
 		IntroducedBy:  revision.Digest,
 		CommitHistory: []model.RevisionID{revision.Digest},
 	}
+}
+
+func (c *Catalog) SetModuleName(moduleName string) error {
+	if c.ModuleName != "" && c.ModuleName != moduleName {
+		return errors.New("module name is already set and cannot be changed")
+	}
+	c.ModuleName = moduleName
+	modulePath := filepath.Join(".bpc", "module")
+	return os.WriteFile(modulePath, []byte(moduleName), 0644)
 }
 
 func (c *Catalog) Revive(rev *model.Revision, digest model.Digest) error {

@@ -6,20 +6,30 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/tychonis/cyanotype/internal/serializer"
 	"github.com/tychonis/cyanotype/model"
 )
 
+var ErrNoNewRevision = errors.New("catalog is up to date")
+
 // Adhoc hardcoded remote catalog.
-func NewRemoteCatalog(endpoint string, token string, tag string) *Catalog {
+func NewRemoteCatalog(endpoint string, token string, module string) *Catalog {
 	client := NewHTTPClient(token)
-	idx, err := loadIndex(endpoint+"/workspace/"+tag, client)
+	indexId, err := getIndexID(client, endpoint, module)
 	if err != nil {
-		slog.Warn("Failed to load remote index", "error", err)
+		slog.Warn("Failed to get index ID", "error", err)
+		return nil
+	}
+	idx, err := loadIndex(endpoint+"/workspace/"+indexId, client)
+	if err != nil {
+		slog.Warn("Failed to load remote index, using memory index", "error", err)
 		idx = NewLocalIndex(false)
 	}
 	cat := &Catalog{
+		ModuleName: module,
+
 		storage: NewAPIStore(endpoint, client),
 		index:   idx,
 	}
@@ -28,6 +38,29 @@ func NewRemoteCatalog(endpoint string, token string, tag string) *Catalog {
 		slog.Warn("Failed to update latest revision", "error", err)
 	}
 	return cat
+}
+
+func getIndexID(client *http.Client, endpoint string, moduleName string) (string, error) {
+	resp, err := client.Post(endpoint+"/module/"+moduleName, "application/json", nil)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// http.statusOK or http.statusCreated.
+	if resp.StatusCode/100 != 2 {
+		return "", errors.New("error response getting index ID: " + resp.Status)
+	}
+
+	var result struct {
+		ID int `json:"id"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return "", err
+	}
+
+	return strconv.Itoa(result.ID), nil
 }
 
 type IndexContent struct {
@@ -54,19 +87,26 @@ func qualifierIndexToDigestIndex(qualifierIndex map[Qualifier]QualifierIndexEntr
 func loadIndex(endpoint string, client *http.Client) (*LocalIndex, error) {
 	req, err := http.NewRequest("GET", endpoint+"/index", nil)
 	if err != nil {
-		return NewLocalIndex(false), err
+		return nil, err
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return NewLocalIndex(false), err
+		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return NewLocalIndex(false), nil
+	}
+	if resp.StatusCode/100 != 2 {
+		return nil, errors.New("error response loading index: " + resp.Status)
+	}
 
 	var content IndexContent
 	dec := json.NewDecoder(resp.Body)
 	err = dec.Decode(&content)
 	if err != nil {
-		return NewLocalIndex(false), err
+		return nil, err
 	}
 	idx := &LocalIndex{
 		qualifierIndex: content.QualifierIndex,
@@ -149,14 +189,18 @@ func (cat *Catalog) UploadMetadata(client *http.Client, endpoint string) error {
 	return nil
 }
 
-func (c *Catalog) Upload(server string, token string, tag string) error {
-	endpoint := server + "/workspace/" + tag
+func (c *Catalog) Upload(server string, token string) error {
 	client := NewHTTPClient(token)
-	err := c.UploadMetadata(client, endpoint)
+	indexID, err := getIndexID(client, server, c.ModuleName)
 	if err != nil {
 		return err
 	}
-	return UploadIndexContent(c.index.GetContent(), endpoint+"/index", client)
+	endpoint := server + "/workspace/" + indexID
+	err = c.UploadMetadata(client, endpoint)
+	if err != nil {
+		return err
+	}
+	return UploadIndexContent(c.index.GetContent(), endpoint, client)
 }
 
 func (c *Catalog) GetNewerRevisions(base *model.Revision) ([]*model.Revision, error) {
@@ -203,7 +247,7 @@ func (c *Catalog) Pull(other *Catalog) error {
 	}
 	slog.Debug("Pulling revisions.", "count", len(newRevisions))
 	if len(newRevisions) == 0 {
-		return errors.New("source catalog has no newer revisions")
+		return ErrNoNewRevision
 	}
 	for _, rev := range newRevisions {
 		slog.Debug("Processing revision", "revision", rev)

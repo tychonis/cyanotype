@@ -1,6 +1,7 @@
 package hcl
 
 import (
+	"errors"
 	"log/slog"
 	"strings"
 
@@ -11,6 +12,8 @@ import (
 
 func (p *Parser) registerBlock(ctx *ParserContext, block *hclsyntax.Block) error {
 	switch block.Type {
+	case "module":
+		return p.parseModuleBlock(ctx, block)
 	case "import":
 		return p.parseImportBlock(ctx, block)
 	default:
@@ -21,6 +24,15 @@ func (p *Parser) registerBlock(ctx *ParserContext, block *hclsyntax.Block) error
 func pathToModuleName(path string) string {
 	components := strings.Split(path, "/")
 	return components[len(components)-1]
+}
+
+func (p *Parser) parseModuleBlock(ctx *ParserContext, block *hclsyntax.Block) error {
+	moduleName := block.Labels[0]
+	if p.ModuleName != "" {
+		return errors.New("duplicated module name definition")
+	}
+	p.ModuleName = moduleName
+	return nil
 }
 
 func (p *Parser) parseImportBlock(ctx *ParserContext, block *hclsyntax.Block) error {
