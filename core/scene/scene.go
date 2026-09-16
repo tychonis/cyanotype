@@ -79,7 +79,11 @@ func buildPlacementMap(node *bomtree.Node) map[string]model.Placement {
 func renderNode(node *bomtree.Node, recursive bool) (*model.Scene, error) {
 	slog.Debug("rendering node", "node", node.Name)
 	if len(node.Children) <= 0 {
-		return renderLeafNode(node)
+		if recursive {
+			return renderLeafNode(node)
+		} else {
+			return renderCacheNode(node)
+		}
 	}
 
 	placement := buildPlacementMap(node)
