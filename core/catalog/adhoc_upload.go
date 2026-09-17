@@ -30,8 +30,9 @@ func NewRemoteCatalog(endpoint string, token string, module string) *Catalog {
 	cat := &Catalog{
 		ModuleName: module,
 
-		storage: NewAPIStore(endpoint, client),
-		index:   idx,
+		catalogType: "remote",
+		storage:     NewAPIStore(endpoint, client),
+		index:       idx,
 	}
 	err = cat.updateLatestRevision()
 	if err != nil {

@@ -25,8 +25,9 @@ var ErrNotFound = errors.New("symbol not found")
 type Catalog struct {
 	ModuleName string
 
-	storage Storage
-	index   Index
+	catalogType string
+	storage     Storage
+	index       Index
 
 	latestRevision *model.Revision
 }
@@ -78,8 +79,9 @@ func NewLocalCatalog() *Catalog {
 	return &Catalog{
 		ModuleName: moduleName,
 
-		storage: &LocalStorage{},
-		index:   idx,
+		catalogType: "local",
+		storage:     &LocalStorage{},
+		index:       idx,
 
 		latestRevision: latestRevision,
 	}
@@ -87,8 +89,9 @@ func NewLocalCatalog() *Catalog {
 
 func NewMemoryCatalog() *Catalog {
 	cat := &Catalog{
-		storage: NewMemoryStore(),
-		index:   NewLocalIndex(false),
+		catalogType: "memory",
+		storage:     NewMemoryStore(),
+		index:       NewLocalIndex(false),
 	}
 	return cat
 }
@@ -105,8 +108,11 @@ func (c *Catalog) SetModuleName(moduleName string) error {
 		return errors.New("module name is already set and cannot be changed")
 	}
 	c.ModuleName = moduleName
-	modulePath := filepath.Join(".bpc", "module")
-	return os.WriteFile(modulePath, []byte(moduleName), 0644)
+	if c.catalogType == "local" {
+		modulePath := filepath.Join(".bpc", "module")
+		return os.WriteFile(modulePath, []byte(moduleName), 0644)
+	}
+	return nil
 }
 
 func (c *Catalog) Revive(rev *model.Revision, digest model.Digest) error {
