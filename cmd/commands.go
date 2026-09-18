@@ -17,7 +17,6 @@ import (
 	"github.com/tychonis/cyanotype/cmd/query"
 	"github.com/tychonis/cyanotype/cmd/scene"
 	"github.com/tychonis/cyanotype/cmd/tree"
-	"github.com/tychonis/cyanotype/cmd/upload"
 	"github.com/tychonis/cyanotype/cmd/version"
 )
 
@@ -50,7 +49,6 @@ func Run() {
 		plan.Cmd,
 		query.Cmd,
 		scene.Cmd,
-		upload.Cmd,
 		history.Cmd,
 		version.Cmd,
 	)

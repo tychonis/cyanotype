@@ -1,4 +1,4 @@
-package upload
+package scene
 
 import (
 	"bytes"
@@ -15,14 +15,14 @@ import (
 	"github.com/tychonis/cyanotype/model"
 )
 
-var Cmd = &cobra.Command{
+var UploadCmd = &cobra.Command{
 	Use:   "upload <server> <item> <file>",
 	Short: "Upload item scene file, need to have a better name",
-	RunE:  run,
+	RunE:  runUpload,
 	Args:  cobra.ExactArgs(3),
 }
 
-func run(cmd *cobra.Command, args []string) error {
+func runUpload(cmd *cobra.Command, args []string) error {
 	server := args[0]
 	qualifier := args[1]
 	filename := args[2]
