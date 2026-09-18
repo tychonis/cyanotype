@@ -11,5 +11,6 @@ func init() {
 	Cmd.AddCommand(
 		GenerateCmd,
 		UploadCmd,
+		MakeCmd,
 	)
 }
