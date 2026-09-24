@@ -2,7 +2,6 @@ package hcl
 
 import (
 	"errors"
-	"fmt"
 	"log/slog"
 	"strings"
 
@@ -188,26 +187,6 @@ func (p *Parser) parseCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*
 
 	coItem.Digest, err = digest.SHA256FromSymbol(coItem)
 	return coItem, err
-}
-
-func (p *Parser) createProcessContract(process *process.Process, mode string, line *UnresolvedBOMLine) (*model.Contract, error) {
-	ret := &model.Contract{
-		Qualifier: fmt.Sprintf("%s.%s", process.Qualifier, mode),
-	}
-	return ret, nil
-}
-
-func (p *Parser) resolveBOMLinesAttr(ctx *ParserContext, attr *hcl.Attribute) ([]*model.BOMLine, error) {
-	lines := parseBOMLinesAttr(ctx, attr)
-	ret := make([]*model.BOMLine, 0, len(lines))
-	for _, line := range lines {
-		resolved, err := p.ResolveBOMLine(ctx, line)
-		if err != nil {
-			return nil, err
-		}
-		ret = append(ret, resolved)
-	}
-	return ret, nil
 }
 
 func (p *Parser) parseProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *process.Process, err error) {

@@ -209,15 +209,3 @@ func (p *Parser) resolveBOMLineRef(ctx *ParserContext, ref Ref) (*model.Item, er
 	}
 	return item, nil
 }
-
-func (p *Parser) ResolveBOMLine(ctx *ParserContext, line *UnresolvedBOMLine) (*model.BOMLine, error) {
-	item, err := p.resolveBOMLineRef(ctx, line.Ref)
-	if err != nil {
-		return nil, err
-	}
-	return &model.BOMLine{
-		Name: line.Name,
-		Item: item.Digest,
-		Qty:  line.Qty,
-	}, nil
-}
