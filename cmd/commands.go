@@ -16,6 +16,7 @@ import (
 	"github.com/tychonis/cyanotype/cmd/push"
 	"github.com/tychonis/cyanotype/cmd/query"
 	"github.com/tychonis/cyanotype/cmd/scene"
+	"github.com/tychonis/cyanotype/cmd/symbol"
 	"github.com/tychonis/cyanotype/cmd/tree"
 	"github.com/tychonis/cyanotype/cmd/version"
 )
@@ -51,6 +52,7 @@ func Run() {
 		scene.Cmd,
 		history.Cmd,
 		version.Cmd,
+		symbol.Cmd,
 	)
 
 	err := rootCmd.Execute()
