@@ -30,6 +30,5 @@ func run(cmd *cobra.Command, args []string) error {
 		slog.Error("Failed to push catalog to remote.", "error", err)
 		return err
 	}
-	remoteCat.Upload(server, token)
-	return nil
+	return remoteCat.Upload(server, token)
 }

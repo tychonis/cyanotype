@@ -35,6 +35,25 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+type RunEFunc = func(*cobra.Command, []string) error
+
+func RunWithoutUsage(run RunEFunc) RunEFunc {
+	return func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
+		return run(cmd, args)
+	}
+}
+
+func silenceRunEUsage(cmd *cobra.Command) {
+	if cmd.RunE != nil {
+		cmd.RunE = RunWithoutUsage(cmd.RunE)
+	}
+
+	for _, child := range cmd.Commands() {
+		silenceRunEUsage(child)
+	}
+}
+
 func Run() {
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "enable debug logging")
 
@@ -54,6 +73,7 @@ func Run() {
 		version.Cmd,
 		symbol.Cmd,
 	)
+	silenceRunEUsage(rootCmd)
 
 	err := rootCmd.Execute()
 	if err != nil {
