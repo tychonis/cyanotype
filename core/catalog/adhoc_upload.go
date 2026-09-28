@@ -143,8 +143,10 @@ func UploadIndexContent(content *IndexContent, endpoint string, client *http.Cli
 
 type CatalogMetadata struct {
 	Name           string           `json:"name"`
+	Repo           string           `json:"repo"`
 	LatestRevision model.RevisionID `json:"latest_revision"`
-	UniqueParts    int              `json:"unique_parts"`
+	TotalItems     int              `json:"total_items"`
+	TotalCoItems   int              `json:"total_coitems"`
 }
 
 func GetCatalogMetadata(client *http.Client, endpoint string) (*CatalogMetadata, error) {
@@ -172,9 +174,16 @@ func (cat *Catalog) UploadMetadata(client *http.Client, endpoint string) error {
 	if err != nil {
 		return err
 	}
+	statistics, err := cat.GetStatistics()
+	if err != nil {
+		return err
+	}
 	metadata := CatalogMetadata{
-		Name:           "placeholder",
+		Name:           cat.ModuleName,
+		Repo:           "https://" + cat.ModuleName,
 		LatestRevision: latestRev.Digest,
+		TotalItems:     statistics.TotalItems,
+		TotalCoItems:   statistics.TotalCoItems,
 	}
 	content, err := json.Marshal(metadata)
 	if err != nil {
