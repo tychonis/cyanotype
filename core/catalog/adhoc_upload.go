@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/tychonis/cyanotype/internal/serializer"
 	"github.com/tychonis/cyanotype/model"
@@ -169,6 +170,11 @@ func GetCatalogMetadata(client *http.Client, endpoint string) (*CatalogMetadata,
 	return &metadata, nil
 }
 
+func baseName(moduleName string) string {
+	parts := strings.Split(moduleName, "/")
+	return parts[len(parts)-1]
+}
+
 func (cat *Catalog) UploadMetadata(client *http.Client, endpoint string) error {
 	latestRev, err := cat.GetLatestRevision()
 	if err != nil {
@@ -179,7 +185,7 @@ func (cat *Catalog) UploadMetadata(client *http.Client, endpoint string) error {
 		return err
 	}
 	metadata := CatalogMetadata{
-		Name:           cat.ModuleName,
+		Name:           baseName(cat.ModuleName),
 		Repo:           "https://" + cat.ModuleName,
 		LatestRevision: latestRev.Digest,
 		TotalItems:     statistics.TotalItems,

@@ -432,6 +432,9 @@ func (idx *LocalIndex) loadRevisionIndex() error {
 }
 
 func (idx *LocalIndex) GetLatestRevision() (*model.Revision, error) {
+	if idx.revisionCache.LatestRevision == "" {
+		return nil, ErrNotFound
+	}
 	slog.Debug("Fetch cached revision", "digest", idx.revisionCache.LatestRevision)
 	rev, ok := idx.revisionIndex[idx.revisionCache.LatestRevision]
 	if !ok {
