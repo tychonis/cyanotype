@@ -16,7 +16,7 @@ all: $(GLBS)
 $(BUILD)/%.glb: $(CACHE)/%.cyscene
 	@mkdir -p $(BUILD)
 	brepkit glb $< $@
-	$(CY) scene upload $(SERVER) $* $@
+	$(CY) scene cache $(SERVER) $* $@
 
 .SECONDARY:
 $(CACHE)/%.cyscene:

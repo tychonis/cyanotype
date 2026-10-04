@@ -10,7 +10,7 @@ var Cmd = &cobra.Command{
 func init() {
 	Cmd.AddCommand(
 		GenerateCmd,
-		UploadCmd,
+		CacheCmd,
 		MakeCmd,
 	)
 }

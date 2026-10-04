@@ -15,14 +15,18 @@ import (
 	"github.com/tychonis/cyanotype/model"
 )
 
-var UploadCmd = &cobra.Command{
-	Use:   "upload <server> <item> <file>",
-	Short: "Upload item scene file, need to have a better name",
-	RunE:  runUpload,
+var CacheCmd = &cobra.Command{
+	Use:   "cache <server> <item> <file>",
+	Short: "Cache item representation file",
+	RunE:  runCache,
 	Args:  cobra.ExactArgs(3),
 }
 
-func runUpload(cmd *cobra.Command, args []string) error {
+func init() {
+	CacheCmd.Flags().StringP("tag", "t", "scene", "set cache tag")
+}
+
+func runCache(cmd *cobra.Command, args []string) error {
 	server := args[0]
 	qualifier := args[1]
 	filename := args[2]
@@ -43,6 +47,7 @@ func runUpload(cmd *cobra.Command, args []string) error {
 	}
 	artifact := &model.Artifact{
 		Filename: path.Base(filename),
+		Tag:      cmd.Flag("tag").Value.String(),
 		Source:   fmt.Sprintf("file://%s", filename),
 		Digest:   fileDigest,
 	}
@@ -58,7 +63,7 @@ func RegisterScene(server string, token string, sym model.Digest, artifact *mode
 		return err
 	}
 
-	sceneEndpoint := fmt.Sprintf("%s/scene/%s", server, sym)
+	sceneEndpoint := fmt.Sprintf("%s/representation/%s", server, sym)
 	payload, err := json.Marshal(artifact)
 	if err != nil {
 		return err
