@@ -52,10 +52,10 @@ func runCache(cmd *cobra.Command, args []string) error {
 		Digest:   fileDigest,
 	}
 
-	return RegisterScene(server, token, sym.GetDigest(), artifact)
+	return RegisterRepresentation(server, token, sym.GetDigest(), artifact)
 }
 
-func RegisterScene(server string, token string, sym model.Digest, artifact *model.Artifact) error {
+func RegisterRepresentation(server string, token string, sym model.Digest, artifact *model.Artifact) error {
 	client := catalog.NewHTTPClient(token)
 	storage := catalog.NewAPIStore(server, client)
 	err := storage.SaveArtifact(artifact)
@@ -63,18 +63,18 @@ func RegisterScene(server string, token string, sym model.Digest, artifact *mode
 		return err
 	}
 
-	sceneEndpoint := fmt.Sprintf("%s/representation/%s", server, sym)
+	repEndpoint := fmt.Sprintf("%s/representation/%s", server, sym)
 	payload, err := json.Marshal(artifact)
 	if err != nil {
 		return err
 	}
-	resp, err := client.Post(sceneEndpoint, "application/json", bytes.NewReader(payload))
+	resp, err := client.Post(repEndpoint, "application/json", bytes.NewReader(payload))
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("failed to register scene: %s", resp.Status)
+		return fmt.Errorf("failed to register representation: %s", resp.Status)
 	}
 	return nil
 }
