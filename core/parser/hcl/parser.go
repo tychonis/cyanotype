@@ -2,6 +2,7 @@ package hcl
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
+	"github.com/tychonis/cyanotype/internal/cerror"
 	"github.com/tychonis/cyanotype/internal/symbols"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -143,12 +145,38 @@ func (p *Parser) Parse(path string) error {
 	return p.ParseFile(path)
 }
 
-func (p *Parser) Build(path string) error {
+func PrintParserError(err error) {
+	if err == nil {
+		return
+	}
+	var errWithRange *cerror.ErrWithRange
+	if errors.As(err, &errWithRange) {
+		r := errWithRange.Range
+		var errKeyNotFound *cerror.ErrKeyNotFound
+		var msg string
+		if errors.As(errWithRange.Err, &errKeyNotFound) {
+			msg = fmt.Sprintf("Missing required key: %s", errKeyNotFound.Key)
+		} else {
+			msg = errWithRange.Err.Error()
+		}
+		slog.Error(fmt.Sprintf("%s:%d %s", r.Filename, r.Start.Line, msg))
+	} else {
+		slog.Error("Parser error.", "error", err)
+	}
+}
+
+func (p *Parser) build(path string) error {
 	err := p.Parse(path)
 	if err != nil {
 		return err
 	}
 	return p.processModules()
+}
+
+func (p *Parser) Build(path string) error {
+	err := p.build(path)
+	PrintParserError(err)
+	return err
 }
 
 func (p *Parser) processModules() error {
@@ -173,7 +201,7 @@ func (p *Parser) processModuleScope(m *symbols.ModuleScope) error {
 			slog.Debug("Process item", "item", s)
 			_, err := p.ParseSymbol(s)
 			if err != nil {
-				slog.Warn("Error adding item.", "error", err, "item", s)
+				return err
 			}
 		default:
 		}

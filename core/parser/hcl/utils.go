@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/tychonis/cyanotype/internal/cerror"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -28,7 +29,7 @@ func extractAttributes(body *hclsyntax.Body) (hcl.Attributes, error) {
 func getString(attrs hcl.Attributes, key string) (string, error) {
 	attr, ok := attrs[key]
 	if !ok {
-		return "", errors.New("key not found")
+		return "", cerror.KeyNotFoundError(key)
 	}
 	val, diags := attr.Expr.Value(nil)
 	if diags.HasErrors() {
@@ -43,13 +44,13 @@ func getString(attrs hcl.Attributes, key string) (string, error) {
 func getNumber(attrs hcl.Attributes, key string) (float64, error) {
 	attr, ok := attrs[key]
 	if !ok {
-		return 0, errors.New("key not found")
+		return 0, cerror.KeyNotFoundError(key)
 	}
 	val, diags := attr.Expr.Value(nil)
 	if diags.HasErrors() {
 		return 0, diags
 	}
-	if val.Type() != cty.String {
+	if val.Type() != cty.Number {
 		return 0, errors.New("incorrect type")
 	}
 	ret, _ := val.AsBigFloat().Float64()
@@ -59,7 +60,7 @@ func getNumber(attrs hcl.Attributes, key string) (float64, error) {
 func getFloat64Array(attrs hcl.Attributes, key string) ([]float64, error) {
 	attr, ok := attrs[key]
 	if !ok {
-		return nil, errors.New("key not found")
+		return nil, cerror.KeyNotFoundError(key)
 	}
 	val, diags := attr.Expr.Value(nil)
 	if diags.HasErrors() {

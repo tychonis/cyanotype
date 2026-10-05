@@ -37,7 +37,7 @@ func (p *Parser) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, er
 	case "contract":
 		sym, err = p.parseContractBlock(s.Context, s.Block)
 	default:
-		return nil, cerror.ErrorWithRange("unknown block type", s.Block.Range())
+		return nil, cerror.ErrorWithRange(errors.New("unknown block type"), s.Block.Range())
 	}
 	if err == nil {
 		// TODO: remove side effects here.
@@ -46,7 +46,7 @@ func (p *Parser) ParseSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, er
 			"qualifier", sym.GetQualifier(), "digest", sym.GetDigest())
 		p.Symbols.RegisterConcreteSymbol(sym)
 	} else {
-		err = cerror.ErrorWithRange(err.Error(), s.Block.Range())
+		err = cerror.ErrorWithRange(err, s.Block.Range())
 	}
 	return
 }

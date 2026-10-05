@@ -7,17 +7,31 @@ import (
 )
 
 type ErrWithRange struct {
-	r   hcl.Range
-	msg string
+	Range hcl.Range
+	Err   error
 }
 
 func (e *ErrWithRange) Error() string {
-	return fmt.Sprintf("%s:%d %s", e.r.Filename, e.r.Start.Line, e.msg)
+	return fmt.Sprintf("%s:%d %s", e.Range.Filename, e.Range.Start.Line, e.Err)
 }
 
-func ErrorWithRange(msg string, r hcl.Range) *ErrWithRange {
+func ErrorWithRange(err error, r hcl.Range) *ErrWithRange {
 	return &ErrWithRange{
-		r:   r,
-		msg: msg,
+		Range: r,
+		Err:   err,
+	}
+}
+
+type ErrKeyNotFound struct {
+	Key string
+}
+
+func (e *ErrKeyNotFound) Error() string {
+	return fmt.Sprintf("key not found: %s", e.Key)
+}
+
+func KeyNotFoundError(key string) *ErrKeyNotFound {
+	return &ErrKeyNotFound{
+		Key: key,
 	}
 }
