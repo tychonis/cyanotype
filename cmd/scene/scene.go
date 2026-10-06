@@ -11,6 +11,7 @@ func init() {
 	Cmd.AddCommand(
 		GenerateCmd,
 		CacheCmd,
+		RootCmd,
 		MakeCmd,
 	)
 }

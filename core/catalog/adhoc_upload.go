@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -199,6 +200,7 @@ func (cat *Catalog) UploadMetadata(client *http.Client, endpoint string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusAccepted {
 		return errors.New("error response saving catalog metadata: " + resp.Status)
 	}
@@ -340,5 +342,37 @@ func (c *Catalog) updateLatestRevision() error {
 		return err
 	}
 	c.latestRevision = fullRev
+	return nil
+}
+
+func (c *Catalog) AddRoot(server string, token string, qualifier string) error {
+	client := NewHTTPClient(token)
+	indexID, err := getIndexID(client, server, c.ModuleName)
+	if err != nil {
+		return err
+	}
+	sym, err := c.FindCurrent(qualifier)
+	if err != nil {
+		return err
+	}
+
+	endpoint := fmt.Sprintf("%s/workspace/%s/root", server, indexID)
+	req := struct {
+		Digest string `json:"digest"`
+	}{
+		Digest: sym.GetDigest(),
+	}
+	content, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+	resp, err := client.Post(endpoint, "application/json", bytes.NewReader(content))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusAccepted {
+		return errors.New("error response adding root: " + resp.Status)
+	}
 	return nil
 }
