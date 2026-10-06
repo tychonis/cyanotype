@@ -9,6 +9,7 @@ import (
 	"github.com/tychonis/cyanotype/core/catalog"
 	"github.com/tychonis/cyanotype/core/instantiator"
 	"github.com/tychonis/cyanotype/core/parser/hcl"
+	"github.com/tychonis/cyanotype/core/ranker"
 )
 
 var Cmd = &cobra.Command{
@@ -45,7 +46,8 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ins := instantiator.New()
+	r := ranker.NewCatalogRanker(cat)
+	ins := instantiator.New(r)
 	rootNode, err := ins.TreeFromQualifier(cat, root)
 	if err != nil {
 		slog.Error("Failed to build.", "error", err)

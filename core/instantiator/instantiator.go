@@ -15,9 +15,12 @@ type Instantiator struct {
 	Ranker ranker.Ranker
 }
 
-func New() *Instantiator {
+func New(r ranker.Ranker) *Instantiator {
+	if r == nil {
+		r = &ranker.NaiveRanker{}
+	}
 	return &Instantiator{
-		Ranker: &ranker.NaiveRanker{},
+		Ranker: r,
 	}
 }
 

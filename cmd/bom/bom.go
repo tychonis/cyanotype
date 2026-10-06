@@ -9,6 +9,7 @@ import (
 	"github.com/tychonis/cyanotype/core/catalog"
 	"github.com/tychonis/cyanotype/core/instantiator"
 	"github.com/tychonis/cyanotype/core/parser/hcl"
+	"github.com/tychonis/cyanotype/core/ranker"
 )
 
 var Cmd = &cobra.Command{
@@ -41,7 +42,8 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ins := instantiator.New()
+	r := ranker.NewCatalogRanker(cat)
+	ins := instantiator.New(r)
 	counter, err := ins.Count(cat, rootPart)
 	if err != nil {
 		slog.Error("Error counting", "error", err)

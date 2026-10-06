@@ -115,8 +115,8 @@ func renderNode(node *bomtree.Node, recursive bool) (*model.Scene, error) {
 }
 
 func RenderSymbol(cat *catalog.Catalog, sym model.ConcreteSymbol, recursive bool) (*model.Scene, error) {
-	ins := instantiator.New()
-	ins.Ranker = ranker.NewCatalogTypeRanker(cat, process.DRAWING)
+	r := ranker.NewCatalogTypeRanker(cat, process.DRAWING)
+	ins := instantiator.New(r)
 	var coItem *model.CoItem
 	var ok bool
 	var err error
