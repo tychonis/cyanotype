@@ -38,7 +38,6 @@ func runCache(cmd *cobra.Command, args []string) error {
 		slog.Error("Failed to find item.", "error", err)
 		return err
 	}
-	sym.GetDigest()
 
 	fileDigest, err := digest.SHA256FromFile(filename)
 	if err != nil {
