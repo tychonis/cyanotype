@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/tychonis/cyanotype/cmd/artifact"
 	"github.com/tychonis/cyanotype/cmd/bom"
 	"github.com/tychonis/cyanotype/cmd/build"
 	"github.com/tychonis/cyanotype/cmd/commit"
@@ -72,6 +73,7 @@ func Run() {
 		history.Cmd,
 		version.Cmd,
 		symbol.Cmd,
+		artifact.Cmd,
 	)
 	silenceRunEUsage(rootCmd)
 
