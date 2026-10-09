@@ -288,6 +288,9 @@ func (c *Catalog) Pull(other *Catalog) error {
 		return err
 	}
 	slog.Debug("Getting symbols.")
+	total := len(allSymbols)
+	fmt.Printf("Processing symbols 0/%d", total)
+	count := 0
 	for _, symDigest := range allSymbols {
 		sym, err := other.Get(symDigest)
 		if err != nil {
@@ -314,7 +317,10 @@ func (c *Catalog) Pull(other *Catalog) error {
 				}
 			}
 		}
+		count++
+		fmt.Printf("\rProcessing symbols %d/%d", count, total)
 	}
+	fmt.Printf("%d symbols processed\n", count)
 	slog.Debug("Updating latest revision.")
 	return c.updateLatestRevision()
 }
