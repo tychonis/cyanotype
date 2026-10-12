@@ -21,6 +21,7 @@ type LocalIndex struct {
 	digestIndex    map[model.Digest]DigestIndexEntry
 	processIndex   map[model.ItemID]*ProcessIndexEntry
 	revisionIndex  map[model.RevisionID]*model.Revision
+	metadataStore  map[model.Digest][]byte
 
 	persistent bool
 
@@ -37,7 +38,8 @@ func NewLocalIndex(persistent bool) *LocalIndex {
 		processIndex:   make(map[model.ItemID]*ProcessIndexEntry),
 		revisionIndex:  make(map[model.RevisionID]*model.Revision),
 
-		persistent: persistent,
+		metadataStore: make(map[model.Digest][]byte),
+		persistent:    persistent,
 	}
 	idx.load()
 	idx.buildRevisionOrderCache()
@@ -449,4 +451,43 @@ func (idx *LocalIndex) GetContent() *IndexContent {
 		ProcessIndex:   idx.processIndex,
 		RevisionIndex:  idx.revisionIndex,
 	}
+}
+
+func (idx *LocalIndex) SaveMetadata(digest model.Digest, metadata []byte) error {
+	path, err := digestToPath(digest)
+	if err != nil {
+		return err
+	}
+	if !idx.persistent {
+		idx.metadataStore[digest] = metadata
+		return nil
+	}
+
+	path = path + ".meta"
+	if _, err := os.Stat(path); err == nil {
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return atomicWrite(path, metadata, 0o644)
+}
+
+func (idx *LocalIndex) GetMetadata(digest model.Digest) ([]byte, error) {
+	if idx.persistent {
+		path, err := digestToPath(digest)
+		if err != nil {
+			return nil, err
+		}
+		path = path + ".meta"
+		metadata, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		return metadata, nil
+	}
+	metadata, ok := idx.metadataStore[digest]
+	if !ok {
+		return nil, errors.New("metadata not found")
+	}
+	return metadata, nil
 }

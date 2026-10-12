@@ -18,9 +18,7 @@ import (
 
 type Storage interface {
 	Save(digest model.Digest, data []byte) error
-	SaveMetadata(digest model.Digest, metadata []byte) error
 	Load(digest model.Digest) ([]byte, error)
-	LoadMetadata(digest model.Digest) ([]byte, error)
 	Exists(digest model.Digest) (bool, error)
 
 	SaveArtifact(artifact *model.Artifact) error
@@ -51,36 +49,11 @@ func (ls *LocalStorage) Save(digest model.Digest, data []byte) error {
 	return atomicWrite(path, data, 0o644)
 }
 
-func (ls *LocalStorage) SaveMetadata(digest model.Digest, metadata []byte) error {
-	path, err := digestToPath(digest)
-	if err != nil {
-		return err
-	}
-
-	path = path + ".meta"
-	if _, err := os.Stat(path); err == nil {
-		return nil
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-
-	return atomicWrite(path, metadata, 0o644)
-}
-
 func (ls *LocalStorage) Load(digest model.Digest) ([]byte, error) {
 	path, err := digestToPath(digest)
 	if err != nil {
 		return nil, err
 	}
-	return os.ReadFile(path)
-}
-
-func (ls *LocalStorage) LoadMetadata(digest model.Digest) ([]byte, error) {
-	path, err := digestToPath(digest)
-	if err != nil {
-		return nil, err
-	}
-	path = path + ".meta"
 	return os.ReadFile(path)
 }
 
@@ -129,19 +102,6 @@ func (m *MemoryStore) Load(digest model.Digest) ([]byte, error) {
 		return nil, errors.New("digest not found")
 	}
 	return data, nil
-}
-
-func (m *MemoryStore) SaveMetadata(digest model.Digest, metadata []byte) error {
-	m.storage[digest+".meta"] = metadata
-	return nil
-}
-
-func (m *MemoryStore) LoadMetadata(digest model.Digest) ([]byte, error) {
-	metadata, ok := m.storage[digest+".meta"]
-	if !ok {
-		return nil, errors.New("metadata not found")
-	}
-	return metadata, nil
 }
 
 func (m *MemoryStore) Exists(digest model.Digest) (bool, error) {
@@ -197,37 +157,6 @@ func (a *APIStore) Load(digest model.Digest) ([]byte, error) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New("error response loading symbol: " + resp.Status)
-	}
-	return io.ReadAll(resp.Body)
-}
-
-func (a *APIStore) SaveMetadata(digest model.Digest, metadata []byte) error {
-	url := fmt.Sprintf("%s/metadata/%s", a.endpoint, digest)
-	req, err := http.NewRequest("POST", url, bytes.NewReader(metadata))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != http.StatusAccepted {
-		return errors.New("error response saving symbol metadata: " + resp.Status)
-	}
-	return nil
-}
-
-func (a *APIStore) LoadMetadata(digest model.Digest) ([]byte, error) {
-	url := fmt.Sprintf("%s/metadata/%s", a.endpoint, digest)
-	resp, err := a.client.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("error response loading symbol metadata: " + resp.Status)
 	}
 	return io.ReadAll(resp.Body)
 }

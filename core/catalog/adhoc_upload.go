@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -24,11 +25,8 @@ func NewRemoteCatalog(endpoint string, token string, module string) *Catalog {
 		slog.Warn("Failed to get index ID", "error", err)
 		return nil
 	}
-	idx, err := loadIndex(endpoint+"/workspace/"+indexId, client)
-	if err != nil {
-		slog.Warn("Failed to load remote index, using memory index", "error", err)
-		idx = NewLocalIndex(false)
-	}
+	idx, _ := NewAPIIndex(endpoint+"/workspace/"+indexId, client)
+	slog.Debug("Created api index.", "endpoint", endpoint, "indexId", indexId)
 	cat := &Catalog{
 		ModuleName: module,
 
@@ -38,7 +36,11 @@ func NewRemoteCatalog(endpoint string, token string, module string) *Catalog {
 	}
 	err = cat.updateLatestRevision()
 	if err != nil {
-		slog.Warn("Failed to update latest revision", "error", err)
+		if err == ErrNotFound {
+			slog.Info("New catalog created")
+		} else {
+			slog.Warn("Failed to update latest revision", "error", err)
+		}
 	}
 	return cat
 }
@@ -85,42 +87,6 @@ func qualifierIndexToDigestIndex(qualifierIndex map[Qualifier]QualifierIndexEntr
 		}
 	}
 	return digestIndex
-}
-
-func loadIndex(endpoint string, client *http.Client) (*LocalIndex, error) {
-	req, err := http.NewRequest("GET", endpoint+"/index", nil)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return NewLocalIndex(false), nil
-	}
-	if resp.StatusCode/100 != 2 {
-		return nil, errors.New("error response loading index: " + resp.Status)
-	}
-
-	var content IndexContent
-	dec := json.NewDecoder(resp.Body)
-	err = dec.Decode(&content)
-	if err != nil {
-		return nil, err
-	}
-	idx := &LocalIndex{
-		qualifierIndex: content.QualifierIndex,
-		digestIndex:    qualifierIndexToDigestIndex(content.QualifierIndex),
-		processIndex:   content.ProcessIndex,
-		revisionIndex:  content.RevisionIndex,
-
-		persistent: false,
-	}
-	err = idx.buildRevisionOrderCache()
-	return idx, err
 }
 
 func UploadIndexContent(content *IndexContent, endpoint string, client *http.Client) error {
@@ -309,7 +275,10 @@ func (c *Catalog) Pull(other *Catalog) error {
 			if err != nil {
 				return err
 			}
-			c.Add(rev, sym)
+			err = c.Add(rev, sym)
+			if err != nil {
+				return err
+			}
 			for _, artifact := range getArtifacts(sym) {
 				err = c.SaveArtifact(artifact)
 				if err != nil {
@@ -320,7 +289,7 @@ func (c *Catalog) Pull(other *Catalog) error {
 		count++
 		fmt.Printf("\rProcessing symbols %d/%d", count, total)
 	}
-	fmt.Printf("%d symbols processed\n", count)
+	fmt.Printf("\rProcessing Finished: %d symbols processed\n", count)
 	slog.Debug("Updating latest revision.")
 	return c.updateLatestRevision()
 }
@@ -381,4 +350,91 @@ func (c *Catalog) AddRoot(server string, token string, qualifier string) error {
 		return errors.New("error response adding root: " + resp.Status)
 	}
 	return nil
+}
+
+type APIIndex struct {
+	*LocalIndex
+	endpoint string
+	client   *http.Client
+}
+
+func loadIndex(endpoint string, client *http.Client) (*LocalIndex, error) {
+	req, err := http.NewRequest("GET", endpoint+"/index", nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return NewLocalIndex(false), nil
+	}
+	if resp.StatusCode/100 != 2 {
+		return nil, errors.New("error response loading index: " + resp.Status)
+	}
+
+	var content IndexContent
+	dec := json.NewDecoder(resp.Body)
+	err = dec.Decode(&content)
+	if err != nil {
+		return nil, err
+	}
+	idx := &LocalIndex{
+		qualifierIndex: content.QualifierIndex,
+		digestIndex:    qualifierIndexToDigestIndex(content.QualifierIndex),
+		processIndex:   content.ProcessIndex,
+		revisionIndex:  content.RevisionIndex,
+
+		persistent: false,
+	}
+	err = idx.buildRevisionOrderCache()
+	return idx, err
+}
+
+func NewAPIIndex(endpoint string, client *http.Client) (*APIIndex, error) {
+	localCache, err := loadIndex(endpoint, client)
+	if err != nil {
+		slog.Warn("Failed to load remote index, using memory index", "error", err)
+		localCache = NewLocalIndex(false)
+	}
+	return &APIIndex{
+		LocalIndex: localCache,
+
+		endpoint: strings.TrimSuffix(endpoint, "/"),
+		client:   client,
+	}, nil
+}
+
+func (a *APIIndex) SaveMetadata(digest model.Digest, metadata []byte) error {
+	url := fmt.Sprintf("%s/metadata/%s", a.endpoint, digest)
+	req, err := http.NewRequest("POST", url, bytes.NewReader(metadata))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusAccepted {
+		return errors.New("error response saving symbol metadata: " + resp.Status)
+	}
+	return nil
+}
+
+func (a *APIIndex) GetMetadata(digest model.Digest) ([]byte, error) {
+	url := fmt.Sprintf("%s/metadata/%s", a.endpoint, digest)
+	resp, err := a.client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("error response loading symbol metadata: " + resp.Status)
+	}
+	return io.ReadAll(resp.Body)
 }

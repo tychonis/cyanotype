@@ -96,7 +96,7 @@ func NewMemoryCatalog() *Catalog {
 	return cat
 }
 
-func (c *Catalog) GenerateMetadata(revision *model.Revision, sym model.ConcreteSymbol) *Metadata {
+func (c *Catalog) NewSymbolMetadata(revision *model.Revision, sym model.ConcreteSymbol) *Metadata {
 	return &Metadata{
 		IntroducedBy:  revision.Digest,
 		CommitHistory: []model.RevisionID{revision.Digest},
@@ -115,23 +115,24 @@ func (c *Catalog) SetModuleName(moduleName string) error {
 	return nil
 }
 
-func (c *Catalog) Revive(rev *model.Revision, digest model.Digest) error {
-	metadata, err := c.GetMetadata(digest)
+func (c *Catalog) Revive(rev *model.Revision, sym model.ConcreteSymbol) error {
+	metadata, err := c.GetMetadata(sym.GetDigest())
 	if err != nil {
-		return err
+		metadata = c.NewSymbolMetadata(rev, sym)
+	} else {
+		metadata.Commit(rev.Digest)
 	}
-	metadata.Commit(rev.Digest)
 	body, err := json.Marshal(metadata)
 	if err != nil {
 		return err
 	}
-	return c.storage.SaveMetadata(digest, body)
+	return c.index.SaveMetadata(sym.GetDigest(), body)
 }
 
 func (c *Catalog) Add(rev *model.Revision, sym model.ConcreteSymbol) error {
 	existSym, _ := c.Get(sym.GetDigest())
 	if existSym != nil {
-		return c.Revive(rev, sym.GetDigest())
+		return c.Revive(rev, sym)
 	}
 	err := c.index.IndexSymbol(rev, sym)
 	if err != nil {
@@ -145,24 +146,16 @@ func (c *Catalog) Add(rev *model.Revision, sym model.ConcreteSymbol) error {
 	if err != nil {
 		return err
 	}
-	metadata := c.GenerateMetadata(rev, sym)
+	metadata := c.NewSymbolMetadata(rev, sym)
 	body, err = json.Marshal(metadata)
 	if err != nil {
 		return err
 	}
-	return c.storage.SaveMetadata(sym.GetDigest(), body)
+	return c.index.SaveMetadata(sym.GetDigest(), body)
 }
 
-func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
-	body, err := c.storage.Load(digest)
-	if err != nil {
-		return nil, err
-	}
+func DeserializeSymbol(qualifier Qualifier, digest model.Digest, body []byte) (model.ConcreteSymbol, error) {
 	symType, err := serializer.GetType(body)
-	if err != nil {
-		return nil, err
-	}
-	qualifier, err := c.index.FindCurrentQualifier(digest)
 	if err != nil {
 		return nil, err
 	}
@@ -172,41 +165,53 @@ func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
 		if err != nil {
 			return ret, err
 		}
-		ret.Qualifier = qualifier
 		ret.Digest = digest
+		ret.Qualifier = qualifier
 		return ret, nil
 	case "coitem":
 		ret, err := serializer.Deserialize[*model.CoItem](body)
 		if err != nil {
 			return ret, err
 		}
-		ret.Qualifier = qualifier
 		ret.Digest = digest
+		ret.Qualifier = qualifier
 		return ret, nil
 	case "process":
 		ret, err := serializer.Deserialize[*process.Process](body)
 		if err != nil {
 			return ret, err
 		}
-		ret.Qualifier = qualifier
 		ret.Digest = digest
+		ret.Qualifier = qualifier
 		return ret, nil
 	case "coprocess":
 		ret, err := serializer.Deserialize[*process.CoProcess](body)
 		if err != nil {
 			return ret, err
 		}
-		ret.Qualifier = qualifier
 		ret.Digest = digest
+		ret.Qualifier = qualifier
 		return ret, nil
 	default:
-		slog.Warn("Unknown symbol type", "type", symType, "digest", digest)
+		slog.Warn("Unknown symbol type", "type", symType)
 		return nil, errors.New("unknown type")
 	}
 }
 
+func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {
+	body, err := c.storage.Load(digest)
+	if err != nil {
+		return nil, err
+	}
+	qualifier, err := c.index.FindCurrentQualifier(digest)
+	if err != nil {
+		return nil, err
+	}
+	return DeserializeSymbol(qualifier, digest, body)
+}
+
 func (c *Catalog) GetSymbolMetadata(digest model.Digest) (*Metadata, error) {
-	body, err := c.storage.LoadMetadata(digest)
+	body, err := c.index.GetMetadata(digest)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +305,7 @@ func (c *Catalog) GetItems(coItem model.ItemID) ([]*ItemProcess, error) {
 }
 
 func (c *Catalog) GetMetadata(digest model.Digest) (*Metadata, error) {
-	data, err := c.storage.LoadMetadata(digest)
+	data, err := c.index.GetMetadata(digest)
 	if err != nil {
 		return nil, err
 	}
