@@ -311,59 +311,69 @@ Different environments may legitimately produce different concrete realizations 
 
 ## 🚀 Getting Started
 
-### Prerequisites
-- Go 1.22+
-- Git
+### Installation
 
-### Build
+Download Cyanotype for your operating system from [GitHub Releases](https://github.com/tychonis/cyanotype/releases).
+
+Extract the archive and add the `cyanotype` executable to your `PATH`.
+
+Verify the installation:
+
+```bash
+cyanotype version
+```
+
+Alternatively, build from source using Go 1.26 or later:
+
 ```bash
 git clone https://github.com/tychonis/cyanotype.git
 cd cyanotype
-go build .
+go build -o cyanotype .
 ```
 
-## Example: Define a BoM
+### Example: Pick and Place Machine
 
-Create a file skateboard.bpo:
+The [Pick and Place Machine](https://github.com/tychonis/pnp) example demonstrates how a real mechanical assembly can be represented and managed as code.
 
-```
-item "deck" {
-    part_number = "D-1001"
-}
+Clone the example repository:
 
-item "wheel" {
-    part_number = "W-2001"
-}
-
-item "assembly" {
-    from = [
-        {
-            name = "deck"
-            ref = deck
-            qty = 1
-        },
-        {
-            name = "wheel"
-            ref = deck
-            qty = 4
-        },
-    ]
-}
+```bash
+git clone https://github.com/tychonis/pnp.git
+cd pnp
 ```
 
-Run bom:
-```
-./cyanotype bom skateboard.bpo assembly
+Generate a Bill of Materials:
+
+```bash
+cyanotype bom .pnp
 ```
 
-Build intermediate state:
-```
-./cyanotype build skateboard.bpo assembly
+By default, the command produces CSV output. To display a readable list instead:
+
+```bash
+cyanotype bom .pnp --format list
 ```
 
-We also created a few examples:
-- [Chess](https://github.com/tychonis/cyanotype-chess)
-- [Factorio](https://github.com/tychonis/cyanotype-factorio)
-- [Pick and Place Machine](https://github.com/tychonis/cyanotype-pnp)
+Compile the BPO source into a local catalog:
 
-The rendering can be found in [Bom hub](https://bomhub.tychonis.com).
+```bash
+cyanotype commit
+```
+
+Generate an assembly tree:
+
+```bash
+cyanotype tree .pnp
+```
+
+This writes the resulting assembly tree to `.pnp.bpc`.
+
+All these operations run locally without requiring a server or authentication.
+
+### Learn More
+
+- [Documentation](https://docs.tychonis.com)
+- [Interactive Demo](https://demo.tychonis.com)
+- [Tychonis](https://tychonis.com)
+
+**Note:** Cyanotype is under active development. CLI commands, file formats, and data models may change between releases.
