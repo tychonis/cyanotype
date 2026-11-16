@@ -102,6 +102,20 @@ func (p *Parser) processItemArtifactBlock(ctx *ParserContext, item *model.Item, 
 	return nil
 }
 
+func (p *Parser) processItemContractBlock(ctx *ParserContext, item *model.Item, block *hclsyntax.Block) error {
+	ctx.CurrentSymbol = item
+	defer func() { ctx.CurrentSymbol = nil }()
+	contract, err := p.processContractBlock(ctx, block)
+	if err != nil {
+		return err
+	}
+	if item.Implement == nil {
+		item.Implement = make([]model.ContractID, 0)
+	}
+	item.Implement = append(item.Implement, contract.Digest)
+	return nil
+}
+
 func (p *Parser) processItemSubBlocks(ctx *ParserContext, symCtx *SymbolContext[*model.Item]) error {
 	for _, block := range symCtx.Blocks {
 		switch block.Type {
@@ -111,7 +125,10 @@ func (p *Parser) processItemSubBlocks(ctx *ParserContext, symCtx *SymbolContext[
 				return err
 			}
 		case "contract":
-			continue
+			err := p.processItemContractBlock(ctx, symCtx.Symbol, block)
+			if err != nil {
+				return err
+			}
 		default:
 			slog.Warn("Unsupported block for item, skipping", slog.String("type", block.Type))
 			continue
@@ -123,6 +140,8 @@ func (p *Parser) processItemSubBlocks(ctx *ParserContext, symCtx *SymbolContext[
 func (p *Parser) processCoItemSubBlocks(ctx *ParserContext, symCtx *SymbolContext[*model.CoItem]) error {
 	for _, block := range symCtx.Blocks {
 		switch block.Type {
+		case "contract":
+			continue
 		default:
 			slog.Warn("Unsupported block for co-item, skipping", slog.String("type", block.Type))
 			continue

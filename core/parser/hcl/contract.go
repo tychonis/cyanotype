@@ -38,5 +38,5 @@ func (p *Parser) processContractBlock(ctx *ParserContext, block *hclsyntax.Block
 		return contract, err
 	}
 	contract.Digest = digest
-	return contract, nil
+	return contract, p.Symbols.RegisterConcreteSymbol(contract)
 }
