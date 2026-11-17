@@ -40,18 +40,17 @@ func readBOMLine(ctx *ParserContext, expr *hclsyntax.ObjectConsExpr) *Unresolved
 			ret.Qty, _ = val.AsBigFloat().Float64()
 		case "placement":
 			ret.HasPlacement = true
-			val, _ := item.ValueExpr.Value(nil)
-			slice := val.AsValueSlice()
-			if len(slice) != 7 {
-				slog.Warn("incorrect format for placement")
+			val, diags := item.ValueExpr.Value(nil)
+			if diags.HasErrors() {
+				slog.Warn("error reading placement value", "err", diags)
 				continue
 			}
-			for i, num := range slice[:4] {
-				ret.Placement.Rotation[i], _ = num.AsBigFloat().Float64()
+			placement, err := parsePlacement(val)
+			if err != nil {
+				slog.Warn("error parsing placement", "err", err)
+				continue
 			}
-			for i, num := range slice[4:7] {
-				ret.Placement.Position[i], _ = num.AsBigFloat().Float64()
-			}
+			ret.Placement = placement
 		}
 	}
 	return ret
@@ -77,6 +76,47 @@ func parseBOMLinesAttr(ctx *ParserContext, attr *hcl.Attribute) []*UnresolvedBOM
 		comps = append(comps, comp)
 	}
 	return comps
+}
+
+func operationFromPlacement(p model.Placement) *model.Operation {
+	return &model.Operation{
+		Category: "placement",
+	}
+}
+
+func (p *Parser) resolveBOMLines(ctx *ParserContext, from []*UnresolvedBOMLine) (*model.Process, []*model.Operation, error) {
+	if len(from) <= 0 {
+		return &model.Process{}, nil, nil
+	}
+
+	operations := make([]*model.Operation, 0, len(from))
+	ret := &model.Process{}
+	ret.Input = make([]*model.BOMLine, 0, len(from))
+
+	for _, comp := range from {
+		item, err := p.resolveBOMLineRef(ctx, comp.Ref)
+		if err != nil {
+			return ret, operations, err
+		}
+		// Since this is a syntax sugar for keyword FROM, we will only use the
+		// companion coitem generated for the item. At this point, because we
+		// already run c.resolveBOMLineRef, the companion coitem of child item
+		// should already be generated and registered in the symbol table.
+		coItemQualifier := qualifier.ImplicitCoItem(item)
+		coItemSym, err := p.Symbols.FindConcreteSymbol(coItemQualifier)
+		if err != nil {
+			return ret, operations, err
+		}
+		ret.Input = append(ret.Input, &model.BOMLine{
+			Name: comp.Name,
+			Item: coItemSym.GetDigest(),
+			Qty:  comp.Qty,
+		})
+		if comp.HasPlacement {
+
+		}
+	}
+	return ret, operations, nil
 }
 
 func (p *Parser) resolvingBOMLines(ctx *ParserContext, from []*UnresolvedBOMLine) (process.ProcessContent, error) {

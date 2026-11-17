@@ -12,10 +12,8 @@ var processContentTypes = make(map[string]func() ProcessContent)
 type ProcessID = model.Digest
 
 type ProcessBase struct {
-	Qualifier string    `json:"-" yaml:"-"`
-	Digest    ProcessID `json:"-" yaml:"-"`
+	model.SymbolBase
 
-	Type    string         `json:"type" yaml:"type"`
 	Content ProcessContent `json:"content" yaml:"content"`
 }
 
@@ -57,10 +55,12 @@ func (pb *ProcessBase) UnmarshalJSON(data []byte) error {
 
 type Process struct {
 	ProcessBase
+	Operations []*model.Operation `json:"operations" yaml:"operations"`
 }
 
 type CoProcess struct {
 	ProcessBase
+	Operations []*model.Operation `json:"operations" yaml:"operations"`
 }
 
 type ProcessContent interface {
@@ -78,16 +78,8 @@ func (p *Process) Output() []*model.BOMLine {
 	return p.Content.GetOutput()
 }
 
-func (p *Process) GetQualifier() string {
-	return p.Qualifier
-}
-
-func (p *Process) GetDigest() string {
-	return p.Digest
-}
-
 func (p *Process) GetType() string {
-	return p.Type
+	return "process"
 }
 
 func (cp *CoProcess) Input() []*model.BOMLine {
@@ -98,14 +90,6 @@ func (cp *CoProcess) Output() []*model.BOMLine {
 	return cp.Content.GetOutput()
 }
 
-func (cp *CoProcess) GetQualifier() string {
-	return cp.Qualifier
-}
-
-func (cp *CoProcess) GetDigest() string {
-	return cp.Digest
-}
-
 func (cp *CoProcess) GetType() string {
-	return cp.Type
+	return "coprocess"
 }

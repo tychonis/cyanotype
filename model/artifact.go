@@ -7,3 +7,7 @@ type Artifact struct {
 	Source   string `json:"source" yaml:"source"`
 	Digest   string `json:"digest" yaml:"digest"`
 }
+
+func (a Artifact) GetType() string {
+	return "artifact"
+}

@@ -34,9 +34,8 @@ func (p *Parser) buildCanonicalNode(ctx *ParserContext, item *model.Item) (*Cano
 	}
 
 	co := &model.CoItem{}
-	co.Type = "coitem"
 	co.Qualifier = qualifier.ImplicitCoItem(item)
-	co.Content = &model.ItemContent{
+	co.Content = &model.SymbolContent{
 		Name: "Implicit requirements for " + item.Content.Name,
 	}
 	canonicalNode.CoItem = &SymbolContext[*model.CoItem]{
@@ -45,7 +44,6 @@ func (p *Parser) buildCanonicalNode(ctx *ParserContext, item *model.Item) (*Cano
 	}
 
 	cp := &process.CoProcess{}
-	cp.Type = "coprocess"
 	cp.Qualifier = qualifier.ImplicitCoProcess(item)
 	canonicalNode.CoProcess = &SymbolContext[*process.CoProcess]{
 		Symbol: cp,
@@ -53,7 +51,6 @@ func (p *Parser) buildCanonicalNode(ctx *ParserContext, item *model.Item) (*Cano
 	}
 
 	pr := &process.Process{}
-	pr.Type = "process"
 	pr.Qualifier = qualifier.ImplicitProcess(item)
 	canonicalNode.Process = &SymbolContext[*process.Process]{
 		Symbol: pr,
@@ -93,7 +90,7 @@ func (p *Parser) processItemArtifactBlock(ctx *ParserContext, item *model.Item, 
 		return err
 	}
 	if item.Content == nil {
-		item.Content = &model.ItemContent{}
+		item.Content = &model.SymbolContent{}
 	}
 	if item.Content.Artifacts == nil {
 		item.Content.Artifacts = make([]*model.Artifact, 0)
@@ -166,10 +163,17 @@ func (p *Parser) processCompanionProcess(ctx *ParserContext, node *CanonicalNode
 	if err != nil {
 		return err
 	}
+	operations := make([]*model.Operation, 0)
 	for _, block := range node.Process.Blocks {
 		switch block.Type {
 		case "contract":
-			continue
+			operation, err := p.processImplicitOperation(ctx, block)
+			if err != nil {
+				return err
+			}
+			if operation != nil {
+				operations = append(operations, operation)
+			}
 		case "operation":
 			continue
 		case "component":

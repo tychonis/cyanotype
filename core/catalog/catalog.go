@@ -159,43 +159,31 @@ func DeserializeSymbol(qualifier Qualifier, digest model.Digest, body []byte) (m
 	if err != nil {
 		return nil, err
 	}
+	var ret model.ConcreteSymbol
+
 	switch symType {
 	case "item":
-		ret, err := serializer.Deserialize[*model.Item](body)
-		if err != nil {
-			return ret, err
-		}
-		ret.Digest = digest
-		ret.Qualifier = qualifier
-		return ret, nil
+		ret, err = serializer.Deserialize[*model.Item](body)
 	case "coitem":
-		ret, err := serializer.Deserialize[*model.CoItem](body)
-		if err != nil {
-			return ret, err
-		}
-		ret.Digest = digest
-		ret.Qualifier = qualifier
-		return ret, nil
+		ret, err = serializer.Deserialize[*model.CoItem](body)
 	case "process":
-		ret, err := serializer.Deserialize[*process.Process](body)
-		if err != nil {
-			return ret, err
-		}
-		ret.Digest = digest
-		ret.Qualifier = qualifier
-		return ret, nil
+		ret, err = serializer.Deserialize[*process.Process](body)
 	case "coprocess":
-		ret, err := serializer.Deserialize[*process.CoProcess](body)
-		if err != nil {
-			return ret, err
-		}
-		ret.Digest = digest
-		ret.Qualifier = qualifier
-		return ret, nil
+		ret, err = serializer.Deserialize[*process.CoProcess](body)
+	case "contract":
+		ret, err = serializer.Deserialize[*model.Contract](body)
+	case "operation":
+		ret, err = serializer.Deserialize[*model.Operation](body)
 	default:
 		slog.Warn("Unknown symbol type", "type", symType)
 		return nil, errors.New("unknown type")
 	}
+	if err != nil {
+		return nil, err
+	}
+	ret.SetDigest(digest)
+	ret.SetQualifier(qualifier)
+	return ret, nil
 }
 
 func (c *Catalog) Get(digest model.Digest) (model.ConcreteSymbol, error) {

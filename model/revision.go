@@ -7,3 +7,7 @@ type Revision struct {
 	CreatedAt int64        `json:"created_at"`
 	Parents   []RevisionID `json:"parents"`
 }
+
+func (r Revision) GetType() string {
+	return "revision"
+}

@@ -2,10 +2,20 @@ package serializer
 
 import (
 	"encoding/json"
+
+	"github.com/tychonis/cyanotype/model"
 )
 
-func Serialize(s any) ([]byte, error) {
-	return json.Marshal(s)
+func Serialize(s model.Typed) ([]byte, error) {
+	type wrapper struct {
+		Type string `json:"type"`
+		Data any    `json:"data"`
+	}
+
+	return json.Marshal(wrapper{
+		Type: s.GetType(),
+		Data: s,
+	})
 }
 
 func GetType(body []byte) (string, error) {
@@ -19,7 +29,9 @@ func GetType(body []byte) (string, error) {
 }
 
 func Deserialize[T any](body []byte) (T, error) {
-	var ret T
-	err := json.Unmarshal(body, &ret)
-	return ret, err
+	var wrapper struct {
+		Data T `json:"data"`
+	}
+	err := json.Unmarshal(body, &wrapper)
+	return wrapper.Data, err
 }

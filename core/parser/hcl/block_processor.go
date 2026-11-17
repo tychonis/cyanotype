@@ -125,9 +125,8 @@ func (p *Parser) processItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*
 	}
 
 	item := &model.Item{}
-	item.Type = "item"
 	item.Qualifier = ctx.NameToQualifier(name)
-	item.Content = &model.ItemContent{
+	item.Content = &model.SymbolContent{
 		Name: name,
 	}
 
@@ -162,9 +161,8 @@ func (p *Parser) processCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) 
 	}
 
 	coItem := &model.CoItem{}
-	coItem.Type = "coitem"
 	coItem.Qualifier = ctx.NameToQualifier(name)
-	coItem.Content = &model.ItemContent{
+	coItem.Content = &model.SymbolContent{
 		Name: name,
 	}
 
@@ -186,7 +184,6 @@ func (p *Parser) processCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) 
 func (p *Parser) processProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *process.Process, err error) {
 	name := block.Labels[0]
 	ret = &process.Process{}
-	ret.Type = "process"
 	ret.Qualifier = ctx.NameToQualifier(name)
 	_, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
@@ -199,7 +196,6 @@ func (p *Parser) processProcessBlock(ctx *ParserContext, block *hclsyntax.Block)
 func (p *Parser) processCoProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *process.CoProcess, err error) {
 	name := block.Labels[0]
 	ret = &process.CoProcess{}
-	ret.Type = "coprocess"
 	ret.Qualifier = ctx.NameToQualifier(name)
 	_, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {

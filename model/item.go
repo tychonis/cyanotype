@@ -1,18 +1,11 @@
 package model
 
-import (
-	"github.com/tychonis/cyanotype/internal/stable"
-)
-
 type ItemID = Digest
-type LinkType string
 
 type ItemBase struct {
-	Qualifier string `json:"-" yaml:"-"`
-	Digest    ItemID `json:"-" yaml:"-"`
+	SymbolBase
 
-	Type    string       `json:"type" yaml:"type"`
-	Content *ItemContent `json:"content" yaml:"content"`
+	Content *SymbolContent `json:"content" yaml:"content"`
 }
 
 // Item corresponds to a single immutable snapshot of a part or assembly.
@@ -29,23 +22,8 @@ type CoItem struct {
 	Require []ContractID `json:"require" yaml:"require"`
 }
 
-type ItemContent struct {
-	Name       string      `json:"name" yaml:"name"`
-	PartNumber string      `json:"part_number" yaml:"part_number"`
-	Artifacts  []*Artifact `json:"artifacts,omitempty" yaml:"artifacts,omitempty"`
-	Details    stable.Map  `json:"details" yaml:"details"`
-}
-
-func (i *Item) GetQualifier() string {
-	return i.Qualifier
-}
-
-func (i *Item) GetDigest() string {
-	return i.Digest
-}
-
 func (i *Item) GetType() string {
-	return i.Type
+	return "item"
 }
 
 func (i *Item) GetName() string {
@@ -55,16 +33,8 @@ func (i *Item) GetName() string {
 	return i.GetQualifier()
 }
 
-func (ci *CoItem) GetQualifier() string {
-	return ci.Qualifier
-}
-
-func (ci *CoItem) GetDigest() string {
-	return ci.Digest
-}
-
 func (ci *CoItem) GetType() string {
-	return ci.Type
+	return "coitem"
 }
 
 func (ci *CoItem) GetName() string {

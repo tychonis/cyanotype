@@ -1,12 +1,12 @@
 package history
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
 	"github.com/spf13/cobra"
 	"github.com/tychonis/cyanotype/core/catalog"
-	"github.com/tychonis/cyanotype/internal/serializer"
 )
 
 var Cmd = &cobra.Command{
@@ -17,7 +17,7 @@ var Cmd = &cobra.Command{
 }
 
 func report(data any) error {
-	bytes, err := serializer.Serialize(data)
+	bytes, err := json.Marshal(data)
 	if err != nil {
 		slog.Error("Failed to serialize data.", "error", err)
 		return err
