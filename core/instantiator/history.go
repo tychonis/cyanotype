@@ -20,7 +20,7 @@ func History(cat *catalog.Catalog, coItem model.ItemID) ([]*ItemVersion, error) 
 	}
 	ret := make([]*ItemVersion, 0, len(cps))
 	for _, cp := range cps {
-		input := cp.Input()
+		input := cp.Input
 		if len(input) == 1 {
 			itemID := input[0].Item
 			itemSym, err := cat.Get(itemID)

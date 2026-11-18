@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
-	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/internal/cerror"
 	"github.com/tychonis/cyanotype/internal/digest"
 	"github.com/tychonis/cyanotype/internal/stable"
@@ -28,18 +27,28 @@ func (p *Parser) Fuse(sym model.ConcreteSymbol) error {
 		if err != nil {
 			return err
 		}
-	case *process.Process:
+	case *model.Process:
 		s.Digest, err = digest.SHA256FromSymbol(sym)
 		if err != nil {
 			return err
 		}
-	case *process.CoProcess:
+	case *model.CoProcess:
+		s.Digest, err = digest.SHA256FromSymbol(sym)
+		if err != nil {
+			return err
+		}
+	case *model.Contract:
+		s.Digest, err = digest.SHA256FromSymbol(sym)
+		if err != nil {
+			return err
+		}
+	case *model.Operation:
 		s.Digest, err = digest.SHA256FromSymbol(sym)
 		if err != nil {
 			return err
 		}
 	default:
-		return fmt.Errorf("unsupported symbol type")
+		return fmt.Errorf("unsupported symbol type for fusion")
 	}
 	return p.Symbols.RegisterConcreteSymbol(sym)
 }
@@ -126,11 +135,8 @@ func (p *Parser) processItemBlock(ctx *ParserContext, block *hclsyntax.Block) (*
 
 	item := &model.Item{}
 	item.Qualifier = ctx.NameToQualifier(name)
-	item.Content = &model.SymbolContent{
-		Name: name,
-	}
-
-	item.Content.Details, err = p.getDetails(ctx, attrs)
+	item.Name = name
+	item.Details, err = p.getDetails(ctx, attrs)
 	if err != nil {
 		return item, err
 	}
@@ -162,11 +168,9 @@ func (p *Parser) processCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) 
 
 	coItem := &model.CoItem{}
 	coItem.Qualifier = ctx.NameToQualifier(name)
-	coItem.Content = &model.SymbolContent{
-		Name: name,
-	}
+	coItem.Name = name
 
-	coItem.Content.Details, err = p.getDetails(ctx, attrs)
+	coItem.Details, err = p.getDetails(ctx, attrs)
 	if err != nil {
 		return coItem, err
 	}
@@ -175,15 +179,15 @@ func (p *Parser) processCoItemBlock(ctx *ParserContext, block *hclsyntax.Block) 
 	if err != nil {
 		return coItem, err
 	}
-	coItem.Content.Artifacts = subContent.Artifacts
+	coItem.Artifacts = subContent.Artifacts
 
 	err = p.Fuse(coItem)
 	return coItem, err
 }
 
-func (p *Parser) processProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *process.Process, err error) {
+func (p *Parser) processProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *model.Process, err error) {
 	name := block.Labels[0]
-	ret = &process.Process{}
+	ret = &model.Process{}
 	ret.Qualifier = ctx.NameToQualifier(name)
 	_, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
@@ -193,9 +197,9 @@ func (p *Parser) processProcessBlock(ctx *ParserContext, block *hclsyntax.Block)
 	return
 }
 
-func (p *Parser) processCoProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *process.CoProcess, err error) {
+func (p *Parser) processCoProcessBlock(ctx *ParserContext, block *hclsyntax.Block) (ret *model.CoProcess, err error) {
 	name := block.Labels[0]
-	ret = &process.CoProcess{}
+	ret = &model.CoProcess{}
 	ret.Qualifier = ctx.NameToQualifier(name)
 	_, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {

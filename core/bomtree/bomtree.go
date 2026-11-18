@@ -3,7 +3,6 @@ package bomtree
 import (
 	"encoding/json"
 
-	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -12,9 +11,9 @@ type Node struct {
 	Name string
 
 	CoItem    *model.CoItem
-	CoProcess *process.CoProcess
+	CoProcess *model.CoProcess
 	Item      *model.Item
-	Process   *process.Process
+	Process   *model.Process
 
 	Path     string
 	Parent   *Node

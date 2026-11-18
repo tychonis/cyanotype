@@ -8,14 +8,14 @@ import (
 	"github.com/tychonis/cyanotype/core/bomtree"
 	"github.com/tychonis/cyanotype/core/catalog"
 	"github.com/tychonis/cyanotype/core/instantiator"
-	"github.com/tychonis/cyanotype/core/process"
+	"github.com/tychonis/cyanotype/core/operation"
 	"github.com/tychonis/cyanotype/core/qualifier"
 	"github.com/tychonis/cyanotype/core/ranker"
 	"github.com/tychonis/cyanotype/model"
 )
 
 func getItemModel(item *model.Item) *model.Artifact {
-	for _, artifact := range item.Content.Artifacts {
+	for _, artifact := range item.Artifacts {
 		if artifact.Tag == "model" {
 			return artifact
 		}
@@ -58,25 +58,35 @@ func renderCacheNode(node *bomtree.Node) (*model.Scene, error) {
 	}, nil
 }
 
-func buildPlacementMap(node *bomtree.Node) map[string]model.Placement {
-	placement := make(map[string]model.Placement)
+func buildPlacementMap(cat *catalog.Catalog, node *bomtree.Node) map[string]model.Placement {
+	placements := make(map[string]model.Placement)
 	p := node.Process
-	if p.Content.GetType() == process.DRAWING {
-		content, ok := p.Content.(*process.Drawing)
-		if !ok {
-			return nil
+	constraints := make([]*model.Operation, 0)
+
+	for _, opID := range p.Operations {
+		sym, err := cat.Get(opID)
+		if err != nil {
+			continue
 		}
-		for _, comp := range content.Components {
-			placement[comp.Name] = model.Placement{
-				Rotation: *comp.Rotation,
-				Position: *comp.Translation,
+		op, ok := sym.(*model.Operation)
+		if !ok {
+			continue
+		}
+		if op.Category == "placement" {
+			child, placement, err := operation.PlacementFromOperation(op)
+			if err != nil {
+				continue
 			}
+			placements[child] = placement
+		}
+		if op.Category == "align" {
+			constraints = append(constraints, op)
 		}
 	}
-	return placement
+	return placements
 }
 
-func renderNode(node *bomtree.Node, recursive bool) (*model.Scene, error) {
+func renderNode(cat *catalog.Catalog, node *bomtree.Node, recursive bool) (*model.Scene, error) {
 	slog.Debug("rendering node", "node", node.Name)
 	if len(node.Children) <= 0 {
 		if recursive {
@@ -86,14 +96,14 @@ func renderNode(node *bomtree.Node, recursive bool) (*model.Scene, error) {
 		}
 	}
 
-	placement := buildPlacementMap(node)
+	placement := buildPlacementMap(cat, node)
 
 	objs := []*model.Object{}
 	for _, child := range node.Children {
 		var childScene *model.Scene
 		var err error
 		if recursive {
-			childScene, err = renderNode(child, recursive)
+			childScene, err = renderNode(cat, child, recursive)
 		} else {
 			childScene, err = renderCacheNode(child)
 		}
@@ -115,7 +125,7 @@ func renderNode(node *bomtree.Node, recursive bool) (*model.Scene, error) {
 }
 
 func RenderSymbol(cat *catalog.Catalog, sym model.ConcreteSymbol, recursive bool) (*model.Scene, error) {
-	r := ranker.NewCatalogTypeRanker(cat, process.DRAWING)
+	r := ranker.NewCatalogTypeRanker(cat, "drawing")
 	ins := instantiator.New(r)
 	var coItem *model.CoItem
 	var ok bool
@@ -133,7 +143,7 @@ func RenderSymbol(cat *catalog.Catalog, sym model.ConcreteSymbol, recursive bool
 			return nil, fmt.Errorf("failed to assert symbol as CoItem")
 		}
 	default:
-		return nil, fmt.Errorf("unsupported symbol type")
+		return nil, fmt.Errorf("unsupported symbol type for rendering")
 	}
 
 	var node *bomtree.Node
@@ -145,5 +155,5 @@ func RenderSymbol(cat *catalog.Catalog, sym model.ConcreteSymbol, recursive bool
 	if err != nil {
 		return nil, err
 	}
-	return renderNode(node, recursive)
+	return renderNode(cat, node, recursive)
 }

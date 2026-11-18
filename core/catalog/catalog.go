@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/internal/digest"
 	"github.com/tychonis/cyanotype/internal/serializer"
 	"github.com/tychonis/cyanotype/model"
@@ -17,7 +16,7 @@ import (
 
 type ItemProcess = struct {
 	Item    model.ItemID
-	Process process.ProcessID
+	Process model.ProcessID
 }
 
 var ErrNotFound = errors.New("symbol not found")
@@ -167,9 +166,9 @@ func DeserializeSymbol(qualifier Qualifier, digest model.Digest, body []byte) (m
 	case "coitem":
 		ret, err = serializer.Deserialize[*model.CoItem](body)
 	case "process":
-		ret, err = serializer.Deserialize[*process.Process](body)
+		ret, err = serializer.Deserialize[*model.Process](body)
 	case "coprocess":
-		ret, err = serializer.Deserialize[*process.CoProcess](body)
+		ret, err = serializer.Deserialize[*model.CoProcess](body)
 	case "contract":
 		ret, err = serializer.Deserialize[*model.Contract](body)
 	case "operation":
@@ -256,22 +255,22 @@ func getSymbols[T model.ConcreteSymbol](c *Catalog, ids []model.Digest) ([]T, er
 	return ret, nil
 }
 
-func (c *Catalog) GetItemProcesses(item model.ItemID) ([]*process.Process, error) {
+func (c *Catalog) GetItemProcesses(item model.ItemID) ([]*model.Process, error) {
 	processes, err := c.index.GetItemProcesses(item)
 	if err != nil {
 		return nil, err
 	}
-	return getSymbols[*process.Process](c, processes)
+	return getSymbols[*model.Process](c, processes)
 }
 
-func (c *Catalog) GetItemCoProcesses(item model.ItemID) ([]*process.CoProcess, error) {
+func (c *Catalog) GetItemCoProcesses(item model.ItemID) ([]*model.CoProcess, error) {
 	coProcesses, err := c.index.GetItemCoProcesses(item)
 	if err != nil {
 		slog.Debug("nocoprocess found", "item", item)
 		return nil, err
 	}
 	slog.Debug("found coprocess", "item", item)
-	return getSymbols[*process.CoProcess](c, coProcesses)
+	return getSymbols[*model.CoProcess](c, coProcesses)
 }
 
 func (c *Catalog) GetItems(coItem model.ItemID) ([]*ItemProcess, error) {
@@ -281,11 +280,11 @@ func (c *Catalog) GetItems(coItem model.ItemID) ([]*ItemProcess, error) {
 	}
 	ret := make([]*ItemProcess, 0, len(cps))
 	for _, cp := range cps {
-		if len(cp.Output()) != 1 {
+		if len(cp.Output) != 1 {
 			return nil, errors.New("multiple input not implemented yet")
 		}
 		ret = append(ret, &ItemProcess{
-			Item:    cp.Input()[0].Item,
+			Item:    cp.Input[0].Item,
 			Process: cp.Digest,
 		})
 	}

@@ -1,11 +1,9 @@
 package hcl
 
 import (
-	"errors"
 	"log/slog"
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/core/qualifier"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -18,9 +16,9 @@ type SymbolContext[T model.ConcreteSymbol] struct {
 type CanonicalNode struct {
 	ExplicitBlock *hclsyntax.Block
 	CoItem        *SymbolContext[*model.CoItem]
-	CoProcess     *SymbolContext[*process.CoProcess]
+	CoProcess     *SymbolContext[*model.CoProcess]
 	Item          *SymbolContext[*model.Item]
-	Process       *SymbolContext[*process.Process]
+	Process       *SymbolContext[*model.Process]
 }
 
 func (p *Parser) buildCanonicalNode(ctx *ParserContext, item *model.Item) (*CanonicalNode, error) {
@@ -35,25 +33,25 @@ func (p *Parser) buildCanonicalNode(ctx *ParserContext, item *model.Item) (*Cano
 
 	co := &model.CoItem{}
 	co.Qualifier = qualifier.ImplicitCoItem(item)
-	co.Content = &model.SymbolContent{
-		Name: "Implicit requirements for " + item.Content.Name,
-	}
+	co.Name = "Implicit requirements for " + item.Name
 	canonicalNode.CoItem = &SymbolContext[*model.CoItem]{
 		Symbol: co,
 		Blocks: make([]*hclsyntax.Block, 0),
 	}
 
-	cp := &process.CoProcess{}
+	cp := &model.CoProcess{}
+	cp.Name = "Implicit coprocess for " + item.Name
 	cp.Qualifier = qualifier.ImplicitCoProcess(item)
-	canonicalNode.CoProcess = &SymbolContext[*process.CoProcess]{
+	canonicalNode.CoProcess = &SymbolContext[*model.CoProcess]{
 		Symbol: cp,
 		Blocks: make([]*hclsyntax.Block, 0),
 	}
 
-	pr := &process.Process{}
-	pr.Qualifier = qualifier.ImplicitProcess(item)
-	canonicalNode.Process = &SymbolContext[*process.Process]{
-		Symbol: pr,
+	proc := &model.Process{}
+	proc.Name = "Implicit process for " + item.Name
+	proc.Qualifier = qualifier.ImplicitProcess(item)
+	canonicalNode.Process = &SymbolContext[*model.Process]{
+		Symbol: proc,
 		Blocks: make([]*hclsyntax.Block, 0),
 	}
 
@@ -89,13 +87,10 @@ func (p *Parser) processItemArtifactBlock(ctx *ParserContext, item *model.Item, 
 	if err != nil {
 		return err
 	}
-	if item.Content == nil {
-		item.Content = &model.SymbolContent{}
+	if item.Artifacts == nil {
+		item.Artifacts = make([]*model.Artifact, 0)
 	}
-	if item.Content.Artifacts == nil {
-		item.Content.Artifacts = make([]*model.Artifact, 0)
-	}
-	item.Content.Artifacts = append(item.Content.Artifacts, artifact)
+	item.Artifacts = append(item.Artifacts, artifact)
 	return nil
 }
 
@@ -147,7 +142,7 @@ func (p *Parser) processCoItemSubBlocks(ctx *ParserContext, symCtx *SymbolContex
 	return nil
 }
 
-func (p *Parser) processCoProcessSubBlocks(ctx *ParserContext, symCtx *SymbolContext[*process.CoProcess]) error {
+func (p *Parser) processCoProcessSubBlocks(ctx *ParserContext, symCtx *SymbolContext[*model.CoProcess]) error {
 	for _, block := range symCtx.Blocks {
 		switch block.Type {
 		default:
@@ -164,6 +159,8 @@ func (p *Parser) processCompanionProcess(ctx *ParserContext, node *CanonicalNode
 		return err
 	}
 	operations := make([]*model.Operation, 0)
+	ctx.CurrentSymbol = node.Process.Symbol
+	defer func() { ctx.CurrentSymbol = nil }()
 	for _, block := range node.Process.Blocks {
 		switch block.Type {
 		case "contract":
@@ -186,32 +183,30 @@ func (p *Parser) processCompanionProcess(ctx *ParserContext, node *CanonicalNode
 			slog.Warn("Unsupported block for process, skipping", slog.String("type", block.Type))
 		}
 	}
-	pc, err := p.resolvingBOMLines(ctx, components)
+	ops, err := p.resolveBOMLines(ctx, node.Process.Symbol, components)
 	if err != nil {
 		return err
 	}
-	switch content := pc.(type) {
-	case *process.Abstract:
-		content.Name = "Implicit process for " + node.Item.Symbol.Content.Name
-		content.Output = []*model.BOMLine{
-			{
-				Item: node.Item.Symbol.Digest,
-				Qty:  1,
-			},
+	node.Process.Symbol.Output = []*model.BOMLine{
+		{
+			Item: node.Item.Symbol.Digest,
+			Qty:  1,
+		},
+	}
+	operations = append(operations, ops...)
+	node.Process.Symbol.Operations = make([]model.OperationID, 0, len(operations))
+	for _, op := range operations {
+		err := p.Fuse(op)
+		if err != nil {
+			return err
 		}
-	case *process.Drawing:
-		content.Name = "Implicit drawing for " + node.Item.Symbol.Content.Name
-		content.Output = []*model.BOMLine{
-			{
-				Item: node.Item.Symbol.Digest,
-				Qty:  1,
-			},
+		err = p.Symbols.RegisterConcreteSymbol(op)
+		if err != nil {
+			return err
 		}
-	default:
-		return errors.New("process content type not recognized")
+		node.Process.Symbol.Operations = append(node.Process.Symbol.Operations, op.Digest)
 	}
 
-	node.Process.Symbol.Content = pc
 	return nil
 }
 
@@ -257,23 +252,17 @@ func (p *Parser) ProcessCanonicalNode(ctx *ParserContext, node *CanonicalNode) e
 		return err
 	}
 
-	if node.CoProcess.Symbol.Content == nil {
-		content := &process.Abstract{
-			Name: "Implicit co-process for " + node.Item.Symbol.Content.Name,
-			Input: []*model.BOMLine{
-				{
-					Item: node.Item.Symbol.Digest,
-					Qty:  1,
-				},
-			},
-			Output: []*model.BOMLine{
-				{
-					Item: node.CoItem.Symbol.Digest,
-					Qty:  1,
-				},
-			},
-		}
-		node.CoProcess.Symbol.Content = content
+	node.CoProcess.Symbol.Input = []*model.BOMLine{
+		{
+			Item: node.Item.Symbol.Digest,
+			Qty:  1,
+		},
+	}
+	node.CoProcess.Symbol.Output = []*model.BOMLine{
+		{
+			Item: node.CoItem.Symbol.Digest,
+			Qty:  1,
+		},
 	}
 
 	err = p.Fuse(node.CoProcess.Symbol)

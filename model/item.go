@@ -2,23 +2,19 @@ package model
 
 type ItemID = Digest
 
-type ItemBase struct {
-	SymbolBase
-
-	Content *SymbolContent `json:"content" yaml:"content"`
-}
-
 // Item corresponds to a single immutable snapshot of a part or assembly.
 // Any change to spec, composition, process or metadata produces a new Item.
 // Items are linked through Predecessor for traceability supersession or interchangeability.
 type Item struct {
-	ItemBase
+	SymbolBase
+	SymbolContent
 	Implement []ContractID `json:"implement" yaml:"implement"`
 }
 
 // CoItem defines requirements.
 type CoItem struct {
-	ItemBase
+	SymbolBase
+	SymbolContent
 	Require []ContractID `json:"require" yaml:"require"`
 }
 
@@ -27,10 +23,7 @@ func (i *Item) GetType() string {
 }
 
 func (i *Item) GetName() string {
-	if i.Content != nil {
-		return i.Content.Name
-	}
-	return i.GetQualifier()
+	return i.Name
 }
 
 func (ci *CoItem) GetType() string {
@@ -38,8 +31,5 @@ func (ci *CoItem) GetType() string {
 }
 
 func (ci *CoItem) GetName() string {
-	if ci.Content != nil {
-		return ci.Content.Name
-	}
-	return ci.GetQualifier()
+	return ci.Name
 }

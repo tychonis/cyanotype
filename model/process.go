@@ -4,8 +4,7 @@ type ProcessID = Digest
 
 type Process struct {
 	SymbolBase
-
-	Content *SymbolContent `json:"content" yaml:"content"`
+	SymbolContent
 
 	Input      []*BOMLine    `json:"input" yaml:"input"`
 	Output     []*BOMLine    `json:"output" yaml:"output"`
@@ -18,8 +17,7 @@ func (p *Process) GetType() string {
 
 type CoProcess struct {
 	SymbolBase
-
-	Content *SymbolContent `json:"content" yaml:"content"`
+	SymbolContent
 
 	Input      []*BOMLine   `json:"input" yaml:"input"`
 	Output     []*BOMLine   `json:"output" yaml:"output"`

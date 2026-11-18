@@ -2,7 +2,7 @@ package ranker
 
 import (
 	"github.com/tychonis/cyanotype/core/catalog"
-	"github.com/tychonis/cyanotype/core/process"
+	"github.com/tychonis/cyanotype/model"
 )
 
 type CatalogTypeRanker struct {
@@ -17,19 +17,19 @@ func NewCatalogTypeRanker(catalog *catalog.Catalog, preferedType string) *Catalo
 	}
 }
 
-func (r *CatalogTypeRanker) RankCoProcess(cps []*process.CoProcess) ([]*process.CoProcess, error) {
+func (r *CatalogTypeRanker) RankCoProcess(cps []*model.CoProcess) ([]*model.CoProcess, error) {
 	return r.catalogRanker.RankCoProcess(cps)
 }
 
-func (r *CatalogTypeRanker) TopCoProcess(cps []*process.CoProcess) (*process.CoProcess, error) {
+func (r *CatalogTypeRanker) TopCoProcess(cps []*model.CoProcess) (*model.CoProcess, error) {
 	return r.catalogRanker.TopCoProcess(cps)
 }
 
-func (r *CatalogTypeRanker) RankProcess(ps []*process.Process) ([]*process.Process, error) {
-	candidate := make([]*process.Process, 0, len(ps))
+func (r *CatalogTypeRanker) RankProcess(ps []*model.Process) ([]*model.Process, error) {
+	candidate := make([]*model.Process, 0, len(ps))
 
 	for _, p := range ps {
-		if p != nil && p.Content != nil && p.Content.GetType() == r.PreferedType {
+		if p != nil && p.Get("purpose") == r.PreferedType {
 			candidate = append(candidate, p)
 		}
 	}
@@ -41,7 +41,7 @@ func (r *CatalogTypeRanker) RankProcess(ps []*process.Process) ([]*process.Proce
 	return r.catalogRanker.RankProcess(ps)
 }
 
-func (r *CatalogTypeRanker) TopProcess(ps []*process.Process) (*process.Process, error) {
+func (r *CatalogTypeRanker) TopProcess(ps []*model.Process) (*model.Process, error) {
 	ranked, err := r.RankProcess(ps)
 	if err != nil {
 		return nil, err

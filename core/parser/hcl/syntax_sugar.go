@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/tychonis/cyanotype/core/process"
+	"github.com/tychonis/cyanotype/core/operation"
 	"github.com/tychonis/cyanotype/core/qualifier"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -78,51 +78,11 @@ func parseBOMLinesAttr(ctx *ParserContext, attr *hcl.Attribute) []*UnresolvedBOM
 	return comps
 }
 
-func operationFromPlacement(p model.Placement) *model.Operation {
-	return &model.Operation{
-		Category: "placement",
-	}
-}
-
-func (p *Parser) resolveBOMLines(ctx *ParserContext, from []*UnresolvedBOMLine) (*model.Process, []*model.Operation, error) {
+func (p *Parser) resolveBOMLines(ctx *ParserContext, proc *model.Process, from []*UnresolvedBOMLine) ([]*model.Operation, error) {
 	if len(from) <= 0 {
-		return &model.Process{}, nil, nil
+		return nil, nil
 	}
 
-	operations := make([]*model.Operation, 0, len(from))
-	ret := &model.Process{}
-	ret.Input = make([]*model.BOMLine, 0, len(from))
-
-	for _, comp := range from {
-		item, err := p.resolveBOMLineRef(ctx, comp.Ref)
-		if err != nil {
-			return ret, operations, err
-		}
-		// Since this is a syntax sugar for keyword FROM, we will only use the
-		// companion coitem generated for the item. At this point, because we
-		// already run c.resolveBOMLineRef, the companion coitem of child item
-		// should already be generated and registered in the symbol table.
-		coItemQualifier := qualifier.ImplicitCoItem(item)
-		coItemSym, err := p.Symbols.FindConcreteSymbol(coItemQualifier)
-		if err != nil {
-			return ret, operations, err
-		}
-		ret.Input = append(ret.Input, &model.BOMLine{
-			Name: comp.Name,
-			Item: coItemSym.GetDigest(),
-			Qty:  comp.Qty,
-		})
-		if comp.HasPlacement {
-
-		}
-	}
-	return ret, operations, nil
-}
-
-func (p *Parser) resolvingBOMLines(ctx *ParserContext, from []*UnresolvedBOMLine) (process.ProcessContent, error) {
-	if len(from) <= 0 {
-		return &process.Abstract{}, nil
-	}
 	drawing := false
 	for _, comp := range from {
 		if comp.HasPlacement {
@@ -131,13 +91,16 @@ func (p *Parser) resolvingBOMLines(ctx *ParserContext, from []*UnresolvedBOMLine
 		}
 	}
 
-	components := make([]*process.Component, 0, len(from))
-	input := make([]*model.BOMLine, 0, len(from))
+	operations := make([]*model.Operation, 0, len(from))
+	if drawing {
+		proc.Set("purpose", "drawing")
+	}
+	proc.Input = make([]*model.BOMLine, 0, len(from))
 
 	for _, comp := range from {
 		item, err := p.resolveBOMLineRef(ctx, comp.Ref)
 		if err != nil {
-			return nil, err
+			return operations, err
 		}
 		// Since this is a syntax sugar for keyword FROM, we will only use the
 		// companion coitem generated for the item. At this point, because we
@@ -146,38 +109,21 @@ func (p *Parser) resolvingBOMLines(ctx *ParserContext, from []*UnresolvedBOMLine
 		coItemQualifier := qualifier.ImplicitCoItem(item)
 		coItemSym, err := p.Symbols.FindConcreteSymbol(coItemQualifier)
 		if err != nil {
-			return nil, err
+			return operations, err
 		}
-		if drawing {
-			if !comp.HasPlacement {
-				slog.Warn("component has no placement for drawing", "component", comp.Name, "ref", comp.Ref)
-				comp.Placement = model.IdentityPlacement
-			}
-			components = append(components, &process.Component{
-				Name:        comp.Name,
-				CoItem:      coItemSym.GetDigest(),
-				Rotation:    &comp.Placement.Rotation,
-				Translation: &comp.Placement.Position,
-			})
-		} else {
-			input = append(input, &model.BOMLine{
-				Name: comp.Name,
-				Item: coItemSym.GetDigest(),
-				Qty:  comp.Qty,
-			})
+		proc.Input = append(proc.Input, &model.BOMLine{
+			Name: comp.Name,
+			Item: coItemSym.GetDigest(),
+			Qty:  comp.Qty,
+		})
+		if comp.HasPlacement {
+			op := operation.PlacementOperation(coItemSym, comp.Placement)
+			op.Name = comp.Name
+			op.Qualifier = ctx.NameToQualifier(comp.Name)
+			operations = append(operations, op)
 		}
 	}
-	var ret process.ProcessContent
-	if drawing {
-		ret = &process.Drawing{
-			Components: components,
-		}
-	} else {
-		ret = &process.Abstract{
-			Input: input,
-		}
-	}
-	return ret, nil
+	return operations, nil
 }
 
 func (p *Parser) readContractLine(ctx *ParserContext, expr hcl.Expression) ([]Ref, error) {

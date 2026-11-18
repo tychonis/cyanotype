@@ -216,9 +216,9 @@ func (c *Catalog) GetNewerRevisions(base *model.Revision) ([]*model.Revision, er
 func getArtifacts(sym model.ConcreteSymbol) []*model.Artifact {
 	switch s := sym.(type) {
 	case *model.Item:
-		return s.Content.Artifacts
+		return s.Artifacts
 	case *model.CoItem:
-		return s.Content.Artifacts
+		return s.Artifacts
 	default:
 		return nil
 	}

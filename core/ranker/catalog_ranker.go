@@ -4,7 +4,7 @@ import (
 	"sort"
 
 	"github.com/tychonis/cyanotype/core/catalog"
-	"github.com/tychonis/cyanotype/core/process"
+	"github.com/tychonis/cyanotype/model"
 )
 
 type CatalogRanker struct {
@@ -18,7 +18,7 @@ func NewCatalogRanker(c *catalog.Catalog) *CatalogRanker {
 }
 
 // RankCoProcess from newest to oldest based on the LastCommited revision of the coProcess
-func (r *CatalogRanker) RankCoProcess(cps []*process.CoProcess) ([]*process.CoProcess, error) {
+func (r *CatalogRanker) RankCoProcess(cps []*model.CoProcess) ([]*model.CoProcess, error) {
 	sort.SliceStable(cps, func(i, j int) bool {
 		metaI, errI := r.catalog.GetSymbolMetadata(cps[i].Digest)
 		metaJ, errJ := r.catalog.GetSymbolMetadata(cps[j].Digest)
@@ -32,7 +32,7 @@ func (r *CatalogRanker) RankCoProcess(cps []*process.CoProcess) ([]*process.CoPr
 	return cps, nil
 }
 
-func (r *CatalogRanker) TopCoProcess(cps []*process.CoProcess) (*process.CoProcess, error) {
+func (r *CatalogRanker) TopCoProcess(cps []*model.CoProcess) (*model.CoProcess, error) {
 	if len(cps) > 0 {
 		cps, err := r.RankCoProcess(cps)
 		if err != nil {
@@ -44,7 +44,7 @@ func (r *CatalogRanker) TopCoProcess(cps []*process.CoProcess) (*process.CoProce
 }
 
 // RankProcess from newest to oldest based on the LastCommited revision of the process
-func (r *CatalogRanker) RankProcess(ps []*process.Process) ([]*process.Process, error) {
+func (r *CatalogRanker) RankProcess(ps []*model.Process) ([]*model.Process, error) {
 	sort.SliceStable(ps, func(i, j int) bool {
 		metaI, errI := r.catalog.GetSymbolMetadata(ps[i].Digest)
 		metaJ, errJ := r.catalog.GetSymbolMetadata(ps[j].Digest)
@@ -58,7 +58,7 @@ func (r *CatalogRanker) RankProcess(ps []*process.Process) ([]*process.Process, 
 	return ps, nil
 }
 
-func (r *CatalogRanker) TopProcess(ps []*process.Process) (*process.Process, error) {
+func (r *CatalogRanker) TopProcess(ps []*model.Process) (*model.Process, error) {
 	if len(ps) > 0 {
 		ps, err := r.RankProcess(ps)
 		if err != nil {

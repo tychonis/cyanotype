@@ -11,9 +11,9 @@ func (c *Catalog) ListArtifacts() ([]*model.Artifact, error) {
 	for _, sym := range syms {
 		switch sym := sym.(type) {
 		case *model.Item:
-			ret = append(ret, sym.Content.Artifacts...)
+			ret = append(ret, sym.Artifacts...)
 		case *model.CoItem:
-			ret = append(ret, sym.Content.Artifacts...)
+			ret = append(ret, sym.Artifacts...)
 		default:
 			continue
 		}

@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/internal/revision"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -239,18 +238,18 @@ func (idx *LocalIndex) addToProcessIndex(pType string, key string, val string) e
 
 func (idx *LocalIndex) indexProcess(sym model.ConcreteSymbol) error {
 	switch resolved := sym.(type) {
-	case *process.Process:
-		for _, bomLine := range resolved.Input() {
+	case *model.Process:
+		for _, bomLine := range resolved.Input {
 			idx.addToProcessIndex("process", bomLine.Item, resolved.Digest)
 		}
-		for _, bomLine := range resolved.Output() {
+		for _, bomLine := range resolved.Output {
 			idx.addToProcessIndex("process", bomLine.Item, resolved.Digest)
 		}
-	case *process.CoProcess:
-		for _, bomLine := range resolved.Input() {
+	case *model.CoProcess:
+		for _, bomLine := range resolved.Input {
 			idx.addToProcessIndex("coprocess", bomLine.Item, resolved.Digest)
 		}
-		for _, bomLine := range resolved.Output() {
+		for _, bomLine := range resolved.Output {
 			idx.addToProcessIndex("coprocess", bomLine.Item, resolved.Digest)
 		}
 	}
@@ -357,7 +356,7 @@ func (idx *LocalIndex) FindCurrentQualifier(d model.Digest) (Qualifier, error) {
 	return latestQualifier, nil
 }
 
-func (idx *LocalIndex) GetItemProcesses(item model.ItemID) ([]process.ProcessID, error) {
+func (idx *LocalIndex) GetItemProcesses(item model.ItemID) ([]model.ProcessID, error) {
 	entry, ok := idx.processIndex[item]
 	if !ok {
 		return nil, ErrNotFound
@@ -365,7 +364,7 @@ func (idx *LocalIndex) GetItemProcesses(item model.ItemID) ([]process.ProcessID,
 	return entry.Processes, nil
 }
 
-func (idx *LocalIndex) GetItemCoProcesses(item model.ItemID) ([]process.ProcessID, error) {
+func (idx *LocalIndex) GetItemCoProcesses(item model.ItemID) ([]model.ProcessID, error) {
 	entry, ok := idx.processIndex[item]
 	if !ok {
 		return nil, ErrNotFound

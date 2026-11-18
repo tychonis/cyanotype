@@ -1,21 +1,20 @@
 package catalog
 
 import (
-	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/model"
 )
 
 type Qualifier = string
 
 type ProcessIndexEntry struct {
-	Processes   []process.ProcessID
-	CoProcesses []process.ProcessID
+	Processes   []model.ProcessID
+	CoProcesses []model.ProcessID
 }
 
 func NewProcessIndexEntry() *ProcessIndexEntry {
 	return &ProcessIndexEntry{
-		Processes:   make([]process.ProcessID, 0),
-		CoProcesses: make([]process.ProcessID, 0),
+		Processes:   make([]model.ProcessID, 0),
+		CoProcesses: make([]model.ProcessID, 0),
 	}
 }
 
@@ -32,8 +31,8 @@ type SymbolIndex interface {
 	FindAllQualifiers(d model.Digest) ([]Qualifier, error)
 	FindCurrentQualifier(d model.Digest) (Qualifier, error)
 
-	GetItemProcesses(item model.ItemID) ([]process.ProcessID, error)
-	GetItemCoProcesses(item model.ItemID) ([]process.ProcessID, error)
+	GetItemProcesses(item model.ItemID) ([]model.ProcessID, error)
+	GetItemCoProcesses(item model.ItemID) ([]model.ProcessID, error)
 
 	GetContent() *IndexContent
 }

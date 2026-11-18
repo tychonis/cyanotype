@@ -47,6 +47,20 @@ type SymbolContent struct {
 	Details   stable.Map  `json:"details" yaml:"details"`
 }
 
+func (s *SymbolContent) Set(key string, val any) {
+	if s.Details == nil {
+		s.Details = make(stable.Map)
+	}
+	s.Details[key] = val
+}
+
+func (s *SymbolContent) Get(key string) any {
+	if s.Details == nil {
+		return nil
+	}
+	return s.Details[key]
+}
+
 type BOMLine struct {
 	Name string  `json:"name" yaml:"name"`
 	Item ItemID  `json:"item" yaml:"item"`

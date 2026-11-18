@@ -1,7 +1,6 @@
 package catalog
 
 import (
-	"github.com/tychonis/cyanotype/core/process"
 	"github.com/tychonis/cyanotype/model"
 )
 
@@ -10,8 +9,8 @@ type BuildEnv interface {
 	Get(digest model.Digest) (model.ConcreteSymbol, error)
 	FindCurrent(qualifier Qualifier) (model.ConcreteSymbol, error)
 
-	GetItemProcesses(item model.ItemID) ([]*process.Process, error)
-	GetItemCoProcesses(item model.ItemID) ([]*process.CoProcess, error)
+	GetItemProcesses(item model.ItemID) ([]*model.Process, error)
+	GetItemCoProcesses(item model.ItemID) ([]*model.CoProcess, error)
 
 	Export() ([]byte, error)
 }

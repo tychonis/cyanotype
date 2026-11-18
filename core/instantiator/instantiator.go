@@ -41,7 +41,7 @@ func (i *Instantiator) instantiateNode(cat *catalog.Catalog, name string, coitem
 	}
 	node.CoProcess = coProcess
 
-	itemID := coProcess.Input()[0].Item
+	itemID := coProcess.Input[0].Item
 	itemSym, err := cat.Get(itemID)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func (i *Instantiator) instantiate(cat *catalog.Catalog, name string, coitem *mo
 	if err != nil {
 		return nil, err
 	}
-	for _, input := range node.Process.Input() {
+	for _, input := range node.Process.Input {
 		child, err := cat.Get(input.Item)
 		if err != nil {
 			return nil, err
@@ -116,7 +116,7 @@ func (i *Instantiator) ExpandNode(cat *catalog.Catalog, name string, coitem *mod
 	if err != nil {
 		return nil, err
 	}
-	for _, input := range node.Process.Input() {
+	for _, input := range node.Process.Input {
 		child, err := cat.Get(input.Item)
 		if err != nil {
 			return nil, err
