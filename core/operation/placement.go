@@ -16,11 +16,11 @@ func PlacementOperation(child model.ConcreteSymbol, p model.Placement) *model.Op
 	return op
 }
 
-func PlacementFromOperation(op *model.Operation) (string, model.Placement, error) {
+func PlacementFromOperation(op *model.Operation) (model.Qualifier, model.Placement, error) {
 	if op.Category != "placement" {
 		return "", model.IdentityPlacement, fmt.Errorf("operation is not a placement")
 	}
-	child, ok := op.Params["child"].(string)
+	child, ok := op.Params["child"].(model.Qualifier)
 	if !ok {
 		return "", model.IdentityPlacement, fmt.Errorf("child not found or invalid")
 	}
