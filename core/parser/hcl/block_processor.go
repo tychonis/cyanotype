@@ -2,7 +2,7 @@ package hcl
 
 import (
 	"errors"
-	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -15,41 +15,15 @@ import (
 )
 
 func (p *Parser) Fuse(sym model.ConcreteSymbol) error {
-	var err error
-	switch s := sym.(type) {
-	case *model.Item:
-		s.Digest, err = digest.SHA256FromSymbol(sym)
-		if err != nil {
-			return err
-		}
-	case *model.CoItem:
-		s.Digest, err = digest.SHA256FromSymbol(sym)
-		if err != nil {
-			return err
-		}
-	case *model.Process:
-		s.Digest, err = digest.SHA256FromSymbol(sym)
-		if err != nil {
-			return err
-		}
-	case *model.CoProcess:
-		s.Digest, err = digest.SHA256FromSymbol(sym)
-		if err != nil {
-			return err
-		}
-	case *model.Contract:
-		s.Digest, err = digest.SHA256FromSymbol(sym)
-		if err != nil {
-			return err
-		}
-	case *model.Operation:
-		s.Digest, err = digest.SHA256FromSymbol(sym)
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("unsupported symbol type for fusion")
+	if sym.GetDigest() != "" {
+		slog.Debug("symbol already fused", "qualifier", sym.GetQualifier())
+		return errors.New("symbol already fused")
 	}
+	dig, err := digest.SHA256FromSymbol(sym)
+	if err != nil {
+		return err
+	}
+	sym.SetDigest(dig)
 	return p.Symbols.RegisterConcreteSymbol(sym)
 }
 
@@ -91,14 +65,6 @@ func refToQualifier(ctx *ParserContext, ref []string) string {
 	} else {
 		return strings.Join(append([]string{ctx.CurrentModule()}, ref...), ".")
 	}
-}
-
-func (p *Parser) resolveContractsLinesAttr(ctx *ParserContext, attr *hcl.Attribute) ([]model.ContractID, error) {
-	refs, err := p.readContractLine(ctx, attr.Expr)
-	if err != nil {
-		return nil, err
-	}
-	return p.resolveContractsID(ctx, refs)
 }
 
 var RESERVED = map[string]struct{}{

@@ -56,7 +56,7 @@ func (p *Parser) hasImplicitOperation(ctx *ParserContext, cat string) bool {
 	return false
 }
 
-func (p *Parser) processImplicitOperation(ctx *ParserContext, block *hclsyntax.Block) (*model.Operation, error) {
+func (p *Parser) generateImplicitOperation(ctx *ParserContext, block *hclsyntax.Block) (*model.Operation, error) {
 	cat := block.Labels[0]
 	name := block.Labels[1]
 
@@ -77,10 +77,5 @@ func (p *Parser) processImplicitOperation(ctx *ParserContext, block *hclsyntax.B
 		Params:   params,
 	}
 	op.Qualifier = ctx.NameToQualifier(name)
-	digest, err := digest.SHA256FromSymbol(op)
-	if err != nil {
-		return op, err
-	}
-	op.Digest = digest
-	return op, p.Symbols.RegisterConcreteSymbol(op)
+	return op, nil
 }

@@ -164,7 +164,7 @@ func (p *Parser) processCompanionProcess(ctx *ParserContext, node *CanonicalNode
 	for _, block := range node.Process.Blocks {
 		switch block.Type {
 		case "contract":
-			operation, err := p.processImplicitOperation(ctx, block)
+			operation, err := p.generateImplicitOperation(ctx, block)
 			if err != nil {
 				return err
 			}
@@ -196,11 +196,8 @@ func (p *Parser) processCompanionProcess(ctx *ParserContext, node *CanonicalNode
 	operations = append(operations, ops...)
 	node.Process.Symbol.Operations = make([]model.OperationID, 0, len(operations))
 	for _, op := range operations {
+		slog.Debug("fusing operation", "operation", op)
 		err := p.Fuse(op)
-		if err != nil {
-			return err
-		}
-		err = p.Symbols.RegisterConcreteSymbol(op)
 		if err != nil {
 			return err
 		}

@@ -1,7 +1,6 @@
 package hcl
 
 import (
-	"errors"
 	"log/slog"
 
 	"github.com/hashicorp/hcl/v2"
@@ -124,49 +123,4 @@ func (p *Parser) resolveBOMLines(ctx *ParserContext, proc *model.Process, from [
 		}
 	}
 	return operations, nil
-}
-
-func (p *Parser) readContractLine(ctx *ParserContext, expr hcl.Expression) ([]Ref, error) {
-	ret := make([]Ref, 0)
-	switch e := expr.(type) {
-	case *hclsyntax.TupleConsExpr:
-		for _, el := range e.Exprs {
-			ref, err := exprToRef(ctx, el)
-			if err != nil {
-				return nil, err
-			}
-			ret = append(ret, ref)
-		}
-	default:
-		ref, err := exprToRef(ctx, e)
-		if err != nil {
-			return nil, err
-		}
-		ret = append(ret, ref)
-	}
-	return ret, nil
-}
-
-func (p *Parser) resolveContractsID(ctx *ParserContext, contracts []Ref) ([]model.ContractID, error) {
-	ret := make([]model.ContractID, 0, len(contracts))
-	for _, ref := range contracts {
-		sym, err := p.Resolve(ctx, ref)
-		if err != nil {
-			return nil, err
-		}
-		unprocessed, ok := sym.(*UnprocessedSymbol)
-		if !ok {
-			return nil, errors.New("wrong symbol type")
-		}
-		contractSym, err := p.ProcessSymbol(unprocessed)
-		if err != nil {
-			return nil, err
-		}
-		contract, ok := contractSym.(*model.Contract)
-		if !ok {
-			return nil, errors.New("implement non contract")
-		}
-		ret = append(ret, contract.Digest)
-	}
-	return ret, nil
 }
