@@ -1,6 +1,8 @@
 package hcl
 
 import (
+	"errors"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/tychonis/cyanotype/internal/digest"
@@ -57,6 +59,9 @@ func (p *Parser) hasImplicitOperation(ctx *ParserContext, cat string) bool {
 }
 
 func (p *Parser) generateImplicitOperation(ctx *ParserContext, block *hclsyntax.Block) (*model.Operation, error) {
+	if len(block.Labels) < 2 {
+		return nil, errors.New("invalid block labels")
+	}
 	cat := block.Labels[0]
 	name := block.Labels[1]
 

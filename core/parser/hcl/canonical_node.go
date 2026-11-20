@@ -172,7 +172,13 @@ func (p *Parser) processCompanionProcess(ctx *ParserContext, node *CanonicalNode
 				operations = append(operations, operation)
 			}
 		case "operation":
-			continue
+			operation, err := p.processOperationBlock(ctx, block)
+			if err != nil {
+				return err
+			}
+			if operation != nil {
+				operations = append(operations, operation)
+			}
 		case "component":
 			comp, err := p.processComponentBlock(ctx, block)
 			if err != nil {

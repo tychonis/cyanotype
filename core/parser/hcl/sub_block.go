@@ -36,7 +36,7 @@ func (p *Parser) ProcessSubBlocks(ctx *ParserContext, block *hclsyntax.Block) (*
 				return nil, err
 			}
 		case "operation":
-			err := p.processOperationBlock(ctx, child)
+			_, err := p.processOperationBlock(ctx, child)
 			if err != nil {
 				return nil, err
 			}

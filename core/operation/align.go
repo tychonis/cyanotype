@@ -6,14 +6,14 @@ import (
 	"github.com/tychonis/cyanotype/model"
 )
 
-func AlignOperation(points []model.ConcreteSymbol) *model.Operation {
+func AlignOperation(points []model.Qualifier) *model.Operation {
 	op := &model.Operation{
 		Category: "align",
 		Params:   make(map[string]interface{}),
 	}
 	qualifiers := make([]model.Qualifier, 0, len(points))
 	for _, point := range points {
-		qualifiers = append(qualifiers, point.GetQualifier())
+		qualifiers = append(qualifiers, point)
 	}
 	op.Params["points"] = qualifiers
 	return op
