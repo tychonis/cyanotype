@@ -58,7 +58,23 @@ func renderCacheNode(node *bomtree.Node) (*model.Scene, error) {
 	}, nil
 }
 
-func buildPlacementMap(cat *catalog.Catalog, node *bomtree.Node) map[string]model.Placement {
+func solveAlignConstraints(cat *catalog.Catalog, constraints []*model.Operation, placements map[string]model.Placement) error {
+	// for _, op := range constraints {
+	// 	points, err := operation.AlignFromOperation(op)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	for _, point := range points {
+	// 		_, err := cat.FindCurrent(point)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 	}
+	// }
+	return nil
+}
+
+func buildPlacementMap(cat *catalog.Catalog, node *bomtree.Node) (map[string]model.Placement, error) {
 	placements := make(map[string]model.Placement)
 	p := node.Process
 	constraints := make([]*model.Operation, 0)
@@ -83,7 +99,8 @@ func buildPlacementMap(cat *catalog.Catalog, node *bomtree.Node) map[string]mode
 			constraints = append(constraints, op)
 		}
 	}
-	return placements
+	err := solveAlignConstraints(cat, constraints, placements)
+	return placements, err
 }
 
 func renderNode(cat *catalog.Catalog, node *bomtree.Node, recursive bool) (*model.Scene, error) {
@@ -96,7 +113,10 @@ func renderNode(cat *catalog.Catalog, node *bomtree.Node, recursive bool) (*mode
 		}
 	}
 
-	placement := buildPlacementMap(cat, node)
+	placement, err := buildPlacementMap(cat, node)
+	if err != nil {
+		return nil, err
+	}
 
 	objs := []*model.Object{}
 	for _, child := range node.Children {
@@ -126,7 +146,7 @@ func renderNode(cat *catalog.Catalog, node *bomtree.Node, recursive bool) (*mode
 
 func RenderSymbol(cat *catalog.Catalog, sym model.ConcreteSymbol, recursive bool) (*model.Scene, error) {
 	r := ranker.NewCatalogTypeRanker(cat, "drawing")
-	ins := instantiator.New(r)
+	ins := instantiator.New(cat, r)
 	var coItem *model.CoItem
 	var ok bool
 	var err error
@@ -148,9 +168,9 @@ func RenderSymbol(cat *catalog.Catalog, sym model.ConcreteSymbol, recursive bool
 
 	var node *bomtree.Node
 	if recursive {
-		node, err = ins.InstantiateTree(cat, "tmp", coItem)
+		node, err = ins.InstantiateTree("tmp", coItem)
 	} else {
-		node, err = ins.ExpandNode(cat, "tmp", coItem)
+		node, err = ins.ExpandNode("tmp", coItem)
 	}
 	if err != nil {
 		return nil, err

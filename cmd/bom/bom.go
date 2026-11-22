@@ -43,8 +43,8 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	r := ranker.NewCatalogRanker(cat)
-	ins := instantiator.New(r)
-	counter, err := ins.Count(cat, rootPart)
+	ins := instantiator.New(cat, r)
+	counter, err := ins.Count(rootPart)
 	if err != nil {
 		slog.Error("Error counting", "error", err)
 		return err

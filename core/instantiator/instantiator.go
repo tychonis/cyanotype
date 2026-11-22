@@ -12,26 +12,28 @@ import (
 )
 
 type Instantiator struct {
-	Ranker ranker.Ranker
+	Catalog *catalog.Catalog
+	Ranker  ranker.Ranker
 }
 
-func New(r ranker.Ranker) *Instantiator {
+func New(cat *catalog.Catalog, r ranker.Ranker) *Instantiator {
 	if r == nil {
 		r = &ranker.NaiveRanker{}
 	}
 	return &Instantiator{
-		Ranker: r,
+		Catalog: cat,
+		Ranker:  r,
 	}
 }
 
-func (i *Instantiator) instantiateNode(cat *catalog.Catalog, name string, coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
+func (i *Instantiator) instantiateNode(name string, coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
 	node := &bomtree.Node{
 		Name:     name,
 		CoItem:   coitem,
 		Children: make([]*bomtree.Node, 0),
 		Qty:      qty,
 	}
-	cp, err := cat.GetItemCoProcesses(coitem.Digest)
+	cp, err := i.Catalog.GetItemCoProcesses(coitem.Digest)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +44,7 @@ func (i *Instantiator) instantiateNode(cat *catalog.Catalog, name string, coitem
 	node.CoProcess = coProcess
 
 	itemID := coProcess.Input[0].Item
-	itemSym, err := cat.Get(itemID)
+	itemSym, err := i.Catalog.Get(itemID)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +54,7 @@ func (i *Instantiator) instantiateNode(cat *catalog.Catalog, name string, coitem
 	}
 	node.Item = item
 
-	p, err := cat.GetItemProcesses(item.Digest)
+	p, err := i.Catalog.GetItemProcesses(item.Digest)
 	if err != nil {
 		return nil, err
 	}
@@ -65,13 +67,13 @@ func (i *Instantiator) instantiateNode(cat *catalog.Catalog, name string, coitem
 	return node, nil
 }
 
-func (i *Instantiator) instantiate(cat *catalog.Catalog, name string, coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
-	node, err := i.instantiateNode(cat, name, coitem, qty)
+func (i *Instantiator) instantiate(name string, coitem *model.CoItem, qty float64) (*bomtree.Node, error) {
+	node, err := i.instantiateNode(name, coitem, qty)
 	if err != nil {
 		return nil, err
 	}
 	for _, input := range node.Process.Input {
-		child, err := cat.Get(input.Item)
+		child, err := i.Catalog.Get(input.Item)
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +81,7 @@ func (i *Instantiator) instantiate(cat *catalog.Catalog, name string, coitem *mo
 		if !ok {
 			return nil, errors.New("invalid input")
 		}
-		childNode, err := i.instantiate(cat, input.Name, childCoItem, input.Qty)
+		childNode, err := i.instantiate(input.Name, childCoItem, input.Qty)
 		if err != nil {
 			return nil, err
 		}
@@ -93,14 +95,14 @@ func (i *Instantiator) instantiate(cat *catalog.Catalog, name string, coitem *mo
 	return node, nil
 }
 
-func (i *Instantiator) InstantiateTree(cat *catalog.Catalog, name string, coItem *model.CoItem) (*bomtree.Node, error) {
-	return i.instantiate(cat, name, coItem, 1)
+func (i *Instantiator) InstantiateTree(name string, coItem *model.CoItem) (*bomtree.Node, error) {
+	return i.instantiate(name, coItem, 1)
 }
 
 // InstantiateTreeFromItem provides a shortcut. Trees should be instantiated from a coitem.
-func (i *Instantiator) InstantiateTreeFromItem(cat *catalog.Catalog, name string, item *model.Item) (*bomtree.Node, error) {
+func (i *Instantiator) InstantiateTreeFromItem(name string, item *model.Item) (*bomtree.Node, error) {
 	coItemQualifier := qualifier.ImplicitCoItem(item)
-	coItemSym, err := cat.FindCurrent(coItemQualifier)
+	coItemSym, err := i.Catalog.FindCurrent(coItemQualifier)
 	if err != nil {
 		return nil, err
 	}
@@ -108,16 +110,16 @@ func (i *Instantiator) InstantiateTreeFromItem(cat *catalog.Catalog, name string
 	if !ok {
 		return nil, errors.New("not a coitem")
 	}
-	return i.InstantiateTree(cat, name, coItem)
+	return i.InstantiateTree(name, coItem)
 }
 
-func (i *Instantiator) ExpandNode(cat *catalog.Catalog, name string, coitem *model.CoItem) (*bomtree.Node, error) {
-	node, err := i.instantiateNode(cat, name, coitem, 1)
+func (i *Instantiator) ExpandNode(name string, coitem *model.CoItem) (*bomtree.Node, error) {
+	node, err := i.instantiateNode(name, coitem, 1)
 	if err != nil {
 		return nil, err
 	}
 	for _, input := range node.Process.Input {
-		child, err := cat.Get(input.Item)
+		child, err := i.Catalog.Get(input.Item)
 		if err != nil {
 			return nil, err
 		}
@@ -125,7 +127,7 @@ func (i *Instantiator) ExpandNode(cat *catalog.Catalog, name string, coitem *mod
 		if !ok {
 			return nil, errors.New("invalid input")
 		}
-		childNode, err := i.instantiateNode(cat, input.Name, childCoItem, input.Qty)
+		childNode, err := i.instantiateNode(input.Name, childCoItem, input.Qty)
 		if err != nil {
 			return nil, err
 		}
@@ -139,18 +141,18 @@ func (i *Instantiator) ExpandNode(cat *catalog.Catalog, name string, coitem *mod
 	return node, nil
 }
 
-func (i *Instantiator) TreeFromQualifier(cat *catalog.Catalog, root string) (*bomtree.Node, error) {
-	sym, err := cat.FindCurrent(root)
+func (i *Instantiator) TreeFromQualifier(root string) (*bomtree.Node, error) {
+	sym, err := i.Catalog.FindCurrent(root)
 	if err != nil {
 		return nil, err
 	}
 
 	switch resolved := sym.(type) {
 	case *model.CoItem:
-		return i.InstantiateTree(cat, resolved.GetName(), resolved)
+		return i.InstantiateTree(resolved.GetName(), resolved)
 	case *model.Item:
 		// TODO: Deprecate this.
-		return i.InstantiateTreeFromItem(cat, resolved.GetName(), resolved)
+		return i.InstantiateTreeFromItem(resolved.GetName(), resolved)
 	default:
 		return nil, errors.New("unknown symbol type")
 	}

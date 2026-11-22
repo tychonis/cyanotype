@@ -47,8 +47,8 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	r := ranker.NewCatalogRanker(cat)
-	ins := instantiator.New(r)
-	rootNode, err := ins.TreeFromQualifier(cat, root)
+	ins := instantiator.New(cat, r)
+	rootNode, err := ins.TreeFromQualifier(root)
 	if err != nil {
 		slog.Error("Failed to build.", "error", err)
 		return err
