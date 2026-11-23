@@ -21,7 +21,7 @@ func TestPlacementComposeTranslation(t *testing.T) {
 		Position: model.Vec3{10, 20, 30},
 	}
 
-	got := childToParent.Compose(&parentToGrandparent)
+	got := childToParent.Compose(parentToGrandparent)
 
 	want := model.Vec3{11, 22, 33}
 	for i := range 3 {
@@ -44,7 +44,7 @@ func TestPlacementComposeRotation(t *testing.T) {
 		Position: model.IdentityVec3,
 	}
 
-	got := childToParent.Compose(&parentToGrandparent)
+	got := childToParent.Compose(parentToGrandparent)
 
 	want := model.Vec3{0, 1, 0}
 	for i := range 3 {
@@ -60,7 +60,7 @@ func TestPlacementComposeIdentity(t *testing.T) {
 		Position: model.Vec3{1, 2, 3},
 	}
 
-	got := p.Compose(&model.IdentityPlacement)
+	got := p.Compose(model.IdentityPlacement)
 
 	if got.Rotation != p.Rotation || got.Position != p.Position {
 		t.Fatalf("got %+v, want %+v", got, p)
@@ -82,7 +82,7 @@ func TestPlacementComposeRotationAndTranslation(t *testing.T) {
 		Position: model.Vec3{0, 2, 0},
 	}
 
-	got := childToParent.Compose(&parentToGrandparent)
+	got := childToParent.Compose(parentToGrandparent)
 
 	// Rotation: 90° + 90° = 180° around Z.
 	wantRotation := model.Quaternion{0, 0, 1, 0}

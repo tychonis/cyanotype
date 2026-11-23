@@ -37,9 +37,9 @@ func (q Quaternion) Inverse() Quaternion {
 	return Quaternion{-q[0] / n, -q[1] / n, -q[2] / n, q[3] / n}
 }
 
-func (p *Placement) Inverse() *Placement {
+func (p Placement) Inverse() Placement {
 	r := p.Rotation.Inverse()
-	return &Placement{
+	return Placement{
 		Rotation: r,
 		Position: r.Rotate(Vec3{
 			-p.Position[0],
@@ -72,19 +72,19 @@ var IdentityPlacement = Placement{
 
 // Compose returns the placement obtained by applying p first, then p2.
 // For child->parent p and parent->grandparent p2, the result is child->grandparent.
-func (p *Placement) Compose(p2 *Placement) *Placement {
-	return &Placement{
+func (p Placement) Compose(p2 Placement) Placement {
+	return Placement{
 		Rotation: p2.Rotation.Mul(p.Rotation),
 		Position: p2.Rotation.Rotate(p.Position).Add(p2.Position),
 	}
 }
 
-func (p *Placement) Align(p_ref *Placement, p2_ref *Placement) *Placement {
+func (p Placement) Align(p_ref Placement, p2_ref Placement) Placement {
 	return p2_ref.Inverse().Compose(p_ref).Compose(p)
 }
 
-func (p *Placement) Mate(p_ref *Placement, p2_ref *Placement) *Placement {
-	flip := &Placement{
+func (p Placement) Mate(p_ref Placement, p2_ref Placement) Placement {
+	flip := Placement{
 		Rotation: Quaternion{1, 0, 0, 0},
 		Position: IdentityVec3,
 	}

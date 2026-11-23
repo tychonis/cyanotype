@@ -3,7 +3,6 @@ package hcl
 import (
 	"errors"
 	"log/slog"
-	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -57,14 +56,6 @@ func (p *Parser) ProcessSymbol(s *UnprocessedSymbol) (sym model.ConcreteSymbol, 
 		err = cerror.ErrorWithRange(err, s.Block.Range())
 	}
 	return
-}
-
-func refToQualifier(ctx *ParserContext, ref []string) string {
-	if ctx.CurrentModule() == "." {
-		return "." + strings.Join(ref, ".")
-	} else {
-		return strings.Join(append([]string{ctx.CurrentModule()}, ref...), ".")
-	}
 }
 
 var RESERVED = map[string]struct{}{

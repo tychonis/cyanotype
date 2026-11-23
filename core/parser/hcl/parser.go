@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -66,6 +67,11 @@ func (ctx *ParserContext) NameToQualifier(name string) string {
 		prefix = ""
 	}
 	return prefix + "." + name
+}
+
+func (ctx *ParserContext) RefToQualifier(ref Ref) string {
+	name := strings.Join(ref, ".")
+	return ctx.NameToQualifier(name)
 }
 
 func NewParser() *Parser {
@@ -214,7 +220,7 @@ func (p *Parser) processModuleScope(m *symbols.ModuleScope) error {
 }
 
 func (p *Parser) resolveBOMLineRef(ctx *ParserContext, ref Ref) (*model.Item, error) {
-	qualifier := refToQualifier(ctx, ref)
+	qualifier := ctx.RefToQualifier(ref)
 	itemSym, err := p.Symbols.FindConcreteSymbol(qualifier)
 	if err != nil {
 		if err != symbols.ErrNotFound {

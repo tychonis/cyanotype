@@ -37,7 +37,7 @@ func renderLeafNode(node *bomtree.Node) (*model.Scene, error) {
 		ItemName:  node.Item.GetName(),
 		Source:    m.Source,
 		Type:      "." + comps[len(comps)-1],
-		Placement: &model.IdentityPlacement,
+		Placement: model.IdentityPlacement,
 	}
 	return &model.Scene{
 		Objects: []*model.Object{&obj},
@@ -51,36 +51,76 @@ func renderCacheNode(node *bomtree.Node) (*model.Scene, error) {
 		ItemName:  node.Item.GetName(),
 		Source:    node.Item.Digest,
 		Type:      "cache",
-		Placement: &model.IdentityPlacement,
+		Placement: model.IdentityPlacement,
 	}
 	return &model.Scene{
 		Objects: []*model.Object{&obj},
 	}, nil
 }
 
-func solveAlignConstraints(cat *catalog.Catalog, constraints []*model.Operation, placements map[string]model.Placement) error {
-	// for _, op := range constraints {
-	// 	points, err := operation.AlignFromOperation(op)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	for _, point := range points {
-	// 		_, err := cat.FindCurrent(point)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 	}
-	// }
-	return nil
+// hackyway to get item and process from a qualifier point
+// returns item, process, error
+func getItemAndOperationFromPoint(point model.Qualifier) (model.Qualifier, model.Qualifier, error) {
+	components := strings.Split(string(point), ".")
+	if len(components) < 2 {
+		return "", "", fmt.Errorf("invalid qualifier format")
+	}
+	item := strings.Join(components[:len(components)-1], ".")
+	fakeItem := &model.Item{}
+	fakeItem.Qualifier = model.Qualifier(item)
+	process := qualifier.ImplicitProcess(fakeItem)
+	operation := process + "." + components[len(components)-1]
+	return model.Qualifier(item), model.Qualifier(operation), nil
 }
 
-func buildPlacementMap(cat *catalog.Catalog, node *bomtree.Node) (map[string]model.Placement, error) {
+func getAlignPoint(ins *instantiator.Instantiator, point model.Qualifier) (*AlignPoint, error) {
+	// pointSymbol, err := ins.Catalog.Get(point)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// contract, ok := pointSymbol.(*model.Contract)
+	// if !ok {
+	// 	return nil, fmt.Errorf("symbol is not a contract")
+	// }
+	// return &AlignPoint{
+	// 	Child: child,
+	// 	Frame: placement,
+	// }, nil
+	return nil, nil
+}
+
+func solveConstraints(ins *instantiator.Instantiator, constraints []*model.Operation, placements map[string]model.Placement) error {
+	alignConstraints := make([]AlignConstraint, 0)
+	for _, op := range constraints {
+		points, err := operation.AlignFromOperation(op)
+		if err != nil {
+			return err
+		}
+		alignPoints := make([]AlignPoint, 0, len(points))
+		for _, point := range points {
+			ap, err := getAlignPoint(ins, point)
+			if err != nil {
+				return err
+			}
+			alignPoints = append(alignPoints, *ap)
+		}
+		for _, p := range alignPoints[1:] {
+			alignConstraints = append(alignConstraints, AlignConstraint{
+				A: alignPoints[0],
+				B: p,
+			})
+		}
+	}
+	return solveAlignConstraints(alignConstraints, placements)
+}
+
+func buildPlacementMap(ins *instantiator.Instantiator, node *bomtree.Node) (map[string]model.Placement, error) {
 	placements := make(map[string]model.Placement)
 	p := node.Process
 	constraints := make([]*model.Operation, 0)
 
 	for _, opID := range p.Operations {
-		sym, err := cat.Get(opID)
+		sym, err := ins.Catalog.Get(opID)
 		if err != nil {
 			continue
 		}
@@ -99,11 +139,11 @@ func buildPlacementMap(cat *catalog.Catalog, node *bomtree.Node) (map[string]mod
 			constraints = append(constraints, op)
 		}
 	}
-	err := solveAlignConstraints(cat, constraints, placements)
+	err := solveConstraints(ins, constraints, placements)
 	return placements, err
 }
 
-func renderNode(cat *catalog.Catalog, node *bomtree.Node, recursive bool) (*model.Scene, error) {
+func renderNode(ins *instantiator.Instantiator, node *bomtree.Node, recursive bool) (*model.Scene, error) {
 	slog.Debug("rendering node", "node", node.Name)
 	if len(node.Children) <= 0 {
 		if recursive {
@@ -113,7 +153,7 @@ func renderNode(cat *catalog.Catalog, node *bomtree.Node, recursive bool) (*mode
 		}
 	}
 
-	placement, err := buildPlacementMap(cat, node)
+	placement, err := buildPlacementMap(ins, node)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +163,7 @@ func renderNode(cat *catalog.Catalog, node *bomtree.Node, recursive bool) (*mode
 		var childScene *model.Scene
 		var err error
 		if recursive {
-			childScene, err = renderNode(cat, child, recursive)
+			childScene, err = renderNode(ins, child, recursive)
 		} else {
 			childScene, err = renderCacheNode(child)
 		}
@@ -135,7 +175,7 @@ func renderNode(cat *catalog.Catalog, node *bomtree.Node, recursive bool) (*mode
 			if !ok {
 				childPlacement = model.IdentityPlacement
 			}
-			obj.Placement = obj.Placement.Compose(&childPlacement)
+			obj.Placement = obj.Placement.Compose(childPlacement)
 		}
 		objs = append(objs, childScene.Objects...)
 	}
@@ -175,5 +215,5 @@ func RenderSymbol(cat *catalog.Catalog, sym model.ConcreteSymbol, recursive bool
 	if err != nil {
 		return nil, err
 	}
-	return renderNode(cat, node, recursive)
+	return renderNode(ins, node, recursive)
 }

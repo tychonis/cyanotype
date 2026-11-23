@@ -45,7 +45,7 @@ func (p *Parser) processAlignOperation(ctx *ParserContext, block *hclsyntax.Bloc
 		if err != nil {
 			return nil, err
 		}
-		qualifier := refToQualifier(ctx, ref)
+		qualifier := ctx.RefToQualifier(ref)
 		qualifiers = append(qualifiers, qualifier)
 	}
 
