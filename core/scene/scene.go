@@ -1,6 +1,7 @@
 package scene
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -58,35 +59,103 @@ func renderCacheNode(node *bomtree.Node) (*model.Scene, error) {
 	}, nil
 }
 
-// hackyway to get item and process from a qualifier point
-// returns item, process, error
-func getItemAndOperationFromPoint(point model.Qualifier) (model.Qualifier, model.Qualifier, error) {
-	components := strings.Split(string(point), ".")
-	if len(components) < 2 {
-		return "", "", fmt.Errorf("invalid qualifier format")
+type SymbolAttribute struct {
+	Symbol        model.ConcreteSymbol
+	RemainingPath string
+}
+
+// TODO: Find out a better way to resolve symbol attributes from a qualifier point
+func resolveSymbolAttribute(ins *instantiator.Instantiator, point model.Qualifier) (*SymbolAttribute, error) {
+	qualifier := string(point)
+
+	for {
+		sym, err := ins.Catalog.FindCurrent(qualifier)
+		if err == nil {
+			suffix := strings.TrimPrefix(point, qualifier)
+			suffix = strings.TrimPrefix(suffix, ".")
+
+			return &SymbolAttribute{
+				Symbol:        sym,
+				RemainingPath: suffix,
+			}, nil
+		}
+		if !errors.Is(err, catalog.ErrNotFound) {
+			return nil, err
+		}
+
+		i := strings.LastIndex(qualifier, ".")
+		if i <= 0 {
+			return nil, fmt.Errorf("cannot resolve symbol attribute %q: %w",
+				point, catalog.ErrNotFound)
+		}
+		qualifier = qualifier[:i]
 	}
-	item := strings.Join(components[:len(components)-1], ".")
-	fakeItem := &model.Item{}
-	fakeItem.Qualifier = model.Qualifier(item)
-	process := qualifier.ImplicitProcess(fakeItem)
-	operation := process + "." + components[len(components)-1]
-	return model.Qualifier(item), model.Qualifier(operation), nil
+}
+
+func getOperation(ins *instantiator.Instantiator, node *bomtree.Node, name string) (*model.Operation, error) {
+	for _, opID := range node.Process.Operations {
+		sym, err := ins.Catalog.Get(opID)
+		if err != nil {
+			continue
+		}
+		op, ok := sym.(*model.Operation)
+		if !ok {
+			continue
+		}
+		if op.Name == name {
+			return op, nil
+		}
+		slog.Info("looking for operation", "opID", opID, "name", op.Name)
+
+	}
+	return nil, fmt.Errorf("operation %s not found in node %s", name, node.Item.GetName())
 }
 
 func getAlignPoint(ins *instantiator.Instantiator, point model.Qualifier) (*AlignPoint, error) {
-	// pointSymbol, err := ins.Catalog.Get(point)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// contract, ok := pointSymbol.(*model.Contract)
-	// if !ok {
-	// 	return nil, fmt.Errorf("symbol is not a contract")
-	// }
-	// return &AlignPoint{
-	// 	Child: child,
-	// 	Frame: placement,
-	// }, nil
-	return nil, nil
+	pAttr, err := resolveSymbolAttribute(ins, point)
+	if err != nil {
+		return nil, err
+	}
+	child := strings.Split(pAttr.RemainingPath, ".")
+	proc, ok := pAttr.Symbol.(*model.Process)
+	if !ok {
+		slog.Info("symbol is not a process", "symbol", pAttr.Symbol, "remainingPath", pAttr.RemainingPath)
+		return nil, fmt.Errorf("symbol is not a process")
+	}
+
+	if len(child) < 2 {
+		return nil, fmt.Errorf("invalid attribute path %s for process %s", pAttr.RemainingPath, proc.Name)
+	}
+
+	bomLine := proc.GetBomLine(child[0])
+	if bomLine == nil {
+		return nil, fmt.Errorf("cannot find BOM line %s in process %s", child[0], proc.Name)
+	}
+	coitemSym, err := ins.Catalog.Get(bomLine.Item)
+	if err != nil {
+		return nil, err
+	}
+	coitem, ok := coitemSym.(*model.CoItem)
+	if !ok {
+		return nil, fmt.Errorf("symbol is not an coitem")
+	}
+	node, err := ins.ExpandNode("tmp", coitem)
+	if err != nil {
+		return nil, err
+	}
+	op, err := getOperation(ins, node, child[1])
+	if err != nil {
+		return nil, err
+	}
+	placement, err := operation.PointFromOperation(op)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AlignPoint{
+		Child: child[0],
+		Frame: placement,
+	}, nil
 }
 
 func solveConstraints(ins *instantiator.Instantiator, constraints []*model.Operation, placements map[string]model.Placement) error {
@@ -157,9 +226,11 @@ func renderNode(ins *instantiator.Instantiator, node *bomtree.Node, recursive bo
 	if err != nil {
 		return nil, err
 	}
+	slog.Info("placement map final", "placement", placement)
 
 	objs := []*model.Object{}
 	for _, child := range node.Children {
+		slog.Info("rendering child", "child", child.Name)
 		var childScene *model.Scene
 		var err error
 		if recursive {

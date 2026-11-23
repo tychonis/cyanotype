@@ -116,9 +116,9 @@ func (p *Parser) resolveBOMLines(ctx *ParserContext, proc *model.Process, from [
 			Qty:  comp.Qty,
 		})
 		if comp.HasPlacement {
-			op := operation.PlacementOperation(coItemSym, comp.Placement)
-			op.Name = comp.Name
-			op.Qualifier = ctx.NameToQualifier(comp.Name)
+			op := operation.PlacementOperation(comp.Name, comp.Placement)
+			op.Name = "_" + comp.Name
+			op.Qualifier = ctx.NameToQualifier(op.Name)
 			operations = append(operations, op)
 		}
 	}

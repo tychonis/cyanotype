@@ -5,6 +5,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
+	"github.com/tychonis/cyanotype/core/operation"
 	"github.com/tychonis/cyanotype/internal/digest"
 	"github.com/tychonis/cyanotype/model"
 )
@@ -13,16 +15,15 @@ func (p *Parser) getContractParams(ctx *ParserContext, cat string, attrs hcl.Att
 	return nil, nil
 }
 
-func (p *Parser) getImplicitOperationParams(ctx *ParserContext, cat string, attrs hcl.Attributes) (map[string]any, error) {
-	params := make(map[string]any)
+func (p *Parser) getImplicitOperation(ctx *ParserContext, cat string, attrs hcl.Attributes) (*model.Operation, error) {
 	if cat == "point" {
 		location, err := getPlacement(attrs, "location")
 		if err != nil {
 			return nil, err
 		}
-		params["location"] = location
+		return operation.PointOperation(location), nil
 	}
-	return params, nil
+	return nil, errors.ErrUnsupported
 }
 
 func (p *Parser) processContractBlock(ctx *ParserContext, block *hclsyntax.Block) (*model.Contract, error) {
@@ -72,15 +73,11 @@ func (p *Parser) generateImplicitOperation(ctx *ParserContext, block *hclsyntax.
 	if diags.HasErrors() {
 		return nil, diags
 	}
-	params, err := p.getImplicitOperationParams(ctx, cat, attrs)
+	op, err := p.getImplicitOperation(ctx, cat, attrs)
 	if err != nil {
 		return nil, err
 	}
-	op := &model.Operation{
-		Category: cat,
-		Name:     name,
-		Params:   params,
-	}
+	op.Name = name
 	op.Qualifier = ctx.NameToQualifier(name)
 	return op, nil
 }

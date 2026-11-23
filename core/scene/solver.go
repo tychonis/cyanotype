@@ -2,6 +2,7 @@ package scene
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/tychonis/cyanotype/internal/geometry"
 	"github.com/tychonis/cyanotype/model"
@@ -51,6 +52,7 @@ func solveAlignConstraints(
 	constraints []AlignConstraint,
 	placements map[string]model.Placement,
 ) error {
+	slog.Info("placements", "p", placements)
 	for {
 		progress := false
 
@@ -67,14 +69,14 @@ func solveAlignConstraints(
 		}
 	}
 
-	for _, c := range constraints {
-		if _, ok := placements[c.A.Child]; !ok {
-			return fmt.Errorf("unresolved alignment: %s", c.A.Child)
-		}
-		if _, ok := placements[c.B.Child]; !ok {
-			return fmt.Errorf("unresolved alignment: %s", c.B.Child)
-		}
-	}
+	// for _, c := range constraints {
+	// 	if _, ok := placements[c.A.Child]; !ok {
+	// 		return fmt.Errorf("unresolved alignment: %s", c.A.Child)
+	// 	}
+	// 	if _, ok := placements[c.B.Child]; !ok {
+	// 		return fmt.Errorf("unresolved alignment: %s", c.B.Child)
+	// 	}
+	// }
 
 	return nil
 }

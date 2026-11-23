@@ -20,9 +20,17 @@ func AlignOperation(points []model.Qualifier) *model.Operation {
 }
 
 func AlignFromOperation(op *model.Operation) ([]model.Qualifier, error) {
-	points, ok := op.Params["points"].([]model.Qualifier)
+	points, ok := op.Params["points"].([]any)
 	if !ok {
 		return nil, fmt.Errorf("points not found or invalid")
 	}
-	return points, nil
+	pointsSlice := make([]model.Qualifier, 0, len(points))
+	for _, point := range points {
+		q, ok := point.(model.Qualifier)
+		if !ok {
+			return nil, fmt.Errorf("invalid point in points")
+		}
+		pointsSlice = append(pointsSlice, q)
+	}
+	return pointsSlice, nil
 }
